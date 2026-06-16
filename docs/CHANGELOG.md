@@ -12,6 +12,7 @@
 - 配置私有 GitHub 远程仓库：`ymchuan/AI_Lab_Platform.git`。
 - 新增 `embedding_health_eval.py`，用于验证 OpenAI-compatible embeddings 端点、向量维度和最小检索 smoke test。
 - 补录 `qwen/qwen3-30b-a3b-2507` 与 `text-embedding-nomic-embed-text-v1.5` 的 2026-06-16 本地评测结果。
+- 补录 `qwen/qwen3.6-35b-a3b` 复测结果：当前 preset 仍是 reasoning-only 失败模式，`/no_think` 无效，不提升为默认 Agent 模型。
 
 ### Fixed
 - 修复 `benchmarks/datasets/model_prompts.jsonl` 中残留的中文乱码，避免 latency / coding prompt 污染。

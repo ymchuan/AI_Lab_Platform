@@ -427,3 +427,32 @@ Interpretation:
 2. It is weaker than `qwen/qwen3-coder-30b` on the gateway troubleshooting task and full-context repo-map stability.
 3. It may remain useful as a general planning / patch comparison model, but it does not currently displace Qwen3-Coder as the main Cline/Agent candidate.
 4. `text-embedding-nomic-embed-text-v1.5` is usable as an embedding endpoint smoke test, but the 2/3 toy retrieval result means it still needs a real RAG retrieval benchmark with chunking and rerank before becoming the project default.
+
+
+## 2026-06-16 Qwen3.6-35B-A3B Re-test
+
+Model:
+
+```text
+LM Studio model id: qwen/qwen3.6-35b-a3b
+Base URL: http://127.0.0.1:1234/v1
+```
+
+Summary:
+
+| Run | Result | Result File | Notes |
+|-----|--------|-------------|-------|
+| gateway health | mixed | `gateway_health_20260616_142940.jsonl` | `/v1/models` OK; minimal chat ended in `reasoning_content` with `finish_reason=length` |
+| model latency | mixed | `model_latency_20260616_143035.jsonl` | 4/4 HTTP OK, about 41-42s each; 3/4 had empty `content` and large `reasoning_content` |
+| agent tasks | fail | `agent_tasks_20260616_143335.jsonl` | strict 0/4, soft 0/4; all content empty, all length-stopped in reasoning |
+| agent tasks `/no_think` | fail | `agent_tasks_20260616_144506.jsonl` | `/no_think` still produced empty `content` and length-stopped reasoning |
+| Cline dialogue | fail | `cline_dialogue_20260616_143731.jsonl` | strict 0/2, soft 0/2; content empty |
+| RAG oracle | mixed | `rag_oracle_20260616_143938.jsonl` | 1/3 strict; only short factual answers reached final `content` |
+| patch tasks | fail | `patch_tasks_20260616_144108.jsonl` | 0/2; no diff, content empty |
+| repo map | fail | `repo_map_20260616_144349.jsonl` | one HTTP 400 and one length-stopped reasoning-only response |
+
+Interpretation:
+
+1. This model is fast enough to respond, but the current LM Studio preset spends most of the budget in `reasoning_content`.
+2. Because `message.content` is usually empty, it remains unsuitable for Cline, Agent execution, patch generation, and RAG answer generation.
+3. `/no_think` does not fix the current preset, so it should not be promoted unless we find a model template/preset that reliably emits final `content`.

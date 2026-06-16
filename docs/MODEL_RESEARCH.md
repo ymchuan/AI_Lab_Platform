@@ -40,7 +40,7 @@
 | P0 | Qwen3-Coder-30B-A3B-Instruct 或当前可下载的 Qwen3-Coder 30B 量化版 | Cline / coding agent 主模型 | LM Studio GGUF 先跑通；稳定后再测 SGLang/vLLM | 代码和 agentic coding 更贴近求职目标 |
 | P0 (已测) | `qwen/qwen3-coder-30b` | coding / patch 候选 | 继续优化 tool choice、repo map、多轮稳定性 | 已能稳定返回 `content` 并通过 2/2 patch tasks |
 | P0 | Qwen3.6-35B-A3B 量化版 | 通用 + coding + agent 对照 | 5090 上跑 4bit/5bit；记录显存和上下文长度 | 35B-A3B 级别适合 32GB VRAM 做主力模型候选 |
-| P0 (已测) | `qwen/qwen3.6-35b-a3b` | 通用 / reasoning 对照 | 速度很快，但 `content` 经常为空，patch/agent/Cline 失败 | 不提升为默认 Agent 执行模型 |
+| P0 (已测) | `qwen/qwen3.6-35b-a3b` | 通用 / reasoning 对照 | 2026-06-16 复测仍是 reasoning-only 失败模式，`/no_think` 无效 | 不提升为默认 Agent 执行模型 |
 | P0 (已测) | `qwen/qwen3-30b-a3b-2507` | 通用 / planning / patch 对照 | 可保留为对照模型；不作为当前默认 Cline 主模型 | agent_tasks strict 3/4、patch 2/2，但长任务约 110s+，repo map full-context 超时 |
 | P1 | Qwen3-Coder-Next | 高阶 coding agent 实验 | GGUF + CPU/GPU 混合卸载；不作为第一稳定服务 | 80B total / 3B active，agentic coding 强，但权重总量对 32GB VRAM 更激进 |
 | P1 | DeepSeek-R1-Distill-Qwen-32B | 推理/规划对照 | 量化版，单独测 reasoning 质量 | 适合复杂推理，不一定适合工具调用和 Cline |
