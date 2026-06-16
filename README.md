@@ -6,7 +6,7 @@
 
 本项目将内网 GPU 主机上的本地大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何支持 OpenAI 协议的客户端（Cline、OpenWebUI、Cursor 等）都能像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-06-16 校准）：5090 主机已部署并运行 LM Studio，本地已验证 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`google/gemma-4-31b`、`text-embedding-nomic-embed-text-v1.5` 等候选模型；4090D + 4060 Ti 16GB 混插的新设备尚未接入；8060S 当前无法使用，暂不纳入近期资源池。云服务器固定为 2 核 2GB Ubuntu 24.04，短期内不会升级，后续设计必须把它当作轻量控制面，而不是计算节点。当前 SSH 反向隧道需要在 5090 手动开启；未开启时公网 chat 调用失败是预期状态。
+当前事实基线（2026-06-16 校准）：5090 主机已部署并运行 LM Studio，本地已验证 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`zai-org/glm-4.7-flash`、`google/gemma-4-31b`、`text-embedding-nomic-embed-text-v1.5` 等候选模型；4090D + 4060 Ti 16GB 混插的新设备尚未接入；8060S 当前无法使用，暂不纳入近期资源池。云服务器固定为 2 核 2GB Ubuntu 24.04，短期内不会升级，后续设计必须把它当作轻量控制面，而不是计算节点。当前 SSH 反向隧道需要在 5090 手动开启；未开启时公网 chat 调用失败是预期状态。
 
 新设备的显存可以按资源规划理解为 `24GB + 16GB = 40GB`，但它不是一块连续 40GB 显存。单个模型能否跨 4090D 和 4060 Ti 运行，取决于推理引擎是否支持 tensor parallel、pipeline parallel、layer offload 或手动把不同模型分配到不同 GPU。短期更稳妥的规划是：4090D 跑第二推理/代码模型，4060 Ti 跑 Embedding、Reranker 或轻量实验模型。
 
@@ -77,8 +77,9 @@ Model:    qwen-local
 
 | 别名 | 实际模型 | 位置 | 用途 |
 |------|---------|------|------|
-| `qwen-local` | `qwen/qwen3.6-27b` GGUF Q6_K | 5090 | 主力对话/编程基线 |
-| `embed-local` | 待部署 | 新设备 | 文本向量化 |
+| `qwen-agent` | 当前首选候选：`qwen/qwen3-coder-30b` | 5090 | Cline / coding / Agent 执行候选 |
+| `qwen-think` | `qwen/qwen3.6-27b` GGUF Q6_K | 5090 | reasoning baseline，不作为默认执行模型 |
+| `embed-local` | `text-embedding-nomic-embed-text-v1.5` 已 smoke test；正式路由待接入 | 5090 / 新设备 | 文本向量化 |
 | `whisper-local` | 暂不部署 | - | 8060S 当前不可用，语音识别后移 |
 
 ## 文档索引
@@ -109,11 +110,11 @@ Model:    qwen-local
 ## 技术栈
 
 ```text
-推理层:   LM Studio + qwen/qwen3.6-27b GGUF Q6_K (RTX 5090)
+推理层:   LM Studio + 本地候选模型池（Qwen3-Coder-30B 当前最强 Agent 候选）
 网关层:   LiteLLM (OpenAI-compatible API Gateway)
 网络层:   SSH Reverse Tunnel + 云服务器 (Ubuntu 24.04)
 客户端:   Cline (VS Code) + OpenWebUI (Web)
-评测层:   benchmarks/ (gateway + latency + agent + RAG + repo map + patch + Cline dialogue)
+评测层:   benchmarks/ (gateway + latency + agent + RAG + repo map + patch + Cline dialogue + embedding)
 协议:     OpenAI Compatible API (/v1/chat/completions)
 ```
 

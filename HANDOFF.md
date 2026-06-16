@@ -6,7 +6,7 @@
 
 把内网 GPU 主机的大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何客户端像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-06-15 校准）：5090 主机已部署并运行 `qwen/qwen3.6-27b` 本地模型，文件为 `Qwen3.6-27B-Q6_K.gguf`，格式 GGUF，量化 Q6_K，大小约 23.01GB；新设备尚未配置模型、隧道或 LiteLLM 路由；8060S 当前无法使用，冻结近期接入计划。云服务器是 2 核 2GB Ubuntu 24.04，短期无法升级，也没有预算扩容，后续只能作为轻量网关和中转节点。当前 SSH 反向隧道不是常驻状态，需要在 5090 手动开启。
+当前事实基线（2026-06-16 校准）：5090 主机已接入 LM Studio，并已测试 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`google/gemma-4-31b`、`zai-org/glm-4.7-flash`、`text-embedding-nomic-embed-text-v1.5`。当前最强 Cline / coding / agent-readiness 候选是 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 只保留为 `qwen-think` reasoning baseline。新设备尚未配置模型、隧道或 LiteLLM 路由；8060S 当前无法使用，冻结近期接入计划。云服务器是 2 核 2GB Ubuntu 24.04，短期无法升级，也没有预算扩容，后续只能作为轻量网关和中转节点。当前 SSH 反向隧道不是常驻状态，需要在 5090 手动开启。
 
 新设备的 4090D 24GB + 4060 Ti 16GB 可以按资源规划理解为 40GB 总显存池，但不是单个连续 40GB 显存。短期更稳的使用方式是 4090D 承担第二推理/代码模型，4060 Ti 承担 Embedding、Reranker 或轻量实验模型；单模型跨卡需要看推理引擎是否支持并行或分层卸载。
 
@@ -14,7 +14,7 @@
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
 |------|------|---------|---------|---------|
-| 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ 运行 `qwen/qwen3.6-27b` GGUF Q6_K | 主力推理 / Agent 主模型候选 |
+| 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ LM Studio 已接入，多模型评测中 | 主力推理 / `qwen-agent` 候选 |
 | 新设备 | RTX 4090D 24GB + RTX 4060 Ti 16GB + AMD 集显 + 61.6GB RAM | 172.16.x.x | ⏳ 未接入 | 第二推理/代码模型 + Embedding/Reranker |
 | 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 31.6GB RAM | 172.16.14.142 | ⛔ 当前无法使用 | 冻结近期接入计划 |
 | 云服务器 | 2核 2GB Ubuntu 24.04 | 82.156.69.153 (公网) | ✅ LiteLLM 运行中 | 轻量 API 网关 |
@@ -26,7 +26,7 @@
     ↓ http://82.156.69.153:8000/v1
 云服务器 LiteLLM (API Key + 模型路由)
     ↓ SSH :12340（需要 5090 手动开启反向隧道）
-5090 LM Studio → qwen/qwen3.6-27b（GGUF Q6_K）
+5090 LM Studio → 本地候选模型池（当前 `qwen/qwen3-coder-30b` 最适合作为 `qwen-agent` 候选）
 ```
 
 ## 怎么连上云服务器

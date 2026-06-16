@@ -7,7 +7,7 @@
 
 | 节点 | 硬件 | 内存 | 当前状态 | 定位 |
 |------|------|------|---------|------|
-| 5090 | RTX 5090 32GB + AMD Radeon 610M | 93.7GB | 已接入，运行 `qwen/qwen3.6-27b`；文件 `Qwen3.6-27B-Q6_K.gguf`，GGUF，Q6_K，约 23.01GB | 主力推理 / Agent 主模型 |
+| 5090 | RTX 5090 32GB + AMD Radeon 610M | 93.7GB | 已接入 LM Studio，并完成多模型 benchmark；Qwen3-Coder-30B 当前综合最好 | 主力推理 / Agent 主模型候选 |
 | 新设备 | RTX 4090D 24GB + RTX 4060 Ti 16GB + AMD 集显 | 61.6GB | 未接入 | 第二推理 / Embedding / Rerank |
 | 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 31.6GB | 当前无法使用 | 冻结近期接入计划 |
 | 云服务器 | Ubuntu 24.04, 2 核 2GB | 2GB | LiteLLM 已运行 | 轻量网关 / HTTPS / 隧道 |
@@ -16,7 +16,7 @@
 
 1. 云服务器不能升级，也没有预算扩容；它只做 LiteLLM、HTTPS、鉴权和 SSH 隧道中转。
 2. OpenWebUI、RAG、Agent Runtime、向量数据库、评测和模型工程实验都应放到本地机器。
-3. 当前 5090 的 `qwen/qwen3.6-27b` GGUF Q6_K 是基线，不应直接当作最终模型；必须用统一 benchmark 比较。
+3. 当前 5090 的 `qwen/qwen3.6-27b` GGUF Q6_K 已定位为 reasoning baseline，不应直接当作最终执行模型；`qwen/qwen3-coder-30b` 是当前首选 Agent 候选，但仍需真实工具调用和 patch apply harness 验证。
 4. 当前后端存在 `reasoning_content` 过多、`message.content` 为空的问题；这会显著影响 Cline/Agent 工具调用体验。
 5. 8060S 当前无法使用，OCR / Whisper / 文档解析不再绑定到 8060S，短期改由新设备或 5090 承担。
 6. 新设备可以理解为 40GB 总显存资源池，但不是一块连续 40GB 显存；模型选型要区分“单卡可跑”和“跨卡需要推理引擎支持”。
@@ -49,7 +49,7 @@
 **GLM-4.7-Flash 测试结论（2026-06-15 重测）**：重新 load 后延迟大幅改善（3-62s vs 旧 34-76s）。知识问答通过（rag_resume_value 5/5），项目理解接近通过（repo_map_current_state 5/6），agent_recovery 接近通过（3/4）。但 patch 生成仍然 0/10，agent_tool_choice/planning 仍然 0/4。**结论：保留为知识问答/项目理解对照模型，不提升为默认 Cline/Agent 主模型。**
 
 第一轮推荐默认结论：  
-**先把 5090 的主服务从当前 `qwen/qwen3.6-27b` GGUF Q6_K 对照到 Qwen3-Coder 30B-A3B / Qwen3.6-35B-A3B。谁在 Agent benchmark 里最终 `content` 更稳定、工具选择更准、吞吐更可接受，就让谁当 `qwen-local`。**
+**当前阶段结论：`qwen/qwen3-coder-30b` 暂列 `qwen-agent` 首选候选；`qwen/qwen3.6-27b` 和 `qwen/qwen3.6-35b-a3b` 继续作为 reasoning 对照，不进入默认 Cline/Agent 执行路径。**
 
 ### 新设备：第二推理 / RAG 检索 / 对照实验
 

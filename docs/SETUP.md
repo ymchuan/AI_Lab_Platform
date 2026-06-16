@@ -6,7 +6,7 @@
 
 | 设备 | 用途 | 状态 |
 |------|------|------|
-| 5090 (RTX 5090 32GB) | 主力推理 | ✅ 已配置，当前运行 `qwen/qwen3.6-27b` GGUF Q6_K |
+| 5090 (RTX 5090 32GB) | 主力推理 | ✅ 已配置 LM Studio，多模型评测中；Qwen3-Coder-30B 暂列 `qwen-agent` 首选候选 |
 | 新设备 (RTX 4090D 24GB + RTX 4060 Ti 16GB) | 第二推理 / Embedding / Rerank | ⏳ 待选型和配置 |
 | 8060S (AMD 395 / 31.6GB) | 暂不规划 | ⛔ 当前无法使用，冻结接入 |
 | 云服务器 (Ubuntu 24.04, 2核 2GB) | 轻量 API 网关 / 隧道中转 | ✅ 已配置，短期无法升级 |
@@ -61,9 +61,12 @@ pip install 'litellm[proxy]'
 # 配置（按实际接入的节点修改 api_base 端口）
 cat > config.yaml <<'EOF'
 model_list:
-  - model_name: qwen-local
+  - model_name: qwen-agent
     litellm_params:
-      model: openai/qwen/qwen3.6-27b
+      # Replace with the currently loaded LM Studio model id.
+      # Current best Agent candidate: openai/qwen/qwen3-coder-30b
+      # Reasoning baseline only: openai/qwen/qwen3.6-27b
+      model: openai/qwen/qwen3-coder-30b
       api_base: http://127.0.0.1:12340/v1
       api_key: lm-studio
 general_settings:
