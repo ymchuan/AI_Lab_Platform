@@ -456,3 +456,36 @@ Interpretation:
 1. This model is fast enough to respond, but the current LM Studio preset spends most of the budget in `reasoning_content`.
 2. Because `message.content` is usually empty, it remains unsuitable for Cline, Agent execution, patch generation, and RAG answer generation.
 3. `/no_think` does not fix the current preset, so it should not be promoted unless we find a model template/preset that reliably emits final `content`.
+
+
+## 2026-06-16 Qwen3.6-27B Reload Re-test
+
+Model:
+
+```text
+LM Studio model id: qwen/qwen3.6-27b
+Base URL: http://127.0.0.1:1234/v1
+```
+
+Methodology note:
+
+The first partial run after the user request was deleted from `benchmarks/results/` because the model was reloaded mid-test. The result files below are the clean post-reload run.
+
+Summary:
+
+| Run | Result | Result File | Notes |
+|-----|--------|-------------|-------|
+| gateway health | mixed | `gateway_health_20260616_151841.jsonl` | `/v1/models` OK; minimal chat still ended in reasoning with empty `content` |
+| model latency | fail for final content | `model_latency_20260616_151854.jsonl` | 4/4 HTTP OK, about 15-16s each, but all final `content` empty and length-stopped in reasoning |
+| agent tasks | fail | `agent_tasks_20260616_152026.jsonl` | strict 0/4, soft 0/4; all content empty |
+| agent tasks `/no_think` | fail | `agent_tasks_20260616_152625.jsonl` | `/no_think` still produced empty `content` and length-stopped reasoning |
+| Cline dialogue | fail | `cline_dialogue_20260616_152205.jsonl` | strict 0/2, soft 0/2; content empty |
+| RAG oracle | mixed | `rag_oracle_20260616_152301.jsonl` | 1/3 strict; only the shortest answer reached final `content` |
+| patch tasks | fail | `patch_tasks_20260616_152345.jsonl` | 0/2; no diff, content empty |
+| repo map | fail | `repo_map_20260616_152454.jsonl` | 0/2; content empty |
+
+Interpretation:
+
+1. Reloading the model improved speed significantly compared with the interrupted run, but did not fix the core Agent problem.
+2. The current preset still spends nearly all useful output in `reasoning_content`; `message.content` is usually empty.
+3. Keep this model only as a reasoning/thinking baseline (`qwen-think`), not as the default Cline/Agent/RAG execution model.

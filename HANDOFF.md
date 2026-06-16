@@ -121,7 +121,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 6. **当前模型未必充分发挥 5090** — 需要用统一 benchmark 对比 Qwen3-Coder 30B-A3B、Qwen3.6-35B-A3B 等本地候选模型，不能只凭主观聊天体验。
 
-7. **当前 `qwen/qwen3.6-27b` preset 不适合作为 Agent 主执行模型** — 2026-06-15 直连 LM Studio benchmark 显示：model latency 4/4 请求成功但全部 `finish_reason=length` 且 `content` 为空；agent tasks 0/3 通过；RAG oracle 1/3 通过。结论是它可以保留为 `qwen-think` 深度分析候选，但不应直接作为 Cline/Agent/RAG 的稳定执行模型。
+7. **当前 `qwen/qwen3.6-27b` preset 不适合作为 Agent 主执行模型** — 2026-06-16 reload 后重测：速度改善到约 15-16s，但 `model_latency` 4/4 final `content` 仍为空且 `finish_reason=length`；`agent_tasks` strict/soft 0/4，`cline_dialogue` 0/2，RAG oracle 1/3，patch 0/2，repo map 0/2，`/no_think` 抽样仍 0/4。结论是它可以保留为 `qwen-think` 深度分析候选，但不应直接作为 Cline/Agent/RAG 的稳定执行模型。
 
 8. **云端 LiteLLM chat 路径依赖 SSH 反向隧道** — `/v1/models` 能返回 `qwen-local` 只代表网关配置存在；如果 5090 没有手动开启 `:12340` 反向隧道，`/v1/chat/completions` 返回 HTTP 500 / `Connection error` 是正常状态。
 

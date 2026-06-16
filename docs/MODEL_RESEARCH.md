@@ -36,7 +36,7 @@
 
 | 优先级 | 模型 | 用途 | 部署建议 | 为什么测 |
 |--------|------|------|---------|---------|
-| P0 | 当前 `qwen/qwen3.6-27b` GGUF Q6_K | 当前基线 | 保留并跑干净 benchmark | 已经跑通公网链路，是所有后续对照的 baseline |
+| P0 (已测) | 当前 `qwen/qwen3.6-27b` GGUF Q6_K | 当前基线 / qwen-think 候选 | reload 后速度改善，但 final `content` 仍经常为空 | 适合作为 reasoning baseline，不适合作为默认 Agent/Cline/RAG 执行模型 |
 | P0 | Qwen3-Coder-30B-A3B-Instruct 或当前可下载的 Qwen3-Coder 30B 量化版 | Cline / coding agent 主模型 | LM Studio GGUF 先跑通；稳定后再测 SGLang/vLLM | 代码和 agentic coding 更贴近求职目标 |
 | P0 (已测) | `qwen/qwen3-coder-30b` | coding / patch 候选 | 继续优化 tool choice、repo map、多轮稳定性 | 已能稳定返回 `content` 并通过 2/2 patch tasks |
 | P0 | Qwen3.6-35B-A3B 量化版 | 通用 + coding + agent 对照 | 5090 上跑 4bit/5bit；记录显存和上下文长度 | 35B-A3B 级别适合 32GB VRAM 做主力模型候选 |
