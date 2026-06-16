@@ -14,6 +14,7 @@
 - 补录 `qwen/qwen3-30b-a3b-2507` 与 `text-embedding-nomic-embed-text-v1.5` 的 2026-06-16 本地评测结果。
 - 补录 `qwen/qwen3.6-35b-a3b` 复测结果：当前 preset 仍是 reasoning-only 失败模式，`/no_think` 无效，不提升为默认 Agent 模型。
 - 补录 `qwen/qwen3.6-27b` reload 后复测结果：速度改善，但 final `content` 仍为空，`/no_think` 无效，继续仅保留为 `qwen-think` 候选。
+- 新增 `docs/DOCUMENTATION_SYNC.md`，明确每个关键节点后必须检查并更新项目文档。
 
 ### Fixed
 - 修复 `benchmarks/datasets/model_prompts.jsonl` 中残留的中文乱码，避免 latency / coding prompt 污染。

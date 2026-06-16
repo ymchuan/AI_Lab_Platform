@@ -96,6 +96,7 @@ Model:    qwen-local
 - [Agent 深化路线图](docs/AGENT_PROJECT_ROADMAP.md) — RAG / Agent / MCP / Eval / 微调量化规划
 - [Benchmark 结果](docs/BENCHMARK_RESULTS.md) — 模型 / RAG / Agent 评测记录
 - [Benchmark 设计](docs/BENCHMARK_DESIGN.md) — Agent / Coding / RAG 评测分层与解释规则
+- [文档同步规则](docs/DOCUMENTATION_SYNC.md) — 每个关键节点后的复盘与文档更新契约
 - [Windows WSL2 配置](docs/WINDOWS_WSL2_SETUP.md) — Windows 本地节点的 Linux/CUDA 环境准备
 
 ### 参考文档

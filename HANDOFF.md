@@ -119,27 +119,29 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 5. **当前项目代码深度还不够** — 目前主要是部署、网关、隧道和文档。为了支撑 Agent 开发岗简历，下一阶段必须补 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型 benchmark、量化和小规模 LoRA/QLoRA 实验。
 
-6. **当前模型未必充分发挥 5090** — 需要用统一 benchmark 对比 Qwen3-Coder 30B-A3B、Qwen3.6-35B-A3B 等本地候选模型，不能只凭主观聊天体验。
+6. **每个关键节点都要同步文档** — 详见 `docs/DOCUMENTATION_SYNC.md`。完成模型评测、部署变更、网络修复、架构调整或 benchmark harness 修改后，必须检查 README、HANDOFF、Progress Summary、CHANGELOG 和对应专题文档。
 
-7. **当前 `qwen/qwen3.6-27b` preset 不适合作为 Agent 主执行模型** — 2026-06-16 reload 后重测：速度改善到约 15-16s，但 `model_latency` 4/4 final `content` 仍为空且 `finish_reason=length`；`agent_tasks` strict/soft 0/4，`cline_dialogue` 0/2，RAG oracle 1/3，patch 0/2，repo map 0/2，`/no_think` 抽样仍 0/4。结论是它可以保留为 `qwen-think` 深度分析候选，但不应直接作为 Cline/Agent/RAG 的稳定执行模型。
+7. **当前模型未必充分发挥 5090** — 需要用统一 benchmark 对比 Qwen3-Coder 30B-A3B、Qwen3.6-35B-A3B 等本地候选模型，不能只凭主观聊天体验。
 
-8. **云端 LiteLLM chat 路径依赖 SSH 反向隧道** — `/v1/models` 能返回 `qwen-local` 只代表网关配置存在；如果 5090 没有手动开启 `:12340` 反向隧道，`/v1/chat/completions` 返回 HTTP 500 / `Connection error` 是正常状态。
+8. **当前 `qwen/qwen3.6-27b` preset 不适合作为 Agent 主执行模型** — 2026-06-16 reload 后重测：速度改善到约 15-16s，但 `model_latency` 4/4 final `content` 仍为空且 `finish_reason=length`；`agent_tasks` strict/soft 0/4，`cline_dialogue` 0/2，RAG oracle 1/3，patch 0/2，repo map 0/2，`/no_think` 抽样仍 0/4。结论是它可以保留为 `qwen-think` 深度分析候选，但不应直接作为 Cline/Agent/RAG 的稳定执行模型。
 
-9. **Benchmark 已升级为 Cline-like baseline v2** — 现在除了 latency / agent / RAG oracle，还包含 `gateway_health_eval.py`、`repo_map_eval.py`、`patch_task_eval.py`、`cline_dialogue_eval.py`。后续每个候选模型都应跑同一套任务，重点看 `content` 非空率、`finish_reason`、patch 可用性和多轮稳定性。
+9. **云端 LiteLLM chat 路径依赖 SSH 反向隧道** — `/v1/models` 能返回 `qwen-local` 只代表网关配置存在；如果 5090 没有手动开启 `:12340` 反向隧道，`/v1/chat/completions` 返回 HTTP 500 / `Connection error` 是正常状态。
 
-10. **GLM-4.7-Flash 是当前可对照候选，但不是最终主模型** — 本地 `zai-org/glm-4.7-flash` 能连通 LM Studio，也能在部分 planning 任务上表现不错，但 repo map、patch generation 和 Cline-like 多轮仍不稳定；尤其 patch 任务两次都没有产出可用 diff，所以它更适合做聊天/规划对照，不适合直接当默认 Cline 主模型。
+10. **Benchmark 已升级为 Cline-like baseline v2** — 现在除了 latency / agent / RAG oracle，还包含 `gateway_health_eval.py`、`repo_map_eval.py`、`patch_task_eval.py`、`cline_dialogue_eval.py`。后续每个候选模型都应跑同一套任务，重点看 `content` 非空率、`finish_reason`、patch 可用性和多轮稳定性。
 
-11. **Qwen3-Coder-30B 是当前最强本地 coding / agent-readiness 候选** — 2026-06-15 直连 LM Studio 结果显示：gateway health 正常，`model_latency` 可稳定返回 `content`，RAG oracle 1/3 通过，patch 任务 2/2 通过且能产出真实 diff。2026-06-16 升级评分后复测：`agent_tasks` strict 2/4、soft 4/4、平均 keyword recall 0.775；`cline_dialogue` strict 0/2、soft 2/2、平均 keyword recall 0.500。旧 `0/4` 只能说明 strict gate 未通过，不能解释成“没有 Agent 能力”。
+11. **GLM-4.7-Flash 是当前可对照候选，但不是最终主模型** — 本地 `zai-org/glm-4.7-flash` 能连通 LM Studio，也能在部分 planning 任务上表现不错，但 repo map、patch generation 和 Cline-like 多轮仍不稳定；尤其 patch 任务两次都没有产出可用 diff，所以它更适合做聊天/规划对照，不适合直接当默认 Cline 主模型。
 
-12. **Gemma 4 31B 已完成 Agent/Cline soft-scoring 对照** — `google/gemma-4-31b` 可以作为非 Qwen 对照模型，且 patch 任务可产出 diff；但 2026-06-16 soft-scoring 复测显示：`agent_tasks` strict 0/4、soft 0/4、平均 keyword recall 0.050；`cline_dialogue` strict 0/2、soft 0/2。结论是它暂不适合作为默认 Agent/Cline 规划模型。
+12. **Qwen3-Coder-30B 是当前最强本地 coding / agent-readiness 候选** — 2026-06-15 直连 LM Studio 结果显示：gateway health 正常，`model_latency` 可稳定返回 `content`，RAG oracle 1/3 通过，patch 任务 2/2 通过且能产出真实 diff。2026-06-16 升级评分后复测：`agent_tasks` strict 2/4、soft 4/4、平均 keyword recall 0.775；`cline_dialogue` strict 0/2、soft 2/2、平均 keyword recall 0.500。旧 `0/4` 只能说明 strict gate 未通过，不能解释成“没有 Agent 能力”。
 
-13. **Qwen3-30B-A3B-2507 已完成本地对照评测** — 2026-06-16 顺序跑正式结果：`agent_tasks` strict 3/4、soft 3/4，`cline_dialogue` strict 0/2、soft 2/2，RAG oracle 1/3，patch 2/2，repo map full-context 两次 300s timeout。结论：它能正常产出 `content`，规划和 patch 能力不错，但长任务 110s+，暂不替代 Qwen3-Coder 作为默认 Cline/Agent 候选。
+13. **Gemma 4 31B 已完成 Agent/Cline soft-scoring 对照** — `google/gemma-4-31b` 可以作为非 Qwen 对照模型，且 patch 任务可产出 diff；但 2026-06-16 soft-scoring 复测显示：`agent_tasks` strict 0/4、soft 0/4、平均 keyword recall 0.050；`cline_dialogue` strict 0/2、soft 0/2。结论是它暂不适合作为默认 Agent/Cline 规划模型。
 
-14. **Embedding smoke test 已加入** — `text-embedding-nomic-embed-text-v1.5` 的 `/v1/embeddings` 可用，输出 768 维；toy retrieval 2/3。后续需要真实 chunk + vector db + rerank 的 `rag_retrieval_eval`，不能只凭 toy probe 决定 RAG 默认 embedding。
+14. **Qwen3-30B-A3B-2507 已完成本地对照评测** — 2026-06-16 顺序跑正式结果：`agent_tasks` strict 3/4、soft 3/4，`cline_dialogue` strict 0/2、soft 2/2，RAG oracle 1/3，patch 2/2，repo map full-context 两次 300s timeout。结论：它能正常产出 `content`，规划和 patch 能力不错，但长任务 110s+，暂不替代 Qwen3-Coder 作为默认 Cline/Agent 候选。
 
-15. **Qwen3.6-35B-A3B 复测后仍不适合默认 Agent 模型** — 2026-06-16 复测显示：latency 约 41-42s，但大部分输出停在 `reasoning_content`，`message.content` 为空且 `finish_reason=length`；`agent_tasks` strict/soft 0/4，`/no_think` 抽样仍 0/4，patch 0/2，Cline 0/2。除非后续找到可靠 final-content preset，否则不要提升为 `qwen-agent`。
+15. **Embedding smoke test 已加入** — `text-embedding-nomic-embed-text-v1.5` 的 `/v1/embeddings` 可用，输出 768 维；toy retrieval 2/3。后续需要真实 chunk + vector db + rerank 的 `rag_retrieval_eval`，不能只凭 toy probe 决定 RAG 默认 embedding。
 
-16. **benchmark harness 已补强** — 现在支持慢模型的增量 JSONL 落盘，并可用 `--max-tokens-override` 单独压测不同任务，避免慢模型一超时整轮结果丢失；Agent/Cline 任务同时记录 `strict_passed`、`soft_passed` 和 `keyword_recall`，避免把部分能力误读为 0。
+16. **Qwen3.6-35B-A3B 复测后仍不适合默认 Agent 模型** — 2026-06-16 复测显示：latency 约 41-42s，但大部分输出停在 `reasoning_content`，`message.content` 为空且 `finish_reason=length`；`agent_tasks` strict/soft 0/4，`/no_think` 抽样仍 0/4，patch 0/2，Cline 0/2。除非后续找到可靠 final-content preset，否则不要提升为 `qwen-agent`。
+
+17. **benchmark harness 已补强** — 现在支持慢模型的增量 JSONL 落盘，并可用 `--max-tokens-override` 单独压测不同任务，避免慢模型一超时整轮结果丢失；Agent/Cline 任务同时记录 `strict_passed`、`soft_passed` 和 `keyword_recall`，避免把部分能力误读为 0。
 
 ## 下一步要做的事
 
