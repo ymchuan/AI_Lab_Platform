@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+secrets/
+*.key
+*.pem
+__pycache__/
+*.pyc
+benchmarks/results/

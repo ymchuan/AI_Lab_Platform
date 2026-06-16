@@ -1,0 +1,131 @@
+﻿# Changelog
+
+本项目的所有重要变更都会记录在此文件中。
+
+格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
+
+## [0.4.3] - 2026-06-16
+
+### Added
+- 初始化本地 Git 仓库，准备同步到私有 GitHub 远程仓库。
+- 安装 Codex skill：`grill-me`，用于更强的自我审查和追问式复盘。
+- 配置私有 GitHub 远程仓库：`ymchuan/AI_Lab_Platform.git`。
+
+### Security
+- 确认 `.env.local`、`.env.*`、`benchmarks/results/`、`__pycache__/` 不进入版本控制。
+- 提交前扫描公开文件中的 API Key / GitHub Token / 私钥模式，当前只保留 `<LABAGENT_API_KEY>` 等占位符。
+
+## [0.4.2] - 2026-06-15
+
+### Added
+- 升级 Benchmark baseline v2：新增 `gateway_health_eval.py`、`repo_map_eval.py`、`patch_task_eval.py`、`cline_dialogue_eval.py`。
+- 新增 Cline-like 评测数据集：项目文件理解、补丁生成、多轮工作流对话。
+- 在文档中明确新设备 RTX 4090D 24GB + RTX 4060 Ti 16GB 可视为 40GB 总显存资源池，但不是单个连续 40GB 显存。
+- GLM-4.7-Flash 模型测试（12 次 benchmark，raw + /no_think 模式），结论：聊天/规划可用，不提升为主模型。
+- GLM-4.7-Flash 重测（重新 load 后全量 baseline v2），延迟改善，RAG/project_state 接近通过，但 patch 仍失败。
+- MODEL_RESEARCH.md 新增 GLM-4.7-Flash 作为已测试对照候选。
+
+### Fixed
+- 修复 `benchmarks/rag_oracle_eval.py` 中的 RAG oracle system prompt 乱码，保证后续 RAG 基线评测使用正常中文约束。
+- 修复 `benchmarks/datasets/model_prompts.jsonl`、`agent_tasks.jsonl`、`rag_eval_dataset.jsonl` 的中文乱码，避免评测输入污染。
+- 补录 2026-06-10 晚间 LM Studio 调参后的 benchmark 结果摘要。
+- 校准 2026-06-15 当前资源池：8060S 当前无法使用，冻结近期接入计划；近期只规划 5090 和 4090D 新设备。
+- 校准公网链路状态：SSH 反向隧道当前不是常驻，需要在 5090 手动开启；未开启时公网 chat completion 返回连接错误是预期状态。
+- 更新 benchmark 数据集，将 Agent planning 任务从 8060S OCR/Whisper 接入改为新设备 Embedding/Reranker/第二代码模型接入。
+
+### Changed
+- 明确当前基线仍未解决 `reasoning_content` 挤占输出预算的问题：model latency 和 agent tasks 在 post-tuning run 中仍出现 `content` 为空、`finish_reason=length`。
+- `run_agent_tasks.py` 现在把空 `content` 和 `finish_reason=length` 视为失败；`model_latency.py` 记录 content/reasoning 长度和输出可用性。
+- 将历史 `benchmarks/results/` 定位为本地证据目录，结果文件不进入版本控制，文档只记录统计摘要。
+
+## [0.4.1] - 2026-06-10
+
+### Changed
+- 校准当前事实基线：当前只有 5090 已接入，运行 `qwen/qwen3.6-27b`；文件为 `Qwen3.6-27B-Q6_K.gguf`，格式 GGUF，量化 Q6_K，大小约 23.01GB。
+- 明确 4090D + 4060 Ti 新设备和 8060S 仍未部署模型、隧道或 LiteLLM 路由。
+- 重写 `docs/MODEL_RESEARCH.md`，将模型选型从“推荐列表”改为按 5090 / 新设备 / 8060S 分工的落地矩阵。
+- 更新 `docs/AGENT_PROJECT_ROADMAP.md`，将 Agent 岗位能力拆成 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型工程等可交付模块。
+- 更新 `HANDOFF.md`、`README.md`、`docs/ARCHITECTURE.md`、`docs/API.md`、`docs/SETUP.md`、`docs/NETWORK.md` 和 `docs/Progress_Summary.md` 的当前状态描述。
+
+### Added
+- 增加关键节点复盘规则：每完成一个关键节点，都要同步更新 README、HANDOFF、Progress Summary、CHANGELOG 和对应专题文档。
+- 增加第一轮落地顺序：记录当前模型画像、修复 benchmark 乱码和 reasoning 评分、跑干净 baseline、对比 Qwen3-Coder / Qwen3.6 候选模型、再接入新设备和 8060S。
+- 增加面向简历深度的项目路线：模型 benchmark、RAG MVP、Agent MVP、MCP + Skills、Eval + LoRA/QLoRA/量化实验。
+
+### Known Issues
+- 当前 `qwen/qwen3.6-27b` GGUF Q6_K 的 `reasoning_content` 过多，导致 Agent 任务 `content` 为空或评分失败。
+- 当前模型是否充分利用 5090 仍未验证，需要继续记录显存占用、吞吐、首 token 延迟和 Agent 任务通过率。
+
+## [0.4.0] - 2026-06-10
+
+### Added
+- 项目文档体系（README / ARCHITECTURE / CHANGELOG / API / NETWORK / TROUBLESHOOTING / SETUP）
+- 四节点架构文档（5090 + 新设备 + 8060S + 云服务器）
+- 进展汇报文档（Progress_Summary.md）
+- 模型选型调研文档（MODEL_RESEARCH.md）
+- Agent 项目深化路线图（AGENT_PROJECT_ROADMAP.md）
+- Windows WSL2 / CUDA 配置指南（WINDOWS_WSL2_SETUP.md）
+- Benchmark / Eval 骨架：模型延迟、Agent 任务、RAG oracle-context 三类脚本
+- Benchmark 结果记录文档（BENCHMARK_RESULTS.md）
+- 完成 `qwen-local` 第一版 baseline：raw 与 `/no_think` 两组对比
+
+### Fixed
+- 云服务器重装系统后全链路恢复
+- SSH 服务端保活配置（ClientAliveInterval=30）
+- 服务器内存问题定位（OpenWebUI 占 900MB 导致 OOM）
+- 统一当前事实基线：云服务器为 Ubuntu 24.04 2核2GB，短期无法升级
+- 统一模型状态：当前只有 5090 上的 `qwen/qwen3.6-27b` 已接入，4090D 新设备和 8060S 尚未部署
+- 确认新设备为 RTX 4090D 24GB + RTX 4060 Ti 16GB 混插 Windows 主机
+- 文档中的真实 API Key 已替换为 `<LABAGENT_API_KEY>` 占位符
+- `.gitignore` 增加 Python 缓存和 `benchmarks/results/`，避免误提交运行结果或私有数据
+- 记录 Qwen reasoning 输出问题：当前 `/no_think` 未明显减少 `reasoning_content`
+
+### Known Issues
+- 云服务器 2GB 内存限制：不适合承载 OpenWebUI / RAG / Agent Runtime 等重服务
+- SSH 隧道长时间运行后仍可能断开，需要继续优化本地自动重连和健康检查
+- 新设备和 8060S 尚未接入
+
+## [0.3.0] - 2026-06-09
+
+### Added
+- OpenWebUI 部署（pip 安装，端口 3000）
+- Cline VS Code 插件接入本地 Qwen 模型
+- SSH 密钥认证（免密登录）
+- NSSM / Task Scheduler / Python watchdog 多种服务管理尝试
+- 24h 稳定性测试方案
+
+### Fixed
+- PowerShell SSH 隧道脚本假死问题
+- Qwen reasoning_content 输出过多（Context Length 从 262K 调回 128K）
+
+## [0.2.0] - 2026-06-08
+
+### Added
+- LiteLLM API Gateway 部署（systemd 后台服务）
+- LiteLLM 强 API Key 替换
+- 腾讯云安全组配置（TCP 8000、3000）
+- SSH Reverse Tunnel 自动重连脚本
+
+## [0.1.0] - 2026-06-08
+
+### Added
+- 项目初始化
+- LM Studio 本地部署（`qwen/qwen3.6-27b`）
+- SSH Reverse Tunnel 方案验证
+- 云服务器环境配置
+- 网络环境调研（校园网 NAT 限制）
+
+
+
+## 2026-06-15
+
+- Added first-round Qwen3-Coder-30B local benchmark results, including full baseline, patch success, and remaining agent gaps.
+- Hardened benchmark harness for slow models with incremental JSONL writes and max-token overrides.
+- Relaxed patch scoring with keyword groups so English diffs can pass when semantically correct.
+
+- Added first-round Qwen3.6-35B-A3B local benchmark results: fast latency, but weak agent/patch/Cline behavior.
+
+- Added first-round Gemma 4 31B local benchmark results: patch 2/2 passed, but latency and agent/Cline stability remain weak.
+- Added benchmark design notes and upgraded agent/Cline scoring with `soft_passed` and `keyword_recall`.
+
+- Re-ran Qwen3-Coder-30B and Gemma 4 31B with soft scoring; Qwen3-Coder now shows clear agent-readiness signal.

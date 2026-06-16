@@ -1,0 +1,154 @@
+﻿# 部署指南
+
+从零部署 LabAgent Platform 的完整步骤。
+
+## 设备清单
+
+| 设备 | 用途 | 状态 |
+|------|------|------|
+| 5090 (RTX 5090 32GB) | 主力推理 | ✅ 已配置，当前运行 `qwen/qwen3.6-27b` GGUF Q6_K |
+| 新设备 (RTX 4090D 24GB + RTX 4060 Ti 16GB) | 第二推理 / Embedding / Rerank | ⏳ 待选型和配置 |
+| 8060S (AMD 395 / 31.6GB) | 暂不规划 | ⛔ 当前无法使用，冻结接入 |
+| 云服务器 (Ubuntu 24.04, 2核 2GB) | 轻量 API 网关 / 隧道中转 | ✅ 已配置，短期无法升级 |
+
+## 步骤 1：本地模型部署（每台 GPU 主机）
+
+1. 安装 LM Studio
+2. 下载模型
+3. 启动 Local Server：
+   - Server Running = ON
+   - Serve on Local Network = ON
+   - Require Authentication = OFF
+4. 验证：`curl http://127.0.0.1:1234/v1/models`
+
+## 步骤 2：SSH 密钥认证（每台 GPU 主机）
+
+```bash
+# 生成密钥
+ssh-keygen -t ed25519
+
+# 上传公钥（Windows PowerShell）
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh ubuntu@82.156.69.153 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+
+# 验证
+ssh ubuntu@82.156.69.153 "echo ok"
+```
+
+## 步骤 3：SSH 反向隧道（每台 GPU 主机）
+
+当前 SSH 反向隧道不是常驻状态。公网验证前，必须先在 5090 手动开启 `:12340` 隧道。
+
+```bash
+# 5090（端口 12340）
+ssh -N -R 12340:127.0.0.1:1234 -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+
+# 新设备（端口 12341）
+ssh -N -R 12341:127.0.0.1:1234 -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+```
+
+8060S 当前无法使用，不再配置 `:12342` 隧道。
+
+## 步骤 4：云服务器 LiteLLM
+
+```bash
+# 安装
+sudo apt update && sudo apt install -y python3-pip python3-venv
+mkdir -p ~/litellm-gateway && cd ~/litellm-gateway
+python3 -m venv .venv
+source .venv/bin/activate
+pip install 'litellm[proxy]'
+
+# 配置（按实际接入的节点修改 api_base 端口）
+cat > config.yaml <<'EOF'
+model_list:
+  - model_name: qwen-local
+    litellm_params:
+      model: openai/qwen/qwen3.6-27b
+      api_base: http://127.0.0.1:12340/v1
+      api_key: lm-studio
+general_settings:
+  master_key: <LABAGENT_API_KEY>
+EOF
+
+# systemd 服务
+sudo tee /etc/systemd/system/litellm-gateway.service > /dev/null <<'EOF'
+[Unit]
+Description=LiteLLM API Gateway
+After=network.target
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/litellm-gateway
+ExecStart=/home/ubuntu/litellm-gateway/.venv/bin/litellm --config /home/ubuntu/litellm-gateway/config.yaml --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable litellm-gateway
+sudo systemctl start litellm-gateway
+```
+
+## 步骤 5：SSH 保活配置
+
+```bash
+sudo sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 30/' /etc/ssh/sshd_config
+sudo sed -i 's/#ClientAliveCountMax 3/ClientAliveCountMax 10/' /etc/ssh/sshd_config
+sudo systemctl restart ssh
+```
+
+## 步骤 6：安全组配置
+
+```text
+TCP 8000 — LiteLLM API
+TCP 3000 — OpenWebUI（需要时开放；不建议云服务器常驻）
+```
+
+## 步骤 7：OpenWebUI（需要时启动或迁移到本地节点）
+
+云服务器只有 2GB 内存且短期无法升级。OpenWebUI 可用于临时演示，但不建议长期和 LiteLLM 同时常驻。后续更推荐将 OpenWebUI 部署到 5090 或新设备，通过云服务器反向代理/隧道访问。
+
+```bash
+cd ~/open-webui && source .venv/bin/activate
+OPENAI_API_BASE_URL=http://127.0.0.1:8000/v1 \
+OPENAI_API_KEY=<LABAGENT_API_KEY> \
+RAG_EMBEDDING_ENGINE=openai \
+RAG_EMBEDDING_MODEL=qwen-local \
+open-webui serve --port 3000 --host 0.0.0.0
+```
+
+## 步骤 8：客户端配置
+
+```text
+Base URL: http://82.156.69.153:8000/v1
+API Key: <LABAGENT_API_KEY>
+Model: qwen-local
+```
+
+## 步骤 9：另一台机器验证全链路
+
+公网验证前，先在 5090 上确认 LM Studio Local Server 正在运行，然后开启反向隧道：
+
+```powershell
+ssh -N -R 12340:127.0.0.1:1234 -i C:\Users\N\.ssh\id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+```
+
+在另一台机器上验证模型列表：
+
+```powershell
+curl.exe http://82.156.69.153:8000/v1/models -H "Authorization: Bearer <LABAGENT_API_KEY>"
+```
+
+继续验证 chat completion。只有这一步成功，才算公网全链路打通：
+
+```powershell
+curl.exe http://82.156.69.153:8000/v1/chat/completions `
+  -H "Authorization: Bearer <LABAGENT_API_KEY>" `
+  -H "Content-Type: application/json" `
+  -d "{\"model\":\"qwen-local\",\"messages\":[{\"role\":\"user\",\"content\":\"用一句话回答：链路是否打通？\"}],\"max_tokens\":80,\"temperature\":0.2}"
+```
+
+如果 `/v1/models` 成功但 `/v1/chat/completions` 失败，优先确认 5090 的 SSH 隧道窗口是否仍在运行。
+
