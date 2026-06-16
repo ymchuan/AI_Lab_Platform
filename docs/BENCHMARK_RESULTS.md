@@ -389,3 +389,41 @@ Updated interpretation:
 2. `qwen/qwen3-coder-30b` is currently the best local coding / patch / agent-readiness candidate.
 3. `google/gemma-4-31b` remains a useful patch-capable comparison model, but not the Agent/Cline planning leader.
 4. The next benchmark upgrade should apply patches and verify file/test outcomes instead of relying mainly on textual keywords.
+
+
+## 2026-06-16 Qwen3-30B-A3B-2507 + Embedding Check
+
+Model:
+
+```text
+LM Studio chat model id: qwen/qwen3-30b-a3b-2507
+LM Studio embedding model id: text-embedding-nomic-embed-text-v1.5
+Base URL: http://127.0.0.1:1234/v1
+```
+
+Important methodology note:
+
+1. The first parallel run overloaded the local LM Studio backend and produced timeouts on long tasks.
+2. The formal numbers below use sequential runs.
+3. `model_prompts.jsonl` was fixed from mojibake Chinese to valid Chinese before the formal latency run.
+4. `patch_gpu_pool_note` scoring now accepts both "continuous" and "contiguous" as valid wording.
+
+Summary:
+
+| Run | Result | Result File | Notes |
+|-----|--------|-------------|-------|
+| gateway health | pass | `gateway_health_20260616_133527.jsonl` | `/v1/models` and minimal chat both work |
+| model latency | mixed | `model_latency_20260616_135047.jsonl` | 4/4 OK, but long tasks took about 113-116s and 3/4 hit `finish_reason=length` |
+| agent tasks | mixed | `agent_tasks_20260616_135658.jsonl` | strict 3/4, soft 3/4; weak on 502 troubleshooting chain |
+| Cline dialogue | soft pass only | `cline_dialogue_20260616_140222.jsonl` | strict 0/2, soft 2/2, avg keyword recall 0.5 |
+| RAG oracle | mixed | `rag_oracle_20260616_140620.jsonl` | 1/3 strict; one near miss at 4/5 facts |
+| patch tasks | pass | `patch_tasks_20260616_142219.jsonl` | 2/2 unified diff tasks passed |
+| repo map | timeout | `repo_map_20260616_140809.jsonl` | full-context repo map timed out twice at 300s |
+| embedding health | mixed | `embedding_health_20260616_133615.jsonl` | endpoint OK, 768 dimensions, tiny retrieval probe 2/3 |
+
+Interpretation:
+
+1. `qwen/qwen3-30b-a3b-2507` produces normal `content` and has good planning/patch ability, but it is much slower than desired for the default local 80% daily model.
+2. It is weaker than `qwen/qwen3-coder-30b` on the gateway troubleshooting task and full-context repo-map stability.
+3. It may remain useful as a general planning / patch comparison model, but it does not currently displace Qwen3-Coder as the main Cline/Agent candidate.
+4. `text-embedding-nomic-embed-text-v1.5` is usable as an embedding endpoint smoke test, but the 2/3 toy retrieval result means it still needs a real RAG retrieval benchmark with chunking and rerank before becoming the project default.

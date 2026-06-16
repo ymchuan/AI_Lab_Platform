@@ -10,6 +10,12 @@
 - 初始化本地 Git 仓库，准备同步到私有 GitHub 远程仓库。
 - 安装 Codex skill：`grill-me`，用于更强的自我审查和追问式复盘。
 - 配置私有 GitHub 远程仓库：`ymchuan/AI_Lab_Platform.git`。
+- 新增 `embedding_health_eval.py`，用于验证 OpenAI-compatible embeddings 端点、向量维度和最小检索 smoke test。
+- 补录 `qwen/qwen3-30b-a3b-2507` 与 `text-embedding-nomic-embed-text-v1.5` 的 2026-06-16 本地评测结果。
+
+### Fixed
+- 修复 `benchmarks/datasets/model_prompts.jsonl` 中残留的中文乱码，避免 latency / coding prompt 污染。
+- 校准 patch 评分同义词，将 "continuous" 和 "contiguous" 都视为有效表达。
 
 ### Security
 - 确认 `.env.local`、`.env.*`、`benchmarks/results/`、`__pycache__/` 不进入版本控制。

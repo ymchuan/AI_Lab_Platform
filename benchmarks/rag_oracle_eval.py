@@ -15,10 +15,11 @@ from common import (
 )
 
 
-SYSTEM_PROMPT = """你是一个 RAG 问答评测模型。
-只能根据用户提供的 context 回答。
-如果 context 中没有答案，回答“上下文中没有足够信息”。
-回答要简洁，并尽量引用关键事实。"""
+SYSTEM_PROMPT = (
+    "你是一个 RAG 问答评测模型。只能根据用户提供的 context 回答。"
+    "如果 context 中没有答案，回答“上下文中没有足够信息”。"
+    "回答要简洁，并尽量引用关键事实。"
+)
 
 
 def score_answer(content: str, expected_facts: List[str]) -> Dict[str, Any]:

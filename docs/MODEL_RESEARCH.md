@@ -41,6 +41,7 @@
 | P0 (已测) | `qwen/qwen3-coder-30b` | coding / patch 候选 | 继续优化 tool choice、repo map、多轮稳定性 | 已能稳定返回 `content` 并通过 2/2 patch tasks |
 | P0 | Qwen3.6-35B-A3B 量化版 | 通用 + coding + agent 对照 | 5090 上跑 4bit/5bit；记录显存和上下文长度 | 35B-A3B 级别适合 32GB VRAM 做主力模型候选 |
 | P0 (已测) | `qwen/qwen3.6-35b-a3b` | 通用 / reasoning 对照 | 速度很快，但 `content` 经常为空，patch/agent/Cline 失败 | 不提升为默认 Agent 执行模型 |
+| P0 (已测) | `qwen/qwen3-30b-a3b-2507` | 通用 / planning / patch 对照 | 可保留为对照模型；不作为当前默认 Cline 主模型 | agent_tasks strict 3/4、patch 2/2，但长任务约 110s+，repo map full-context 超时 |
 | P1 | Qwen3-Coder-Next | 高阶 coding agent 实验 | GGUF + CPU/GPU 混合卸载；不作为第一稳定服务 | 80B total / 3B active，agentic coding 强，但权重总量对 32GB VRAM 更激进 |
 | P1 | DeepSeek-R1-Distill-Qwen-32B | 推理/规划对照 | 量化版，单独测 reasoning 质量 | 适合复杂推理，不一定适合工具调用和 Cline |
 | P2 (已测) | zai-org/glm-4.7-flash | 聊天/规划对照 | LM Studio 已测试 raw + `/no_think` 模式 | 2026-06-15 已完成 12 次 benchmark；聊天和规划能力可用，但 patch/repo/Cline 任务失败；不适合当默认 Cline/Agent 主模型 |
@@ -64,6 +65,7 @@
 | P0 | Qwen3-Reranker-0.6B / 4B | RAG 重排 | 4060 Ti 可承载 0.6B；4090D 承载 4B |
 | P0 | Devstral-Small 系列或 Qwen3-Coder 小/中量化版 | 第二代码模型 / 对照模型 | 4090D 单卡跑，作为 `coder-small-local` |
 | P1 | BGE-M3 | 多语言 embedding fallback | CPU/GPU 都可测试 |
+| P1 (已测) | `text-embedding-nomic-embed-text-v1.5` | embedding smoke test | LM Studio `/v1/embeddings` 可用，768 维；后续补真实 chunk + rerank benchmark |
 
 建议对外模型别名：
 

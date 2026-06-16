@@ -6,7 +6,7 @@
 
 本项目将内网 GPU 主机上的本地大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何支持 OpenAI 协议的客户端（Cline、OpenWebUI、Cursor 等）都能像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-06-16 校准）：5090 主机已部署并运行 LM Studio，本地已验证 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`google/gemma-4-31b` 等候选模型；4090D + 4060 Ti 16GB 混插的新设备尚未接入；8060S 当前无法使用，暂不纳入近期资源池。云服务器固定为 2 核 2GB Ubuntu 24.04，短期内不会升级，后续设计必须把它当作轻量控制面，而不是计算节点。当前 SSH 反向隧道需要在 5090 手动开启；未开启时公网 chat 调用失败是预期状态。
+当前事实基线（2026-06-16 校准）：5090 主机已部署并运行 LM Studio，本地已验证 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`google/gemma-4-31b`、`text-embedding-nomic-embed-text-v1.5` 等候选模型；4090D + 4060 Ti 16GB 混插的新设备尚未接入；8060S 当前无法使用，暂不纳入近期资源池。云服务器固定为 2 核 2GB Ubuntu 24.04，短期内不会升级，后续设计必须把它当作轻量控制面，而不是计算节点。当前 SSH 反向隧道需要在 5090 手动开启；未开启时公网 chat 调用失败是预期状态。
 
 新设备的显存可以按资源规划理解为 `24GB + 16GB = 40GB`，但它不是一块连续 40GB 显存。单个模型能否跨 4090D 和 4060 Ti 运行，取决于推理引擎是否支持 tensor parallel、pipeline parallel、layer offload 或手动把不同模型分配到不同 GPU。短期更稳妥的规划是：4090D 跑第二推理/代码模型，4060 Ti 跑 Embedding、Reranker 或轻量实验模型。
 
@@ -41,9 +41,9 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 ## 当前阶段：模型选型 Benchmark
 
-项目正在对比不同模型作为基座模型的效果。已建立 7 层评测体系（model latency / gateway health / agent tasks / RAG oracle / repo map / patch task / Cline dialogue），正在用统一 benchmark 评估候选模型。
+项目正在对比不同模型作为基座模型的效果。已建立 8 层评测体系（model latency / gateway health / agent tasks / RAG oracle / repo map / patch task / Cline dialogue / embedding health），正在用统一 benchmark 评估候选模型。
 
-已测试：qwen3.6-27b（基线）、GLM-4.7-Flash（对照）、Qwen3-Coder-30B、Qwen3.6-35B-A3B、Gemma 4 31B。2026-06-16 已将 Agent/Cline 评测拆成 `strict_passed`、`soft_passed` 和 `keyword_recall`：旧的 `0/4` 不能直接理解为“模型没有 Agent 能力”，只能说明它没有通过严格上线门槛。当前最强本地 coding / patch / agent-readiness 候选是 `qwen/qwen3-coder-30b`。
+已测试：qwen3.6-27b（基线）、GLM-4.7-Flash（对照）、Qwen3-Coder-30B、Qwen3.6-35B-A3B、Qwen3-30B-A3B-2507、Gemma 4 31B、Nomic embedding。2026-06-16 已将 Agent/Cline 评测拆成 `strict_passed`、`soft_passed` 和 `keyword_recall`：旧的 `0/4` 不能直接理解为“模型没有 Agent 能力”，只能说明它没有通过严格上线门槛。当前最强本地 coding / patch / agent-readiness 候选仍是 `qwen/qwen3-coder-30b`。
 
 ## 当前状态
 

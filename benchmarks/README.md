@@ -13,6 +13,7 @@ The goal is not a single leaderboard score. The goal is to make every model or w
 - `repo_map_eval.py` - repo understanding from actual project files
 - `patch_task_eval.py` - patch generation for Cline-like file edits
 - `cline_dialogue_eval.py` - multi-turn workflow reasoning
+- `embedding_health_eval.py` - embedding endpoint health and tiny retrieval probe
 
 ## Configuration
 
@@ -76,6 +77,14 @@ python benchmarks/patch_task_eval.py
 ```powershell
 python benchmarks/cline_dialogue_eval.py
 ```
+
+### 8. Embedding Health
+
+```powershell
+python benchmarks/embedding_health_eval.py --model text-embedding-nomic-embed-text-v1.5
+```
+
+This checks `/v1/embeddings`, vector dimensionality, and a tiny cosine-similarity retrieval probe. It is not a full RAG benchmark.
 
 ## What This Baseline Checks
 

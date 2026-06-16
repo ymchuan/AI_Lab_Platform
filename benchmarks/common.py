@@ -283,6 +283,46 @@ class OpenAICompatibleClient:
                 "error": f"{type(exc).__name__}: {exc}",
             }
 
+    def embeddings(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        started = time.perf_counter()
+        body = json.dumps(payload).encode("utf-8")
+        request = urllib.request.Request(
+            f"{self.base_url}/embeddings",
+            data=body,
+            method="POST",
+            headers=self._headers(),
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                raw = response.read().decode("utf-8")
+            data = json.loads(raw)
+            vectors = [item.get("embedding", []) for item in data.get("data", [])]
+            elapsed = time.perf_counter() - started
+            return {
+                "ok": True,
+                "latency_seconds": elapsed,
+                "embedding_count": len(vectors),
+                "embedding_dimensions": len(vectors[0]) if vectors else 0,
+                "embeddings": vectors,
+                "usage": data.get("usage") or {},
+                "raw_model": data.get("model"),
+            }
+        except urllib.error.HTTPError as exc:
+            raw_error = exc.read().decode("utf-8", errors="replace")
+            return {
+                "ok": False,
+                "latency_seconds": time.perf_counter() - started,
+                "http_status": exc.code,
+                "error": f"HTTPError: {exc}",
+                "error_body": raw_error[:2000],
+            }
+        except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError) as exc:
+            return {
+                "ok": False,
+                "latency_seconds": time.perf_counter() - started,
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+
     def stream_chat_completion(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         started = time.perf_counter()
         payload = dict(payload)
