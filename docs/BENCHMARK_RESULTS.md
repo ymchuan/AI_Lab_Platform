@@ -231,7 +231,7 @@ Interpretation:
 
 ## Dataset Notes
 
-As of 2026-06-15, 8060S is unavailable and no longer appears in new planning tasks. The Agent planning dataset now targets the RTX 4090D + RTX 4060 Ti new device as the next node for Embedding / Reranker / second coding model.
+As of 2026-06-18, 8060S is unavailable and no longer appears in new planning tasks. The Agent planning dataset now targets the RTX 5080 + RTX 4060 Ti new device as the next node for Embedding / Reranker / VL / second coding model.
 
 ## Metrics To Track
 

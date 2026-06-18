@@ -6,16 +6,16 @@
 
 把内网 GPU 主机的大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何客户端像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-06-16 校准）：5090 主机已接入 LM Studio，并已测试 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`google/gemma-4-31b`、`zai-org/glm-4.7-flash`、`text-embedding-nomic-embed-text-v1.5`。当前最强 Cline / coding / agent-readiness 候选是 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 只保留为 `qwen-think` reasoning baseline。新设备尚未配置模型、隧道或 LiteLLM 路由；8060S 当前无法使用，冻结近期接入计划。云服务器是 2 核 2GB Ubuntu 24.04，短期无法升级，也没有预算扩容，后续只能作为轻量网关和中转节点。当前 SSH 反向隧道不是常驻状态，需要在 5090 手动开启。
+当前事实基线（2026-06-18 校准）：5090 主机已接入 LM Studio，默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 只保留为 `qwen-think` reasoning baseline。已测试 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`google/gemma-4-31b`、`zai-org/glm-4.7-flash`、`text-embedding-nomic-embed-text-v1.5`。新设备硬件已校准为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，但尚未配置模型、隧道或 LiteLLM 路由；8060S 当前无法使用，冻结近期接入计划。云服务器是 2 核 2GB Ubuntu 24.04，短期无法升级，也没有预算扩容，后续只能作为轻量网关和中转节点。当前 SSH 反向隧道不是常驻状态，需要在 5090 手动开启。
 
-新设备的 4090D 24GB + 4060 Ti 16GB 可以按资源规划理解为 40GB 总显存池，但不是单个连续 40GB 显存。短期更稳的使用方式是 4090D 承担第二推理/代码模型，4060 Ti 承担 Embedding、Reranker 或轻量实验模型；单模型跨卡需要看推理引擎是否支持并行或分层卸载。
+新设备的 RTX 5080 16GB + RTX 4060 Ti 16GB 可以按资源规划理解为 32GB 专用显存池，但不是单个连续 32GB 显存。RTX 5080 在 Windows 任务管理器里显示的总 GPU 内存包含共享系统内存，不能当作 46.7GB VRAM 使用。短期更稳的使用方式是 5080 承担第二推理/视觉/中等代码模型，4060 Ti 承担 Embedding、Reranker 或轻量实验模型；单模型跨卡需要看推理引擎是否支持并行或分层卸载。
 
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
 |------|------|---------|---------|---------|
-| 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ LM Studio 已接入，多模型评测中 | 主力推理 / `qwen-agent` 候选 |
-| 新设备 | RTX 4090D 24GB + RTX 4060 Ti 16GB + AMD 集显 + 61.6GB RAM | 172.16.x.x | ⏳ 未接入 | 第二推理/代码模型 + Embedding/Reranker |
+| 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ LM Studio 已接入，默认 load Qwen3-Coder-30B | 主力推理 / `qwen-agent` |
+| 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM | 172.16.x.x | ⏳ 未接入 | 第二推理/VL + Embedding/Reranker |
 | 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 31.6GB RAM | 172.16.14.142 | ⛔ 当前无法使用 | 冻结近期接入计划 |
 | 云服务器 | 2核 2GB Ubuntu 24.04 | 82.156.69.153 (公网) | ✅ LiteLLM 运行中 | 轻量 API 网关 |
 
@@ -26,7 +26,7 @@
     ↓ http://82.156.69.153:8000/v1
 云服务器 LiteLLM (API Key + 模型路由)
     ↓ SSH :12340（需要 5090 手动开启反向隧道）
-5090 LM Studio → 本地候选模型池（当前 `qwen/qwen3-coder-30b` 最适合作为 `qwen-agent` 候选）
+5090 LM Studio → `qwen/qwen3-coder-30b`（当前默认 `qwen-agent`）
 ```
 
 ## 怎么连上云服务器
@@ -121,21 +121,21 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 6. **每个关键节点都要同步文档** — 详见 `docs/DOCUMENTATION_SYNC.md`。完成模型评测、部署变更、网络修复、架构调整或 benchmark harness 修改后，必须检查 README、HANDOFF、Progress Summary、CHANGELOG 和对应专题文档。
 
-7. **当前模型未必充分发挥 5090** — 需要用统一 benchmark 对比 Qwen3-Coder 30B-A3B、Qwen3.6-35B-A3B 等本地候选模型，不能只凭主观聊天体验。
+7. **当前仍需确认 Qwen3-Coder 是否充分发挥 5090** — 主模型已定为 Qwen3-Coder-30B，但仍要用真实 tool call、patch apply、repo task、RAG retrieval 和 trace 评测确认上线质量，不能只凭主观聊天体验。
 
 8. **当前 `qwen/qwen3.6-27b` preset 不适合作为 Agent 主执行模型** — 2026-06-16 reload 后重测：速度改善到约 15-16s，但 `model_latency` 4/4 final `content` 仍为空且 `finish_reason=length`；`agent_tasks` strict/soft 0/4，`cline_dialogue` 0/2，RAG oracle 1/3，patch 0/2，repo map 0/2，`/no_think` 抽样仍 0/4。结论是它可以保留为 `qwen-think` 深度分析候选，但不应直接作为 Cline/Agent/RAG 的稳定执行模型。
 
 9. **云端 LiteLLM chat 路径依赖 SSH 反向隧道** — `/v1/models` 能返回 `qwen-local` 只代表网关配置存在；如果 5090 没有手动开启 `:12340` 反向隧道，`/v1/chat/completions` 返回 HTTP 500 / `Connection error` 是正常状态。
 
-10. **Benchmark 已升级为 Cline-like baseline v2** — 现在除了 latency / agent / RAG oracle，还包含 `gateway_health_eval.py`、`repo_map_eval.py`、`patch_task_eval.py`、`cline_dialogue_eval.py`。后续每个候选模型都应跑同一套任务，重点看 `content` 非空率、`finish_reason`、patch 可用性和多轮稳定性。
+10. **Benchmark 已升级为 Cline-like baseline v2** — 现在除了 latency / agent / RAG oracle，还包含 `gateway_health_eval.py`、`repo_map_eval.py`、`patch_task_eval.py`、`cline_dialogue_eval.py`。后续模型切换或路由变更都应跑同一套任务，重点看 `content` 非空率、`finish_reason`、patch 可用性和多轮稳定性。
 
 11. **GLM-4.7-Flash 是当前可对照候选，但不是最终主模型** — 本地 `zai-org/glm-4.7-flash` 能连通 LM Studio，也能在部分 planning 任务上表现不错，但 repo map、patch generation 和 Cline-like 多轮仍不稳定；尤其 patch 任务两次都没有产出可用 diff，所以它更适合做聊天/规划对照，不适合直接当默认 Cline 主模型。
 
-12. **Qwen3-Coder-30B 是当前最强本地 coding / agent-readiness 候选** — 2026-06-15 直连 LM Studio 结果显示：gateway health 正常，`model_latency` 可稳定返回 `content`，RAG oracle 1/3 通过，patch 任务 2/2 通过且能产出真实 diff。2026-06-16 升级评分后复测：`agent_tasks` strict 2/4、soft 4/4、平均 keyword recall 0.775；`cline_dialogue` strict 0/2、soft 2/2、平均 keyword recall 0.500。旧 `0/4` 只能说明 strict gate 未通过，不能解释成“没有 Agent 能力”。
+12. **Qwen3-Coder-30B 是 5090 当前默认 `qwen-agent`** — 2026-06-15 直连 LM Studio 结果显示：gateway health 正常，`model_latency` 可稳定返回 `content`，RAG oracle 1/3 通过，patch 任务 2/2 通过且能产出真实 diff。2026-06-16 升级评分后复测：`agent_tasks` strict 2/4、soft 4/4、平均 keyword recall 0.775；`cline_dialogue` strict 0/2、soft 2/2、平均 keyword recall 0.500。旧 `0/4` 只能说明 strict gate 未通过，不能解释成“没有 Agent 能力”。
 
 13. **Gemma 4 31B 已完成 Agent/Cline soft-scoring 对照** — `google/gemma-4-31b` 可以作为非 Qwen 对照模型，且 patch 任务可产出 diff；但 2026-06-16 soft-scoring 复测显示：`agent_tasks` strict 0/4、soft 0/4、平均 keyword recall 0.050；`cline_dialogue` strict 0/2、soft 0/2。结论是它暂不适合作为默认 Agent/Cline 规划模型。
 
-14. **Qwen3-30B-A3B-2507 已完成本地对照评测** — 2026-06-16 顺序跑正式结果：`agent_tasks` strict 3/4、soft 3/4，`cline_dialogue` strict 0/2、soft 2/2，RAG oracle 1/3，patch 2/2，repo map full-context 两次 300s timeout。结论：它能正常产出 `content`，规划和 patch 能力不错，但长任务 110s+，暂不替代 Qwen3-Coder 作为默认 Cline/Agent 候选。
+14. **Qwen3-30B-A3B-2507 已完成本地对照评测** — 2026-06-16 顺序跑正式结果：`agent_tasks` strict 3/4、soft 3/4，`cline_dialogue` strict 0/2、soft 2/2，RAG oracle 1/3，patch 2/2，repo map full-context 两次 300s timeout。结论：它能正常产出 `content`，规划和 patch 能力不错，但长任务 110s+，不替代 Qwen3-Coder 作为默认 Cline/Agent 模型。
 
 15. **Embedding smoke test 已加入** — `text-embedding-nomic-embed-text-v1.5` 的 `/v1/embeddings` 可用，输出 768 维；toy retrieval 2/3。后续需要真实 chunk + vector db + rerank 的 `rag_retrieval_eval`，不能只凭 toy probe 决定 RAG 默认 embedding。
 
@@ -151,10 +151,10 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 1. 在 5090 手动开启 SSH 反向隧道，并在另一台机器验证公网 `qwen-local` 全链路。
 2. 为当前 `qwen/qwen3.6-27b` 建立 `qwen-think` 定位，不再把它当作默认 Agent 主执行模型。
-3. 继续以 `qwen/qwen3-coder-30b` 作为当前 `qwen-agent` 首选候选，补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval`、`rag_retrieval_eval` 和 `trace_eval`，用真实文件修改和测试结果确认它能否提升为默认 Agent 模型。
+3. 以 `qwen/qwen3-coder-30b` 作为 5090 当前默认 `qwen-agent` 模型，补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval`、`rag_retrieval_eval` 和 `trace_eval`，用真实文件修改和测试结果确认上线质量。
 4. 继续记录 LM Studio preset 完整参数：thinking、response length、context、GPU offload、parallel、batch、KV cache。
 5. 开始 RAG MVP：先支持 `docs/ + README.md + HANDOFF.md` 的文档索引、检索、引用回答。
-6. 新设备接入（LM Studio / llama.cpp / vLLM / SGLang + SSH 隧道 :12341 + Embedding / Reranker / 第二代码模型）。
+6. 新设备接入（LM Studio / llama.cpp / vLLM / SGLang + SSH 隧道 :12341 + Embedding / Reranker / VL / 第二代码模型）。
 7. LiteLLM 多节点模型路由配置：`qwen-local` / `embed-local` / `rerank-local`。
 8. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。
 9. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
@@ -220,4 +220,3 @@ docs/
 - 身份：研究生
 - 目标：建设私有 AI 基础设施平台，作为 AI Infra / Agent Engineer 方向的项目经历
 - 实验室限制：禁止 VPN / 代理软件 / 内网穿透工具
-

@@ -9,8 +9,8 @@
 当前事实以 `README.md`、`HANDOFF.md`、`docs/ARCHITECTURE.md`、`docs/API.md` 为准：
 
 - 云服务器：Ubuntu 24.04，2 核 2GB，短期无法升级。
-- 当前已接入节点：5090 主机已接入 LM Studio，并完成多模型 benchmark；`qwen/qwen3-coder-30b` 暂列 `qwen-agent` 首选候选，`qwen/qwen3.6-27b` 降为 `qwen-think` reasoning baseline。
-- 新设备：4090D 24GB + 4060 Ti 16GB 尚未配置模型、隧道或 LiteLLM 路由，后续计划作为第二模型 / embedding / reranker 节点。
+- 当前已接入节点：5090 主机已接入 LM Studio，并完成多模型 benchmark；`qwen/qwen3-coder-30b` 已定为 `qwen-agent` 默认模型，`qwen/qwen3.6-27b` 降为 `qwen-think` reasoning baseline。
+- 新设备：RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，尚未配置模型、隧道或 LiteLLM 路由；后续计划作为第二模型 / VL / embedding / reranker 节点。
 - 8060S：当前无法使用，冻结近期接入计划；文中早期把 8060S 作为辅助节点的内容仅代表历史规划。
 - 真实 API Key 已从文档中脱敏，统一使用 `<LABAGENT_API_KEY>` 占位符。
 
@@ -1145,5 +1145,3 @@ SSH Reverse Tunnel (auto_tunnel.ps1 自动重连 + 心跳保活)
 5. 如何解决
 6. 当前状态是否通过验证
 7. 对简历或项目复盘有什么价值
-
-

@@ -1,4 +1,4 @@
 {"id":"short_cn","category":"latency","prompt":"用三句话解释什么是 OpenAI-compatible API。","max_tokens":900}
 {"id":"code_python","category":"coding","prompt":"用 Python 写一个带类型标注的 LRU Cache，并简要解释复杂度。","max_tokens":1800}
-{"id":"agent_plan","category":"agent","prompt":"你是本项目的 Agent 工程助手。请为“接入 4090D + 4060 Ti 新设备到 LiteLLM 网关”拆解一个可执行 checklist。","max_tokens":1800}
+{"id":"agent_plan","category":"agent","prompt":"你是本项目的 Agent 工程助手。请为“接入 RTX 5080 + RTX 4060 Ti 新设备到 LiteLLM 网关”拆解一个可执行 checklist，并说明 16GB + 16GB 不是连续 32GB 显存。","max_tokens":1800}
 {"id":"rag_design","category":"rag","prompt":"为当前 LabAgent Platform 设计一个最小 RAG MVP，要求包含 ingestion、embedding、vector db、rerank、answer generation 和 eval。","max_tokens":2000}

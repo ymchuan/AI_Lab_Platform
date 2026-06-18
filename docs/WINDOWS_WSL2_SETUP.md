@@ -1,6 +1,6 @@
 # Windows WSL2 / CUDA 配置指南
 
-> 适用对象：5090 主机、新设备（RTX 4090D 24GB + RTX 4060 Ti 16GB）。  
+> 适用对象：5090 主机、新设备（RTX 5080 16GB + RTX 4060 Ti 16GB）。
 > 8060S 当前无法使用，暂不纳入近期 WSL2 / CUDA 配置计划。  
 > 目标：为 vLLM / SGLang / llama.cpp / RAG / Agent Runtime 准备 Linux 开发环境。
 
@@ -79,7 +79,7 @@ cd ~/labagent
 nvidia-smi
 ```
 
-新设备上预期能同时看到 RTX 4090D 和 RTX 4060 Ti。
+新设备上预期能同时看到 RTX 5080 和 RTX 4060 Ti。
 
 如果 `nvidia-smi` 不存在或报错：
 
@@ -112,10 +112,10 @@ PY
 
 ## 多 GPU 注意事项
 
-新设备是 RTX 4090D 24GB + RTX 4060 Ti 16GB 混插。建议：
+新设备是 RTX 5080 16GB + RTX 4060 Ti 16GB 混插。建议：
 
 1. 不要默认让大模型自动跨两张不同显存/性能的卡，先单卡跑稳定。
-2. 4090D 作为主推理卡，4060 Ti 做 embedding、rerank、轻量模型或评测任务。
+2. RTX 5080 作为第二推理/VL 卡，4060 Ti 做 embedding、rerank、轻量模型或评测任务。
 3. 用 `CUDA_VISIBLE_DEVICES` 固定进程使用哪张卡：
 
 ```bash
@@ -128,7 +128,7 @@ CUDA_VISIBLE_DEVICES=1 python your_script.py
 ## 推荐下一步
 
 1. 先在新设备安装 WSL2 并跑通 `nvidia-smi`。
-2. 安装 Python / PyTorch 并确认能识别 4090D 和 4060 Ti。
+2. 安装 Python / PyTorch 并确认能识别 RTX 5080 和 RTX 4060 Ti。
 3. 先跑轻量 benchmark，不急着装 vLLM。
 4. 再决定新设备上用 LM Studio、llama.cpp、SGLang 还是 vLLM。
 

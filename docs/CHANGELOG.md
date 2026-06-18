@@ -7,6 +7,8 @@
 ## [0.4.3] - 2026-06-16
 
 ### Added
+- 2026-06-18 校准新设备硬件：RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM；替代早期文档中的 4090D 记录，并确认 5080 的 Windows shared GPU memory 不能按 VRAM 规划。
+- 将 5090 默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`，后续重点转向真实工具调用、RAG retrieval 和多节点路由。
 - 初始化本地 Git 仓库，准备同步到私有 GitHub 远程仓库。
 - 安装 Codex skill：`grill-me`，用于更强的自我审查和追问式复盘。
 - 配置私有 GitHub 远程仓库：`ymchuan/AI_Lab_Platform.git`。
@@ -31,7 +33,7 @@
 ### Added
 - 升级 Benchmark baseline v2：新增 `gateway_health_eval.py`、`repo_map_eval.py`、`patch_task_eval.py`、`cline_dialogue_eval.py`。
 - 新增 Cline-like 评测数据集：项目文件理解、补丁生成、多轮工作流对话。
-- 在文档中明确新设备 RTX 4090D 24GB + RTX 4060 Ti 16GB 可视为 40GB 总显存资源池，但不是单个连续 40GB 显存。
+- 在文档中明确新设备 RTX 4090D 24GB + RTX 4060 Ti 16GB 可视为 40GB 总显存资源池，但不是单个连续 40GB 显存。（历史记录；2026-06-18 已校正为 RTX 5080 16GB + RTX 4060 Ti 16GB。）
 - GLM-4.7-Flash 模型测试（12 次 benchmark，raw + /no_think 模式），结论：聊天/规划可用，不提升为主模型。
 - GLM-4.7-Flash 重测（重新 load 后全量 baseline v2），延迟改善，RAG/project_state 接近通过，但 patch 仍失败。
 - MODEL_RESEARCH.md 新增 GLM-4.7-Flash 作为已测试对照候选。
@@ -40,7 +42,7 @@
 - 修复 `benchmarks/rag_oracle_eval.py` 中的 RAG oracle system prompt 乱码，保证后续 RAG 基线评测使用正常中文约束。
 - 修复 `benchmarks/datasets/model_prompts.jsonl`、`agent_tasks.jsonl`、`rag_eval_dataset.jsonl` 的中文乱码，避免评测输入污染。
 - 补录 2026-06-10 晚间 LM Studio 调参后的 benchmark 结果摘要。
-- 校准 2026-06-15 当前资源池：8060S 当前无法使用，冻结近期接入计划；近期只规划 5090 和 4090D 新设备。
+- 校准 2026-06-15 当前资源池：8060S 当前无法使用，冻结近期接入计划；近期只规划 5090 和当时记录的新设备。（历史记录；2026-06-18 已校正为 RTX 5080 新设备。）
 - 校准公网链路状态：SSH 反向隧道当前不是常驻，需要在 5090 手动开启；未开启时公网 chat completion 返回连接错误是预期状态。
 - 更新 benchmark 数据集，将 Agent planning 任务从 8060S OCR/Whisper 接入改为新设备 Embedding/Reranker/第二代码模型接入。
 
@@ -53,7 +55,7 @@
 
 ### Changed
 - 校准当前事实基线：当前只有 5090 已接入，运行 `qwen/qwen3.6-27b`；文件为 `Qwen3.6-27B-Q6_K.gguf`，格式 GGUF，量化 Q6_K，大小约 23.01GB。
-- 明确 4090D + 4060 Ti 新设备和 8060S 仍未部署模型、隧道或 LiteLLM 路由。
+- 明确当时记录的新设备和 8060S 仍未部署模型、隧道或 LiteLLM 路由。（历史记录；2026-06-18 已校正为 RTX 5080 + RTX 4060 Ti。）
 - 重写 `docs/MODEL_RESEARCH.md`，将模型选型从“推荐列表”改为按 5090 / 新设备 / 8060S 分工的落地矩阵。
 - 更新 `docs/AGENT_PROJECT_ROADMAP.md`，将 Agent 岗位能力拆成 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型工程等可交付模块。
 - 更新 `HANDOFF.md`、`README.md`、`docs/ARCHITECTURE.md`、`docs/API.md`、`docs/SETUP.md`、`docs/NETWORK.md` 和 `docs/Progress_Summary.md` 的当前状态描述。
@@ -85,8 +87,8 @@
 - SSH 服务端保活配置（ClientAliveInterval=30）
 - 服务器内存问题定位（OpenWebUI 占 900MB 导致 OOM）
 - 统一当前事实基线：云服务器为 Ubuntu 24.04 2核2GB，短期无法升级
-- 统一模型状态：当前只有 5090 上的 `qwen/qwen3.6-27b` 已接入，4090D 新设备和 8060S 尚未部署
-- 确认新设备为 RTX 4090D 24GB + RTX 4060 Ti 16GB 混插 Windows 主机
+- 统一模型状态：当前只有 5090 上的 `qwen/qwen3.6-27b` 已接入，当时记录的新设备和 8060S 尚未部署
+- 确认新设备为 RTX 4090D 24GB + RTX 4060 Ti 16GB 混插 Windows 主机（历史记录；2026-06-18 已校正为 RTX 5080 16GB + RTX 4060 Ti 16GB）
 - 文档中的真实 API Key 已替换为 `<LABAGENT_API_KEY>` 占位符
 - `.gitignore` 增加 Python 缓存和 `benchmarks/results/`，避免误提交运行结果或私有数据
 - 记录 Qwen reasoning 输出问题：当前 `/no_think` 未明显减少 `reasoning_content`

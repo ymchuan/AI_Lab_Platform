@@ -28,7 +28,7 @@ Authorization: Bearer <LABAGENT_API_KEY>
 
 | 模型 ID | 类型 | 计划位置 | 状态 | 说明 |
 |---------|------|----------|------|------|
-| `qwen-agent` | Chat | 5090 / LM Studio | ⏳ 待正式路由 | 当前首选候选为 `qwen/qwen3-coder-30b`，用于 Cline / coding / Agent 执行场景 |
+| `qwen-agent` | Chat | 5090 / LM Studio | ⏳ 待正式路由 | 当前默认执行模型为 `qwen/qwen3-coder-30b`，用于 Cline / coding / Agent 执行场景 |
 | `qwen-think` | Chat | 5090 / LM Studio | ⏳ 待正式路由 | `qwen/qwen3.6-27b` reasoning baseline。因 final `content` 经常为空，不作为默认执行模型 |
 | `embed-local` | Embedding | 5090 / 新设备 | ⏳ 待正式路由 | `text-embedding-nomic-embed-text-v1.5` 已通过本地 smoke test，RAG 正式服务待接入 |
 | `rerank-local` | Rerank | 新设备 | ⏳ 待部署 | RAG 检索重排 |

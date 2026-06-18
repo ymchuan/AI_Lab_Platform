@@ -6,8 +6,8 @@
 
 | 设备 | 用途 | 状态 |
 |------|------|------|
-| 5090 (RTX 5090 32GB) | 主力推理 | ✅ 已配置 LM Studio，多模型评测中；Qwen3-Coder-30B 暂列 `qwen-agent` 首选候选 |
-| 新设备 (RTX 4090D 24GB + RTX 4060 Ti 16GB) | 第二推理 / Embedding / Rerank | ⏳ 待选型和配置 |
+| 5090 (RTX 5090 32GB) | 主力推理 | ✅ 已配置 LM Studio；Qwen3-Coder-30B 已定为 `qwen-agent` 默认模型 |
+| 新设备 (RTX 5080 16GB + RTX 4060 Ti 16GB) | 第二推理 / VL / Embedding / Rerank | ⏳ 待选型和配置 |
 | 8060S (AMD 395 / 31.6GB) | 暂不规划 | ⛔ 当前无法使用，冻结接入 |
 | 云服务器 (Ubuntu 24.04, 2核 2GB) | 轻量 API 网关 / 隧道中转 | ✅ 已配置，短期无法升级 |
 
@@ -154,4 +154,3 @@ curl.exe http://82.156.69.153:8000/v1/chat/completions `
 ```
 
 如果 `/v1/models` 成功但 `/v1/chat/completions` 失败，优先确认 5090 的 SSH 隧道窗口是否仍在运行。
-

@@ -504,7 +504,7 @@ Embedding 模型  → 把文本变成数字向量（待部署到新设备；8060
 检索策略        → 找到最相关的文档片段
 ```
 
-新设备的 4090D 24GB + 4060 Ti 16GB 是 40GB 总显存资源池，但不是单个连续 40GB 显存。Embedding / Reranker / 第二推理模型更适合按不同 GPU 分配，跨卡跑单个大模型要单独验证推理引擎支持。
+新设备的 RTX 5080 16GB + RTX 4060 Ti 16GB 是 32GB 专用显存资源池，但不是单个连续 32GB 显存；Windows shared GPU memory 不能按 VRAM 使用。Embedding / Reranker / VL / 第二推理模型更适合按不同 GPU 分配，跨卡跑单个大模型要单独验证推理引擎支持。
 
 ---
 
@@ -621,5 +621,4 @@ Docker:  docker run vllm/vllm-openai
 部署方式：先用 LM Studio 或 llama.cpp 的 GGUF 量化版本验证，再比较 vLLM / SGLang
 评测重点：首 token 延迟、tokens/s、显存占用、长上下文、Agent 任务通过率
 ```
-
 

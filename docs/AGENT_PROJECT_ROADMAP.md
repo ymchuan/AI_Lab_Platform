@@ -239,7 +239,7 @@ benchmarks/
 - 文档统一为 Ubuntu 24.04。
 - 明确云服务器 2GB 不升级。
 - 明确当前只有 5090 已接入本地推理链路，新设备与 8060S 暂未接入。
-- 完成多模型 benchmark 后，将 `qwen/qwen3-coder-30b` 暂列 `qwen-agent` 首选候选，将 `qwen/qwen3.6-27b` 降为 `qwen-think` reasoning baseline。
+- 完成多模型 benchmark 后，将 `qwen/qwen3-coder-30b` 定为 5090 `qwen-agent` 默认模型，将 `qwen/qwen3.6-27b` 降为 `qwen-think` reasoning baseline。
 - API Key 脱敏。
 
 ### M2：模型选型与 Benchmark（当前优先级）
@@ -247,9 +247,9 @@ benchmarks/
 - Benchmark / Eval 脚本骨架已创建。
 - Benchmark 已升级为 v2：能记录 `content`、`reasoning_content` 和 `finish_reason`，并覆盖 gateway health、repo map、patch generation 和 Cline 多轮对话。
 - 继续补真实 Agent harness：tool call、patch apply、repo task、RAG retrieval、trace。
-- 记录 5090 候选模型的真实 ID、量化格式、上下文长度、GPU 占用和失败模式。
-- 继续对比 Qwen3-Coder、Qwen3.6、Gemma、GLM 和 embedding/reranker 候选模型。
-- 产出 `BENCHMARK_RESULTS.md`，按指标选 `qwen-local` 主模型。
+- 记录 5090 默认模型 Qwen3-Coder 的真实 ID、量化格式、上下文长度、GPU 占用和失败模式。
+- 保留 Qwen3.6、Gemma、GLM 等作为对照模型，后续重点评估 embedding/reranker/VL 候选。
+- 产出 `BENCHMARK_RESULTS.md`，用指标验证 `qwen-agent` 上线质量。
 
 ### M3：多节点接入
 
