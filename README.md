@@ -6,7 +6,7 @@
 
 本项目将内网 GPU 主机上的本地大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何支持 OpenAI 协议的客户端（Cline、OpenWebUI、Cursor 等）都能像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-06-18 校准）：5090 主机已部署并运行 LM Studio，5090 上的默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 保留为 `qwen-think` reasoning baseline。此前已验证 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`zai-org/glm-4.7-flash`、`google/gemma-4-31b`、`text-embedding-nomic-embed-text-v1.5` 等候选模型；新设备已确认为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，但尚未接入模型、隧道或 LiteLLM 路由；8060S 当前无法使用，暂不纳入近期资源池。云服务器固定为 2 核 2GB Ubuntu 24.04，短期内不会升级，后续设计必须把它当作轻量控制面，而不是计算节点。当前 SSH 反向隧道需要在 5090 手动开启；未开启时公网 chat 调用失败是预期状态。
+当前事实基线（2026-06-18 校准）：5090 主机已部署并运行 LM Studio，5090 上的默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 保留为 `qwen-think` reasoning baseline。此前已验证 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`zai-org/glm-4.7-flash`、`google/gemma-4-31b` 等候选模型；新设备已确认为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，并已通过 `:12341` SSH 反向隧道把 `text-embedding-nomic-embed-text-v1.5-embedding` 接入云端 LiteLLM，公网别名为 `embed-local`。8060S 当前无法使用，暂不纳入近期资源池。云服务器固定为 2 核 2GB Ubuntu 24.04，短期内不会升级，后续设计必须把它当作轻量控制面，而不是计算节点。当前 SSH 反向隧道需要在 5090 和新设备手动保持；未开启时对应后端调用失败是预期状态。
 
 新设备的专用显存可以按资源规划理解为 `16GB + 16GB = 32GB`，但它不是一块连续 32GB 显存。Windows 任务管理器里 RTX 5080 显示的 `46.7GB GPU 内存`包含约 `30.7GB` 共享系统内存，不能按 46.7GB VRAM 规划大模型。单个模型能否跨 RTX 5080 和 RTX 4060 Ti 运行，取决于推理引擎是否支持 tensor parallel、pipeline parallel、layer offload 或手动把不同模型分配到不同 GPU。短期更稳妥的规划是：5080 跑第二推理/视觉/中等代码模型，4060 Ti 跑 Embedding、Reranker 或轻量实验模型。
 
@@ -25,7 +25,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
         │                    └── LM Studio（默认 Qwen3-Coder-30B / qwen-agent）
         │
         └──── SSH :12341 → 新设备 (RTX 5080 16GB + RTX 4060 Ti 16GB + 61.4GB)
-                             └── 待部署（Embedding + Reranker + VL + 第二代码模型）
+                             └── LM Studio（Nomic Embed Text v1.5 / embed-local）
 
 8060S 当前无法使用，暂不设计公网隧道或模型路由。
 ```
@@ -35,7 +35,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | 设备 | GPU | 内存 | 当前角色 | 状态 |
 |------|-----|------|---------|------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M | 93.7GB 可用系统内存 | 主力推理节点 | ✅ 已接入 LM Studio，默认 Qwen3-Coder-30B |
-| 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 | 61.4GB | 第二推理/Embedding/Rerank/VL 节点 | ⏳ 未接入 |
+| 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 | 61.4GB | Embedding 节点；后续 Rerank/VL/第二推理 | ✅ `embed-local` 已接入 |
 | 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 31.6GB | 暂不规划 | ⛔ 当前无法使用，冻结接入 |
 | 云服务器 | 2核 Ubuntu 24.04 | 2GB | 轻量 API 网关/隧道中转 | ✅ LiteLLM 运行中，不计划升级 |
 
@@ -50,11 +50,11 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | 组件 | 状态 | 说明 |
 |------|------|------|
 | LM Studio (5090) | ✅ 运行中 | 默认 load `qwen/qwen3-coder-30b`，作为 `qwen-agent` 首选模型 |
-| SSH 隧道 | ⏸️ 当前未开启 | 需要在 5090 手动启动；未开启时公网 chat 失败是预期状态 |
-| LiteLLM | ✅ 运行中 | systemd 后台服务 |
+| SSH 隧道 | ⚠️ 手动保持 | 5090 `:12340`、新设备 `:12341`；未开启时对应后端失败是预期状态 |
+| LiteLLM | ✅ 运行中 | systemd 后台服务，已路由 `qwen-local` / `qwen-agent` / `embed-local` |
 | OpenWebUI | ⚠️ 需要时启动或迁移到本地节点 | 云服务器 2GB 内存限制，不能长期常驻 |
 | Cline | ✅ 已配置 | VS Code 插件接入 |
-| 5080 新设备 | ⏳ 待接入 | 需要配 LM Studio/推理服务 + SSH 隧道 |
+| 5080 新设备 | ✅ Embedding 已接入 | LM Studio + `:12341` SSH 隧道 + `embed-local` 路由；Rerank/VL 待接入 |
 | 8060S | ⛔ 暂不可用 | 当前无法使用，冻结近期接入计划 |
 
 ## 快速开始
@@ -79,7 +79,7 @@ Model:    qwen-local
 |------|---------|------|------|
 | `qwen-agent` | 当前默认：`qwen/qwen3-coder-30b` | 5090 | Cline / coding / Agent 执行模型 |
 | `qwen-think` | `qwen/qwen3.6-27b` GGUF Q6_K | 5090 | reasoning baseline，不作为默认执行模型 |
-| `embed-local` | `text-embedding-nomic-embed-text-v1.5` 已 smoke test；正式路由待接入 | 5090 / 新设备 | 文本向量化 |
+| `embed-local` | `text-embedding-nomic-embed-text-v1.5-embedding` | 新设备 | 文本向量化，公网 LiteLLM 路由已接入 |
 | `whisper-local` | 暂不部署 | - | 8060S 当前不可用，语音识别后移 |
 
 ## 文档索引
@@ -134,6 +134,7 @@ python benchmarks/rag_oracle_eval.py
 python benchmarks/repo_map_eval.py
 python benchmarks/patch_task_eval.py
 python benchmarks/cline_dialogue_eval.py
+python benchmarks/embedding_health_eval.py --model embed-local
 ```
 
 结果默认写入 `benchmarks/results/`，该目录已加入 `.gitignore`。

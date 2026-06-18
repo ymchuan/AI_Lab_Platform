@@ -7,6 +7,10 @@
 ## [0.4.3] - 2026-06-16
 
 ### Added
+- 2026-06-18 完成多节点路由 v1：新设备 RTX 5080 + RTX 4060 Ti 已通过 `:12341` SSH 反向隧道接入云端 LiteLLM，新增 `embed-local` 路由。
+- `embed-local` 当前指向新设备 LM Studio 上的 `text-embedding-nomic-embed-text-v1.5-embedding`，公网 `/v1/embeddings` 验证可返回 768 维向量。
+- 云端 LiteLLM 路由已包含 `qwen-local`、`qwen-agent` 和 `embed-local`；`qwen-local` / `qwen-agent` 当前都指向 5090 `qwen/qwen3-coder-30b`。
+- 修复 `benchmarks/embedding_health_eval.py` 中残留的中文乱码，保证 embedding smoke test 输入可读。
 - 2026-06-18 校准新设备硬件：RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM；替代早期文档中的 4090D 记录，并确认 5080 的 Windows shared GPU memory 不能按 VRAM 规划。
 - 将 5090 默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`，后续重点转向真实工具调用、RAG retrieval 和多节点路由。
 - 初始化本地 Git 仓库，准备同步到私有 GitHub 远程仓库。

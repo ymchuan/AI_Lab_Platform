@@ -22,6 +22,7 @@
 | 2026-06-15 | qwen/qwen3.6-27b | 5090 / LM Studio direct | agent gate check | `manual_check_20260615` | Direct LM Studio chat still ends in `finish_reason=length` with empty `content`; not suitable as Agent main model |
 | 2026-06-15 | zai-org/glm-4.7-flash | LM Studio local direct | baseline v2 raw | `model_latency_20260615_200008.jsonl` etc. | Local health OK; patch/repo/Cline tasks failed |
 | 2026-06-15 | zai-org/glm-4.7-flash | LM Studio local direct | baseline v2 `/no_think` | `model_latency_20260615_200656.jsonl` etc. | `/no_think` did not remove reasoning; agent planning improved only |
+| 2026-06-18 | embed-local | LiteLLM public gateway -> new device LM Studio | embedding health | `embedding_health_20260618_180017.jsonl` | Multi-node route v1; 768-dimensional embeddings; tiny retrieval probe 2/3 |
 
 ## 2026-06-10 Baseline Summary
 
@@ -233,6 +234,15 @@ Interpretation:
 
 As of 2026-06-18, 8060S is unavailable and no longer appears in new planning tasks. The Agent planning dataset now targets the RTX 5080 + RTX 4060 Ti new device as the next node for Embedding / Reranker / VL / second coding model.
 
+As of 2026-06-18 evening, the new device has been connected as `embed-local` through LiteLLM:
+
+```text
+Cloud LiteLLM /v1/embeddings -> SSH :12341 -> new device LM Studio
+Model id: text-embedding-nomic-embed-text-v1.5-embedding
+Public alias: embed-local
+Observed dimension: 768
+```
+
 ## Metrics To Track
 
 ### Model
@@ -278,6 +288,7 @@ python benchmarks/rag_oracle_eval.py
 python benchmarks/repo_map_eval.py
 python benchmarks/patch_task_eval.py
 python benchmarks/cline_dialogue_eval.py
+python benchmarks/embedding_health_eval.py --model embed-local
 
 # Qwen3-style no-thinking comparison
 python benchmarks/model_latency.py --stream --no-think
@@ -489,3 +500,30 @@ Interpretation:
 1. Reloading the model improved speed significantly compared with the interrupted run, but did not fix the core Agent problem.
 2. The current preset still spends nearly all useful output in `reasoning_content`; `message.content` is usually empty.
 3. Keep this model only as a reasoning/thinking baseline (`qwen-think`), not as the default Cline/Agent/RAG execution model.
+
+
+## 2026-06-18 Multi-node Embedding Route v1
+
+Model:
+
+```text
+LM Studio model id: text-embedding-nomic-embed-text-v1.5-embedding
+Public LiteLLM alias: embed-local
+Route: http://82.156.69.153:8000/v1 -> cloud LiteLLM -> SSH :12341 -> new device LM Studio
+```
+
+Validation:
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| Cloud direct `:12340/v1/models` | pass | 5090 tunnel reachable; model list includes Qwen3-Coder and historical local models |
+| Cloud direct `:12341/v1/models` | pass | New device tunnel reachable; model list includes Nomic embedding ids |
+| Public `/v1/models` | pass | Returns `qwen-local`, `qwen-agent`, `embed-local` |
+| Public `/v1/embeddings` | pass | `embed-local` returns 2 vectors, each 768 dimensions |
+| `embedding_health_eval.py --model embed-local` | mixed | document embeddings OK, 768 dimensions, tiny retrieval probe 2/3 |
+
+Interpretation:
+
+1. LabAgent is no longer a single-node gateway; it now has a working second local node behind the same LiteLLM entrypoint.
+2. The cloud server still performs only lightweight routing and authentication. Model work stays on local machines.
+3. The tiny retrieval probe is intentionally weak and scored 2/3, so this is not yet a full RAG service. The next step is real chunking + vector store + retrieval benchmark, then reranker and VL routes.

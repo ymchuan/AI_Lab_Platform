@@ -6,12 +6,12 @@
 
 | 技能 | 当前状态 | 简历关键词 |
 |------|---------|-----------|
-| 本地大模型部署 | ✅ 5090 + LM Studio + `qwen/qwen3.6-27b` GGUF Q6_K | LLM Deployment, Local Inference |
+| 本地大模型部署 | ✅ 5090 + LM Studio + `qwen/qwen3-coder-30b`；新设备 + LM Studio + `embed-local` | LLM Deployment, Local Inference |
 | OpenAI-compatible API | ✅ LiteLLM 网关 | API Gateway, OpenAI Protocol |
 | 网络架构 | ✅ SSH Reverse Tunnel + NAT 约束处理 | Network Engineering, Reverse Proxy |
 | 云服务器运维 | ✅ Ubuntu 24.04 + systemd + 安全组 | Cloud Infrastructure, Linux Administration |
 | 客户端接入 | ✅ Cline / OpenAI SDK | Agent Tooling, Developer Experience |
-| 多节点调度 | ⏳ 规划中 | Multi-node Orchestration |
+| 多节点调度 | ✅ v1：`qwen-agent` + `embed-local`；Reranker/VL 待补 | Multi-node Orchestration |
 
 **结论：基础设施已经有雏形，但目前代码和智能层深度不足。下一阶段要补 RAG、Agent Runtime、MCP、评测、模型工程（量化/微调）这些能体现 Agent 开发岗能力的部分。**
 
@@ -54,7 +54,7 @@
 
 ```text
 5090 -> 主力模型 / 代码模型 / Agent 主脑
-5080 + 4060 Ti -> 32GB 专用显存资源池，但不是单块连续 32GB；Windows shared GPU memory 不能按 VRAM 使用；优先分配 Embedding / Rerank / VL / 第二推理节点
+5080 + 4060 Ti -> 32GB 专用显存资源池，但不是单块连续 32GB；Windows shared GPU memory 不能按 VRAM 使用；当前已接入 Embedding，后续分配 Rerank / VL / 第二推理节点
 云服务器 -> LiteLLM / HTTPS / 鉴权 / 隧道中转
 ```
 

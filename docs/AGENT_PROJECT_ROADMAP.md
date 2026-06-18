@@ -238,7 +238,7 @@ benchmarks/
 
 - 文档统一为 Ubuntu 24.04。
 - 明确云服务器 2GB 不升级。
-- 明确当前只有 5090 已接入本地推理链路，新设备与 8060S 暂未接入。
+- 明确 5090 已接入主推理链路；2026-06-18 新设备已接入 `embed-local` embedding 路由；8060S 暂未接入。
 - 完成多模型 benchmark 后，将 `qwen/qwen3-coder-30b` 定为 5090 `qwen-agent` 默认模型，将 `qwen/qwen3.6-27b` 降为 `qwen-think` reasoning baseline。
 - API Key 脱敏。
 
@@ -253,9 +253,10 @@ benchmarks/
 
 ### M3：多节点接入
 
-- 新设备接入 `embed-local` / `rerank-local` / `coder-small-local`。
+- 新设备 `embed-local` 已接入。
+- 后续继续接入 `rerank-local` / `vision-local` / `coder-small-local`。
 - 8060S 当前无法使用，`whisper-local` / OCR / 文档解析服务后移到新设备或后续节点。
-- LiteLLM 多节点模型路由完成。
+- LiteLLM 多节点基础路由已完成；完整 RAG/VL/第二推理路由待补。
 
 ### M4：RAG MVP
 

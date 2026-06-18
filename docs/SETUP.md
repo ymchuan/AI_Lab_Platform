@@ -7,7 +7,7 @@
 | 设备 | 用途 | 状态 |
 |------|------|------|
 | 5090 (RTX 5090 32GB) | 主力推理 | ✅ 已配置 LM Studio；Qwen3-Coder-30B 已定为 `qwen-agent` 默认模型 |
-| 新设备 (RTX 5080 16GB + RTX 4060 Ti 16GB) | 第二推理 / VL / Embedding / Rerank | ⏳ 待选型和配置 |
+| 新设备 (RTX 5080 16GB + RTX 4060 Ti 16GB) | Embedding / 第二推理 / VL / Rerank | ✅ `embed-local` 已接入；Rerank/VL 待配置 |
 | 8060S (AMD 395 / 31.6GB) | 暂不规划 | ⛔ 当前无法使用，冻结接入 |
 | 云服务器 (Ubuntu 24.04, 2核 2GB) | 轻量 API 网关 / 隧道中转 | ✅ 已配置，短期无法升级 |
 
@@ -17,9 +17,16 @@
 2. 下载模型
 3. 启动 Local Server：
    - Server Running = ON
-   - Serve on Local Network = ON
+   - Serve on Local Network = OFF（推荐正式路线；只通过本机 SSH 反向隧道转发）
    - Require Authentication = OFF
 4. 验证：`curl http://127.0.0.1:1234/v1/models`
+
+新设备 embedding v1 当前使用：
+
+```text
+LM Studio model id: text-embedding-nomic-embed-text-v1.5-embedding
+公网 LiteLLM alias: embed-local
+```
 
 ## 步骤 2：SSH 密钥认证（每台 GPU 主机）
 
@@ -61,13 +68,20 @@ pip install 'litellm[proxy]'
 # 配置（按实际接入的节点修改 api_base 端口）
 cat > config.yaml <<'EOF'
 model_list:
-  - model_name: qwen-agent
+  - model_name: qwen-local
     litellm_params:
-      # Replace with the currently loaded LM Studio model id.
-      # Current best Agent candidate: openai/qwen/qwen3-coder-30b
-      # Reasoning baseline only: openai/qwen/qwen3.6-27b
       model: openai/qwen/qwen3-coder-30b
       api_base: http://127.0.0.1:12340/v1
+      api_key: lm-studio
+  - model_name: qwen-agent
+    litellm_params:
+      model: openai/qwen/qwen3-coder-30b
+      api_base: http://127.0.0.1:12340/v1
+      api_key: lm-studio
+  - model_name: embed-local
+    litellm_params:
+      model: openai/text-embedding-nomic-embed-text-v1.5-embedding
+      api_base: http://127.0.0.1:12341/v1
       api_key: lm-studio
 general_settings:
   master_key: <LABAGENT_API_KEY>
@@ -118,7 +132,7 @@ cd ~/open-webui && source .venv/bin/activate
 OPENAI_API_BASE_URL=http://127.0.0.1:8000/v1 \
 OPENAI_API_KEY=<LABAGENT_API_KEY> \
 RAG_EMBEDDING_ENGINE=openai \
-RAG_EMBEDDING_MODEL=qwen-local \
+RAG_EMBEDDING_MODEL=embed-local \
 open-webui serve --port 3000 --host 0.0.0.0
 ```
 
@@ -128,6 +142,15 @@ open-webui serve --port 3000 --host 0.0.0.0
 Base URL: http://82.156.69.153:8000/v1
 API Key: <LABAGENT_API_KEY>
 Model: qwen-local
+```
+
+Embedding 客户端使用：
+
+```text
+Base URL: http://82.156.69.153:8000/v1
+API Key: <LABAGENT_API_KEY>
+Model: embed-local
+Endpoint: /v1/embeddings
 ```
 
 ## 步骤 9：另一台机器验证全链路
@@ -154,3 +177,12 @@ curl.exe http://82.156.69.153:8000/v1/chat/completions `
 ```
 
 如果 `/v1/models` 成功但 `/v1/chat/completions` 失败，优先确认 5090 的 SSH 隧道窗口是否仍在运行。
+
+验证新设备 embedding 路由：
+
+```powershell
+curl.exe http://82.156.69.153:8000/v1/embeddings `
+  -H "Authorization: Bearer <LABAGENT_API_KEY>" `
+  -H "Content-Type: application/json" `
+  --data-raw '{ "model": "embed-local", "input": "hello labagent" }'
+```

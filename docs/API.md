@@ -22,15 +22,15 @@ Authorization: Bearer <LABAGENT_API_KEY>
 
 | 模型 ID | 类型 | 后端位置 | 状态 | 说明 |
 |---------|------|----------|------|------|
-| `qwen-local` | Chat | 5090 / LM Studio | ⚠️ 需开启 SSH 隧道 | 兼容旧客户端的默认别名。真实后端模型会随 LM Studio 当前加载模型和 LiteLLM 路由调整，不再固定等同于 `qwen/qwen3.6-27b` |
+| `qwen-local` | Chat | 5090 / LM Studio | ✅ 已路由，需保持 `:12340` 隧道 | 兼容旧客户端的默认别名；当前指向 `qwen/qwen3-coder-30b` |
+| `qwen-agent` | Chat | 5090 / LM Studio | ✅ 已路由，需保持 `:12340` 隧道 | 当前默认 Agent/Cline 执行模型，指向 `qwen/qwen3-coder-30b` |
+| `embed-local` | Embedding | 新设备 / LM Studio | ✅ 已路由，需保持 `:12341` 隧道 | 指向 `text-embedding-nomic-embed-text-v1.5-embedding`，返回 768 维向量 |
 
 ## 规划 / 待正式路由的模型别名
 
 | 模型 ID | 类型 | 计划位置 | 状态 | 说明 |
 |---------|------|----------|------|------|
-| `qwen-agent` | Chat | 5090 / LM Studio | ⏳ 待正式路由 | 当前默认执行模型为 `qwen/qwen3-coder-30b`，用于 Cline / coding / Agent 执行场景 |
 | `qwen-think` | Chat | 5090 / LM Studio | ⏳ 待正式路由 | `qwen/qwen3.6-27b` reasoning baseline。因 final `content` 经常为空，不作为默认执行模型 |
-| `embed-local` | Embedding | 5090 / 新设备 | ⏳ 待正式路由 | `text-embedding-nomic-embed-text-v1.5` 已通过本地 smoke test，RAG 正式服务待接入 |
 | `rerank-local` | Rerank | 新设备 | ⏳ 待部署 | RAG 检索重排 |
 | `vision-local` | Vision / VL | 新设备 | ⏳ 待部署 | OCR、多模态文档理解候选 |
 | `whisper-local` | Audio | - | ⛔ 暂不部署 | 8060S 当前不可用，语音识别计划后移 |
@@ -46,12 +46,14 @@ curl http://82.156.69.153:8000/v1/models \
   -H "Authorization: Bearer <LABAGENT_API_KEY>"
 ```
 
-当前预期至少包含 `qwen-local`；正式切换路由后应增加 `qwen-agent` / `qwen-think` / `embed-local`。注意：能列出模型只说明 LiteLLM 网关配置可达，不代表 5090 反向隧道已经开启，也不代表 LM Studio 当前加载的是目标模型。
+当前预期至少包含 `qwen-local`、`qwen-agent` 和 `embed-local`。注意：能列出模型只说明 LiteLLM 网关配置可达，不代表 5090 或新设备的反向隧道已经开启，也不代表 LM Studio 当前加载的是目标模型。
 
 ```json
 {
   "data": [
-    {"id": "qwen-local", "object": "model", "owned_by": "openai"}
+    {"id": "qwen-local", "object": "model", "owned_by": "openai"},
+    {"id": "qwen-agent", "object": "model", "owned_by": "openai"},
+    {"id": "embed-local", "object": "model", "owned_by": "openai"}
   ],
   "object": "list"
 }
@@ -82,6 +84,22 @@ curl http://82.156.69.153:8000/v1/chat/completions \
     "max_tokens": 500
   }'
 ```
+
+### POST /v1/embeddings
+
+文本向量化接口。当前 `embed-local` 由新设备 LM Studio 承载，通过云服务器 `:12341` SSH 反向隧道路由。
+
+```bash
+curl http://82.156.69.153:8000/v1/embeddings \
+  -H "Authorization: Bearer <LABAGENT_API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "embed-local",
+    "input": ["hello labagent", "multi-node routing"]
+  }'
+```
+
+当前验证结果：公网 LiteLLM 路由可返回 2 条 embedding，每条 768 维。
 
 ## Python 调用示例
 
@@ -136,8 +154,9 @@ console.log(data.choices[0].message.content);
 
 验证公网调用时必须同时检查：
 
-1. `GET /v1/models` 返回预期别名（至少 `qwen-local`，正式路由后应包含 `qwen-agent`）。
+1. `GET /v1/models` 返回预期别名（至少 `qwen-local`、`qwen-agent`、`embed-local`）。
 2. `POST /v1/chat/completions` 返回正常回答。
+3. `POST /v1/embeddings` 使用 `embed-local` 返回 768 维向量。
 
 如果只通过第 1 步，说明云端 LiteLLM 正常；如果第 2 步失败，优先确认 5090 是否已经手动开启 SSH 反向隧道。
 

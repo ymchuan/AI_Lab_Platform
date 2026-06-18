@@ -113,9 +113,14 @@ LiteLLM 解决的问题：
 model_list:
   - model_name: qwen-local          # 对外暴露的模型名
     litellm_params:
-      model: openai/qwen/qwen3.6-27b
+      model: openai/qwen/qwen3-coder-30b
       api_base: http://127.0.0.1:12340/v1  # 后端地址
       api_key: lm-studio              # 后端的 key
+  - model_name: embed-local
+    litellm_params:
+      model: openai/text-embedding-nomic-embed-text-v1.5-embedding
+      api_base: http://127.0.0.1:12341/v1
+      api_key: lm-studio
 
 general_settings:
   master_key: <LABAGENT_API_KEY>    # 对外的 API Key
@@ -498,7 +503,7 @@ NAT 解决：内网设备用私有 IP → 通过路由器/NAT 设备共享一个
 ### 核心组件
 
 ```text
-Embedding 模型  → 把文本变成数字向量（待部署到新设备；8060S 当前不可用）
+Embedding 模型  → 把文本变成数字向量（当前新设备已接入 `embed-local`；8060S 当前不可用）
 向量数据库      → 存储和搜索向量（ChromaDB / Qdrant）
 文档分块        → 把长文档切成适合检索的小块
 检索策略        → 找到最相关的文档片段
@@ -621,4 +626,3 @@ Docker:  docker run vllm/vllm-openai
 部署方式：先用 LM Studio 或 llama.cpp 的 GGUF 量化版本验证，再比较 vLLM / SGLang
 评测重点：首 token 延迟、tokens/s、显存占用、长上下文、Agent 任务通过率
 ```
-

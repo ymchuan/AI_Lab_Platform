@@ -23,6 +23,7 @@ Use environment variables so secrets do not enter the repo:
 $env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
 $env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
 $env:LABAGENT_MODEL = "qwen-local"
+$env:LABAGENT_EMBED_MODEL = "embed-local"
 ```
 
 All scripts also accept command-line flags.
@@ -81,7 +82,7 @@ python benchmarks/cline_dialogue_eval.py
 ### 8. Embedding Health
 
 ```powershell
-python benchmarks/embedding_health_eval.py --model text-embedding-nomic-embed-text-v1.5
+python benchmarks/embedding_health_eval.py --model embed-local
 ```
 
 This checks `/v1/embeddings`, vector dimensionality, and a tiny cosine-similarity retrieval probe. It is not a full RAG benchmark.

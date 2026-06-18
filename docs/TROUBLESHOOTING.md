@@ -10,6 +10,8 @@
 # 在云服务器检查
 ss -tlnp | grep :12340
 curl http://127.0.0.1:12340/v1/models
+ss -tlnp | grep :12341
+curl http://127.0.0.1:12341/v1/models
 ```
 
 **常见原因**：
@@ -41,6 +43,12 @@ sudo systemctl restart ssh
 
 ```powershell
 ssh -N -R 12340:127.0.0.1:1234 -i C:\Users\N\.ssh\id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+```
+
+新设备 embedding 隧道恢复：
+
+```powershell
+ssh -N -R 12341:127.0.0.1:1234 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
 ```
 
 ## 问题 2：公网无法访问 8000 端口
@@ -157,7 +165,7 @@ python benchmarks/model_latency.py --stream --no-think
 **解决方案**：
 
 ```bash
-RAG_EMBEDDING_ENGINE=openai RAG_EMBEDDING_MODEL=qwen-local open-webui serve --port 3000
+RAG_EMBEDDING_ENGINE=openai RAG_EMBEDDING_MODEL=embed-local open-webui serve --port 3000
 ```
 
 长期方案：把 OpenWebUI 迁移到 5090 或新设备，云服务器只保留 LiteLLM / HTTPS / SSH 隧道。
@@ -177,5 +185,57 @@ RAG_EMBEDDING_ENGINE=openai RAG_EMBEDDING_MODEL=qwen-local open-webui serve --po
 8. 5090 建立 SSH 隧道
 9. 验证全链路
 10. 按需启动 OpenWebUI，或迁移到本地节点
+```
+
+## 问题 9：LM Studio 显示 localhost 还是 172.16.x.x
+
+**现象**：
+
+- LM Studio 显示 `http://127.0.0.1:1234`：服务只监听本机。
+- LM Studio 显示 `http://172.16.14.x:1234`：已开启 `Serve on Local Network`，同一内网机器可能直接访问。
+
+**建议**：
+
+正式架构优先保持 localhost，只通过 SSH 反向隧道接入云服务器：
+
+```text
+5090:   云服务器 :12340 -> 5090 127.0.0.1:1234
+新设备: 云服务器 :12341 -> 新设备 127.0.0.1:1234
+```
+
+这样外部客户端只能通过 LiteLLM API Key 访问，不会绕过网关。只有临时调试内网互通时才打开 `Serve on Local Network`，并建议用 Windows 防火墙限制来源 IP。
+
+## 问题 10：PowerShell curl 发送 JSON 到 embeddings 失败
+
+**症状**：
+
+```text
+Invalid body: failed to parse JSON value
+curl: (3) URL rejected
+```
+
+**原因**：PowerShell 的引号和反斜杠转义把 JSON 拆坏。
+
+**解决**：
+
+```powershell
+curl.exe http://127.0.0.1:1234/v1/embeddings `
+  -H "Content-Type: application/json" `
+  --data-raw '{ "model": "text-embedding-nomic-embed-text-v1.5-embedding", "input": "hello labagent" }'
+```
+
+或使用原生命令：
+
+```powershell
+$body = @{
+  model = "text-embedding-nomic-embed-text-v1.5-embedding"
+  input = "hello labagent"
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:1234/v1/embeddings" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body $body
 ```
 
