@@ -101,6 +101,60 @@ curl http://82.156.69.153:8000/v1/embeddings \
 
 当前验证结果：公网 LiteLLM 路由可返回 2 条 embedding，每条 768 维。
 
+## RAG Service v1 接口
+
+RAG Service v1 默认运行在 5090 本地：
+
+```text
+Local URL: http://127.0.0.1:8010
+Remote test URL example: http://82.156.69.153:18010
+Auth: Authorization: Bearer <LABAGENT_RAG_API_KEY>
+```
+
+该服务不是 LiteLLM 的一部分。它读取 5090 本地 `data/rag/index.json`，再调用公网 LiteLLM 的 `embed-local` 和 `qwen-agent`。
+
+### GET /health
+
+```powershell
+curl.exe http://127.0.0.1:8010/health `
+  -H "Authorization: Bearer <LABAGENT_RAG_API_KEY>"
+```
+
+### POST /v1/rag/search
+
+只检索证据，不调用聊天模型。
+
+```powershell
+curl.exe http://127.0.0.1:8010/v1/rag/search `
+  -H "Authorization: Bearer <LABAGENT_RAG_API_KEY>" `
+  -H "Content-Type: application/json" `
+  -d '{\"query\":\"LabAgent 当前有哪些公网模型路由？\",\"top_k\":5}'
+```
+
+### POST /v1/rag/ask
+
+检索证据后调用 `qwen-agent` 生成带引用回答。
+
+```powershell
+curl.exe http://127.0.0.1:8010/v1/rag/ask `
+  -H "Authorization: Bearer <LABAGENT_RAG_API_KEY>" `
+  -H "Content-Type: application/json" `
+  -d '{\"query\":\"LabAgent 当前多节点路由是什么状态？\",\"top_k\":8}'
+```
+
+### POST /v1/chat/completions
+
+简化 OpenAI-compatible 兼容入口，便于 Cline 临时把 RAG 当作项目文档问答模型使用。
+
+```powershell
+curl.exe http://127.0.0.1:8010/v1/chat/completions `
+  -H "Authorization: Bearer <LABAGENT_RAG_API_KEY>" `
+  -H "Content-Type: application/json" `
+  -d '{\"model\":\"labagent-rag\",\"messages\":[{\"role\":\"user\",\"content\":\"LabAgent 当前多节点路由是什么状态？\"}],\"max_tokens\":900}'
+```
+
+当前限制：该兼容入口不支持 `stream=true`，更适合项目知识问答，不适合作为 Cline 主编码模型。
+
 ## Python 调用示例
 
 ```python

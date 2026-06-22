@@ -10,6 +10,8 @@
 - 新增 `docs/CODE_REVIEW_TRIAGE.md`，记录外部 AI review 的采纳、后置和拒绝决策。
 - 新增 `docs/AGENT_OPERATING_RULES.md`，沉淀 Qwen/Cline 短系统提示词、外部系统提示词使用原则和本地 skills 说明。
 - 新增本地 Codex skill：`labagent-code-review`，用于后续 review 分流、RAG/benchmark hardening 和提示词提炼。
+- 新增 `services/rag/server.py`，提供 RAG Service v1 零依赖 HTTP API：`/health`、`/v1/rag/search`、`/v1/rag/ask` 和简化 `/v1/chat/completions`。
+- 扩写 `docs/RAG_LEARNING_NOTES.md`，增加 RAG 白话解释、本机调试、David/Cline 远程调用和故障定位流程。
 
 ### Fixed
 - 将 benchmark / RAG 源码默认 Base URL 改为 `http://127.0.0.1:8000/v1`，公网 LiteLLM 地址只通过环境变量或部署文档显式使用。
@@ -18,6 +20,7 @@
 - 增加 RAG chunk 参数校验、RAG index embedding model / chunk count / vector dimension 校验。
 - RAG CLI 新增 `--root`，并在 `search` / `ask` 缺失 index 时给出明确错误。
 - 默认 RAG discovery 排除 raw review 和外部系统提示词，避免污染项目知识库。
+- 修正 `services/rag/README.md` 中中文命令显示问题，并补齐 RAG Service v1 使用说明。
 
 ### Security
 - 将 `docs/CODE_REVIEW_ISSUES.md` 和 `docs/claude-fable-5.md` 作为本地参考加入 `.gitignore`，不提交原始第三方分析或系统提示词。

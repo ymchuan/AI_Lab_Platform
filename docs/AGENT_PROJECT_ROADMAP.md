@@ -91,7 +91,17 @@ docs/ + README.md + HANDOFF.md
 
 当前验证：319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 可带 `[Sx]` 引用回答。
 
-下一版不要一开始做全平台。先把当前项目文档目录升级为 RAG Service v1：
+2026-06-22 已新增 RAG Service v1 HTTP baseline：
+
+```text
+services/rag/server.py
+  -> GET /health
+  -> POST /v1/rag/search
+  -> POST /v1/rag/ask
+  -> POST /v1/chat/completions
+```
+
+它仍使用本地 JSON index，目标是让 David/Cline 能远程调试 RAG。下一版不要一开始做全平台。先把当前项目文档目录升级为 RAG v1.x：
 
 ```text
 docs/ + README.md + HANDOFF.md

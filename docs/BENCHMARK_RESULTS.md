@@ -24,6 +24,7 @@
 | 2026-06-15 | zai-org/glm-4.7-flash | LM Studio local direct | baseline v2 `/no_think` | `model_latency_20260615_200656.jsonl` etc. | `/no_think` did not remove reasoning; agent planning improved only |
 | 2026-06-18 | embed-local | LiteLLM public gateway -> new device LM Studio | embedding health | `embedding_health_20260618_180017.jsonl` | Multi-node route v1; 768-dimensional embeddings; tiny retrieval probe 2/3 |
 | 2026-06-18 | embed-local + qwen-agent | LiteLLM public gateway -> local nodes | rag_retrieval / RAG v0 | `rag_retrieval_20260618_215213.jsonl` | 319 chunks / 19 files; retrieval benchmark 3/3; end-to-end ask can answer with `[Sx]` citations |
+| 2026-06-22 | RAG Service v1 | 5090 local HTTP service | unit / smoke | local unit tests | Added zero-dependency HTTP API; local tests cover health/auth/sources; remote David test pending |
 
 ## 2026-06-10 Baseline Summary
 

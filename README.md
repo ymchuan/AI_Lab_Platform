@@ -39,7 +39,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 31.6GB | 暂不规划 | ⛔ 当前无法使用，冻结接入 |
 | 云服务器 | 2核 Ubuntu 24.04 | 2GB | 轻量 API 网关/隧道中转 | ✅ LiteLLM 运行中，不计划升级 |
 
-## 当前阶段：Qwen3-Coder 主模型 + RAG v0
+## 当前阶段：Qwen3-Coder 主模型 + RAG Service v1
 
 5090 主模型已定为 `qwen/qwen3-coder-30b`。项目已建立 8 层评测体系（model latency / gateway health / agent tasks / RAG oracle / repo map / patch task / Cline dialogue / embedding health），后续重点是用真实 tool call、patch apply、RAG retrieval 和 Cline 多轮工作流验证上线质量。
 
@@ -48,6 +48,8 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 2026-06-18 已完成 RAG v0 最小闭环：`README.md` / `HANDOFF.md` / `docs/*.md` -> Markdown chunk -> `embed-local` -> 本地 JSON 向量索引 -> cosine retrieval -> `qwen-agent` 带引用回答。当前干净索引构建结果为 319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 已能返回 `[Sx]` 引用。该版本是学习和 baseline 实现，不是最终生产 RAG；下一步要接入向量数据库、reranker、answer faithfulness / citation 评测和 API Server。
 
 2026-06-22 已完成第一轮 code review hardening：benchmark / RAG 源码默认 URL 改为 localhost，公网网关必须通过环境变量显式指定；RAG index 增加 embedding model / chunk count / vector dimension 校验；默认 RAG discovery 排除 raw review 和外部系统提示词，避免污染知识库。新增 `docs/CODE_REVIEW_TRIAGE.md` 和 `docs/AGENT_OPERATING_RULES.md`，并创建本地 Codex skill `labagent-code-review`。离线 discovery 已确认当前默认源会发现 21 files / 333 chunks；需要下一轮用 `embed-local` 重建运行索引后再更新 benchmark 结果。
+
+2026-06-22 已新增 RAG Service v1：`services/rag/server.py` 提供零依赖 HTTP API，包含 `/health`、`/v1/rag/search`、`/v1/rag/ask` 和简化 OpenAI-compatible `/v1/chat/completions`。它仍使用本地 JSON index，但已经可以通过 SSH 反向隧道暴露给 David/Cline 远程调试；向量数据库、reranker 和 answer eval 作为后续 v1.x。
 
 ## 当前状态
 
@@ -59,7 +61,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | OpenWebUI | ⚠️ 需要时启动或迁移到本地节点 | 云服务器 2GB 内存限制，不能长期常驻 |
 | Cline | ✅ 已配置 | VS Code 插件接入 |
 | 5080 新设备 | ✅ Embedding 已接入 | LM Studio + `:12341` SSH 隧道 + `embed-local` 路由；Rerank/VL 待接入 |
-| RAG v0 | ✅ 最小闭环完成 | `services/rag` 支持 index/search/ask；本地 `data/rag/` 不进 Git |
+| RAG Service v1 | ✅ 最小 HTTP API 已完成 | `services/rag` 支持 CLI index/search/ask 和 HTTP search/ask；本地 `data/rag/` 不进 Git |
 | 8060S | ⛔ 暂不可用 | 当前无法使用，冻结近期接入计划 |
 
 ## 快速开始
@@ -122,7 +124,7 @@ Model:    qwen-local
 网关层:   LiteLLM (OpenAI-compatible API Gateway)
 网络层:   SSH Reverse Tunnel + 云服务器 (Ubuntu 24.04)
 客户端:   Cline (VS Code) + OpenWebUI (Web)
-RAG层:    services/rag/ (Markdown chunking + embed-local + local vector index + cited answer)
+RAG层:    services/rag/ (Markdown chunking + embed-local + local vector index + HTTP search/ask + cited answer)
 评测层:   benchmarks/ (gateway + latency + agent + RAG + repo map + patch + Cline dialogue + embedding)
 协议:     OpenAI Compatible API (/v1/chat/completions)
 ```
@@ -160,6 +162,19 @@ $env:LABAGENT_MODEL = "qwen-agent"
 python -m services.rag.cli index
 python -m services.rag.cli search "LabAgent 当前有哪些公网模型路由？"
 python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？"
+```
+
+RAG Service v1 本地启动：
+
+```powershell
+$env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
+python -m services.rag.server --host 127.0.0.1 --port 8010
+```
+
+David 远程调试时，可在 5090 额外开启：
+
+```powershell
+ssh -N -R 18010:127.0.0.1:8010 -i C:\Users\N\.ssh\id_ed25519 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
 ```
 
 ## License

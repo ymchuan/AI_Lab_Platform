@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import unittest
+import json
 from pathlib import Path
+from urllib import request
+from urllib.error import HTTPError
 
 from services.rag.chunking import discover_markdown_files, split_markdown
 from services.rag.index_store import load_index, cosine_similarity, retrieve, save_index
 from services.rag.pipeline import expand_query
+from services.rag.server import RagServiceConfig, create_server
 
 
 class RagCoreTest(unittest.TestCase):
@@ -165,6 +169,90 @@ class RagCoreTest(unittest.TestCase):
         self.assertNotIn(".env.md", relatives)
         self.assertNotIn("docs/CODE_REVIEW_ISSUES.md", relatives)
         self.assertNotIn("docs/claude-fable-5.md", relatives)
+
+    def test_rag_server_health_and_auth(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            tmp_path = Path(directory)
+            index_path = tmp_path / "index.json"
+            save_index(
+                {
+                    "version": 1,
+                    "created_at": "2026-06-22T00:00:00",
+                    "embedding_model": "embed-local",
+                    "embedding_dimensions": 2,
+                    "chunk_count": 1,
+                    "source_files": ["README.md"],
+                    "source_patterns": ["README.md"],
+                    "chunks": [
+                        {
+                            "id": "README.md#0",
+                            "source_path": "README.md",
+                            "title": "Intro",
+                            "ordinal": 0,
+                            "text": "LabAgent RAG service",
+                            "embedding": [1.0, 0.0],
+                        }
+                    ],
+                },
+                index_path,
+            )
+            config = RagServiceConfig(
+                host="127.0.0.1",
+                port=0,
+                base_url="http://127.0.0.1:9/v1",
+                api_key=None,
+                embedding_model="embed-local",
+                chat_model="qwen-agent",
+                rag_model="labagent-rag",
+                index_path=index_path,
+                service_api_key="secret",
+                timeout=1,
+            )
+            server = create_server(config)
+            try:
+                port = server.server_port
+                import threading
+
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+
+                with self.assertRaises(HTTPError) as unauthorized:
+                    request.urlopen(f"http://127.0.0.1:{port}/health", timeout=2)
+                self.assertEqual(unauthorized.exception.code, 401)
+
+                health = http_json(
+                    f"http://127.0.0.1:{port}/health",
+                    headers={"Authorization": "Bearer secret"},
+                )
+                self.assertTrue(health["ok"])
+                self.assertEqual(health["chunk_count"], 1)
+
+                sources = http_json(
+                    f"http://127.0.0.1:{port}/v1/rag/sources",
+                    headers={"Authorization": "Bearer secret"},
+                )
+                self.assertEqual(sources["source_files"], ["README.md"])
+            finally:
+                server.shutdown()
+                server.server_close()
+
+
+def http_json(
+    url: str,
+    payload: dict | None = None,
+    headers: dict | None = None,
+) -> dict:
+    data = None if payload is None else json.dumps(payload).encode("utf-8")
+    req = request.Request(
+        url,
+        data=data,
+        method="POST" if payload is not None else "GET",
+        headers={"Content-Type": "application/json", **(headers or {})},
+    )
+    with request.urlopen(req, timeout=2) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 
 if __name__ == "__main__":
