@@ -8,3 +8,7 @@ __pycache__/
 *.pyc
 benchmarks/results/
 data/rag/
+
+# Local raw AI review/prompt references. Keep summarized, project-owned docs tracked instead.
+docs/CODE_REVIEW_ISSUES.md
+docs/claude-fable-5.md

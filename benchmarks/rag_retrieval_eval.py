@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -67,9 +68,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    embedding_model = args.embedding_model or __import__("os").environ.get("LABAGENT_EMBED_MODEL", "embed-local")
+    embedding_model = args.embedding_model or os.environ.get("LABAGENT_EMBED_MODEL", "embed-local")
     client = OpenAICompatibleClient(args.base_url, args.api_key, args.timeout)
-    index = load_index(args.index_path)
+    index = load_index(args.index_path, expected_embedding_model=embedding_model)
     rows: List[Dict[str, Any]] = []
 
     for task in TASKS:

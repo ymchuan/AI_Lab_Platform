@@ -64,7 +64,7 @@ def main() -> int:
             "model": args.model,
             "messages": messages,
             "temperature": task.get("temperature", 0.1),
-            "max_tokens": args.max_tokens_override or task.get("max_tokens", 2200),
+            "max_tokens": args.max_tokens_override if args.max_tokens_override is not None else task.get("max_tokens", 2200),
         }
         result = client.chat_completion(payload)
         content = result.get("content", "")

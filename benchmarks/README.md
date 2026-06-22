@@ -29,7 +29,9 @@ $env:LABAGENT_EMBED_MODEL = "embed-local"
 
 All scripts also accept command-line flags.
 
-For slow local models, add `--max-tokens-override` to cap output across a run. The main eval scripts now write JSONL incrementally after each row, so completed rows are preserved even if a later request times out.
+If `LABAGENT_BASE_URL` is not set, benchmark source code defaults to `http://127.0.0.1:8000/v1`. Use the public URL only when you intentionally want to test the cloud LiteLLM gateway.
+
+For slow local models, add `--max-tokens-override` to cap output across a run. The main eval scripts now write JSONL incrementally after each row, so completed rows are preserved even if a later request times out. The override now treats `0` as an explicit value rather than falling back to task defaults.
 
 ## Baseline Sequence
 

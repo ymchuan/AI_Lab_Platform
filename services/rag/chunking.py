@@ -7,6 +7,10 @@ from typing import Iterable, List, Sequence
 
 
 DEFAULT_SOURCE_PATTERNS = ["README.md", "HANDOFF.md", "docs/*.md"]
+EXCLUDED_SOURCE_PATHS = {
+    "docs/CODE_REVIEW_ISSUES.md",
+    "docs/claude-fable-5.md",
+}
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 MIN_CHUNK_CHARS = 120
 
@@ -57,6 +61,13 @@ def split_markdown(
     max_chars: int = 1200,
     overlap_chars: int = 160,
 ) -> List[Chunk]:
+    if max_chars <= 0:
+        raise ValueError("max_chars must be greater than 0")
+    if overlap_chars < 0:
+        raise ValueError("overlap_chars must be greater than or equal to 0")
+    if overlap_chars >= max_chars:
+        raise ValueError("overlap_chars must be smaller than max_chars")
+
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
     sections = _split_sections(normalized)
     chunks: List[Chunk] = []
@@ -121,7 +132,8 @@ def _split_sections(text: str) -> List[tuple[str, str]]:
 def _is_unsafe_source(relative_path: str) -> bool:
     parts = set(relative_path.split("/"))
     return (
-        relative_path.startswith(".")
+        relative_path in EXCLUDED_SOURCE_PATHS
+        or relative_path.startswith(".")
         or ".git" in parts
         or "__pycache__" in parts
         or relative_path.startswith("benchmarks/results/")

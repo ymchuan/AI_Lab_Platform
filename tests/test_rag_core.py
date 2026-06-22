@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from services.rag.chunking import discover_markdown_files, split_markdown
-from services.rag.index_store import cosine_similarity, retrieve
+from services.rag.index_store import load_index, cosine_similarity, retrieve, save_index
 from services.rag.pipeline import expand_query
 
 
@@ -34,6 +34,14 @@ class RagCoreTest(unittest.TestCase):
         chunks = split_markdown("docs/thin.md", text, max_chars=500, overlap_chars=20)
 
         self.assertEqual(chunks, [])
+
+    def test_split_markdown_rejects_invalid_window_settings(self) -> None:
+        with self.assertRaisesRegex(ValueError, "max_chars"):
+            split_markdown("docs/example.md", "text", max_chars=0, overlap_chars=0)
+        with self.assertRaisesRegex(ValueError, "overlap_chars"):
+            split_markdown("docs/example.md", "text", max_chars=100, overlap_chars=-1)
+        with self.assertRaisesRegex(ValueError, "overlap_chars"):
+            split_markdown("docs/example.md", "text", max_chars=100, overlap_chars=100)
 
     def test_expand_query_adds_project_routing_entities(self) -> None:
         expanded = expand_query("LabAgent 当前多节点路由是什么状态？")
@@ -69,6 +77,45 @@ class RagCoreTest(unittest.TestCase):
         results = retrieve(index, [0.0, 0.9], top_k=1)
 
         self.assertEqual(results[0]["id"], "b#0")
+
+    def test_load_index_rejects_inconsistent_metadata(self) -> None:
+        import tempfile
+
+        index = {
+            "version": 1,
+            "embedding_model": "embed-local",
+            "embedding_dimensions": 2,
+            "chunk_count": 1,
+            "chunks": [
+                {
+                    "id": "a#0",
+                    "source_path": "a.md",
+                    "title": "A",
+                    "ordinal": 0,
+                    "text": "A",
+                    "embedding": [1.0, 0.0],
+                }
+            ],
+        }
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "index.json"
+            save_index(index, path)
+            self.assertEqual(load_index(path, expected_embedding_model="embed-local")["chunk_count"], 1)
+
+            with self.assertRaisesRegex(ValueError, "embedding model mismatch"):
+                load_index(path, expected_embedding_model="other-model")
+
+            broken_count = dict(index, chunk_count=2)
+            save_index(broken_count, path)
+            with self.assertRaisesRegex(ValueError, "chunk_count mismatch"):
+                load_index(path)
+
+            broken_dimension = dict(index)
+            broken_dimension["chunks"] = [dict(index["chunks"][0], embedding=[1.0])]
+            save_index(broken_dimension, path)
+            with self.assertRaisesRegex(ValueError, "embedding dimension"):
+                load_index(path)
 
     def test_retrieve_can_use_query_text_to_boost_project_entities(self) -> None:
         index = {
@@ -107,6 +154,8 @@ class RagCoreTest(unittest.TestCase):
             docs = tmp_path / "docs"
             docs.mkdir()
             (docs / "A.md").write_text("doc", encoding="utf-8")
+            (docs / "CODE_REVIEW_ISSUES.md").write_text("raw review", encoding="utf-8")
+            (docs / "claude-fable-5.md").write_text("raw prompt", encoding="utf-8")
 
             files = discover_markdown_files(tmp_path, ["*.md", "docs/*.md"])
             relatives = [path.relative_to(tmp_path).as_posix() for path in files]
@@ -114,6 +163,8 @@ class RagCoreTest(unittest.TestCase):
         self.assertIn("README.md", relatives)
         self.assertIn("docs/A.md", relatives)
         self.assertNotIn(".env.md", relatives)
+        self.assertNotIn("docs/CODE_REVIEW_ISSUES.md", relatives)
+        self.assertNotIn("docs/claude-fable-5.md", relatives)
 
 
 if __name__ == "__main__":

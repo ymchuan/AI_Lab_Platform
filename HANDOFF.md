@@ -158,6 +158,10 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 18. **RAG v0 已完成，但只是 baseline** — `services/rag` 已支持 `index/search/ask`，`benchmarks/rag_retrieval_eval.py` 已验证 3 个固定问题的检索命中。端到端问答需要 `top-k=8`、约 9000 context chars 才比较稳定。下一步不能只优化“能答”，还要评测节点/模型映射是否准确、引用是否真实、回答是否忠实于 context。
 
+19. **2026-06-22 已完成 code review hardening** — 已采纳外部 review 中高价值问题：benchmark / RAG 源码默认 Base URL 改为 localhost，公网地址只保留在部署文档和环境变量示例；RAG index 加入 embedding model、chunk count、vector dimension 校验；RAG CLI 支持 `--root` 并对缺失 index 给出明确错误；`max_tokens_override=0` 不再被误判；raw review / 外部系统提示词已排除默认 RAG discovery 并加入 `.gitignore`。
+
+20. **不要直接复制 `docs/claude-fable-5.md` 进 Qwen system prompt** — 该文件只作为本地参考，不进入 Git、不进入默认 RAG。项目已新增 `docs/AGENT_OPERATING_RULES.md`，里面有面向 Qwen3-Coder / Cline 的短系统提示词；新建本地 Codex skill `labagent-code-review`，下个新会话会自动出现在 skills 列表里。
+
 ## 下一步要做的事
 
 **当前阶段：RAG v0 -> RAG Service v1**。模型选型已经暂定 5090 的 `qwen-agent` 为 Qwen3-Coder-30B；新设备已承担 `embed-local`。现在重点从“能否部署模型”转向“能否构建真实 RAG/Agent 工程闭环”。
@@ -174,6 +178,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 8. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。
 9. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
 10. 构建 MCP Server / Skills / Eval Harness / LoRA-QLoRA 和量化实验。
+11. 用新的 RAG/index 校验规则重新构建索引，并在接入向量数据库前保留 JSON index baseline。
 
 ## 当前 Benchmark 命令
 
@@ -239,6 +244,8 @@ docs/
 ├── BENCHMARK_RESULTS.md     # Benchmark 结果记录
 ├── WINDOWS_WSL2_SETUP.md    # Windows WSL2 / CUDA 配置
 ├── CHANGELOG.md             # 更新日志
+├── CODE_REVIEW_TRIAGE.md    # 外部 review 采纳/后置/拒绝记录
+├── AGENT_OPERATING_RULES.md # Qwen/Cline 系统提示词与 skills 使用规则
 ├── Progress_Summary.md      # 进展汇报（给别人看的）
 ├── Tech_Stack_Knowledge_Base.md  # 技术知识手册
 ├── AI_Engineer_Skills_Roadmap.md # 技能路线图

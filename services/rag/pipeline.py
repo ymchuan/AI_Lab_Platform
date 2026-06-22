@@ -14,7 +14,7 @@ def search(
     query: str,
     top_k: int = 5,
 ) -> List[Dict[str, Any]]:
-    index = load_index(index_path)
+    index = load_index(index_path, expected_embedding_model=embedding_model)
     retrieval_query = expand_query(query)
     response = client.embeddings(embedding_model, [retrieval_query])
     vectors = response["vectors"]

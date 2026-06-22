@@ -45,7 +45,9 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 已测试：qwen3.6-27b（基线）、GLM-4.7-Flash（对照）、Qwen3-Coder-30B、Qwen3.6-35B-A3B、Qwen3-30B-A3B-2507、Gemma 4 31B、Nomic embedding。2026-06-16 已将 Agent/Cline 评测拆成 `strict_passed`、`soft_passed` 和 `keyword_recall`：旧的 `0/4` 不能直接理解为“模型没有 Agent 能力”，只能说明它没有通过严格上线门槛。
 
-2026-06-18 已完成 RAG v0 最小闭环：`README.md` / `HANDOFF.md` / `docs/*.md` -> Markdown chunk -> `embed-local` -> 本地 JSON 向量索引 -> cosine retrieval -> `qwen-agent` 带引用回答。当前索引构建结果为 319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 已能返回 `[Sx]` 引用。该版本是学习和 baseline 实现，不是最终生产 RAG；下一步要接入向量数据库、reranker、answer faithfulness / citation 评测和 API Server。
+2026-06-18 已完成 RAG v0 最小闭环：`README.md` / `HANDOFF.md` / `docs/*.md` -> Markdown chunk -> `embed-local` -> 本地 JSON 向量索引 -> cosine retrieval -> `qwen-agent` 带引用回答。当前干净索引构建结果为 319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 已能返回 `[Sx]` 引用。该版本是学习和 baseline 实现，不是最终生产 RAG；下一步要接入向量数据库、reranker、answer faithfulness / citation 评测和 API Server。
+
+2026-06-22 已完成第一轮 code review hardening：benchmark / RAG 源码默认 URL 改为 localhost，公网网关必须通过环境变量显式指定；RAG index 增加 embedding model / chunk count / vector dimension 校验；默认 RAG discovery 排除 raw review 和外部系统提示词，避免污染知识库。新增 `docs/CODE_REVIEW_TRIAGE.md` 和 `docs/AGENT_OPERATING_RULES.md`，并创建本地 Codex skill `labagent-code-review`。离线 discovery 已确认当前默认源会发现 21 files / 332 chunks；需要下一轮用 `embed-local` 重建运行索引后再更新 benchmark 结果。
 
 ## 当前状态
 
@@ -102,6 +104,8 @@ Model:    qwen-local
 - [Benchmark 结果](docs/BENCHMARK_RESULTS.md) — 模型 / RAG / Agent 评测记录
 - [Benchmark 设计](docs/BENCHMARK_DESIGN.md) — Agent / Coding / RAG 评测分层与解释规则
 - [文档同步规则](docs/DOCUMENTATION_SYNC.md) — 每个关键节点后的复盘与文档更新契约
+- [Code Review 分流记录](docs/CODE_REVIEW_TRIAGE.md) — 外部 AI review 的采纳、后置和拒绝决策
+- [Agent 操作规则](docs/AGENT_OPERATING_RULES.md) — Qwen/Cline 系统提示词建议与本地 skills 说明
 - [Windows WSL2 配置](docs/WINDOWS_WSL2_SETUP.md) — Windows 本地节点的 Linux/CUDA 环境准备
 
 ### 参考文档
@@ -137,6 +141,7 @@ python benchmarks/gateway_health_eval.py
 python benchmarks/run_agent_tasks.py
 python benchmarks/rag_oracle_eval.py
 python benchmarks/rag_retrieval_eval.py
+
 python benchmarks/repo_map_eval.py
 python benchmarks/patch_task_eval.py
 python benchmarks/cline_dialogue_eval.py
@@ -148,6 +153,7 @@ python benchmarks/embedding_health_eval.py --model embed-local
 RAG v0 常用命令：
 
 ```powershell
+$env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
 $env:LABAGENT_EMBED_MODEL = "embed-local"
 $env:LABAGENT_MODEL = "qwen-agent"
 

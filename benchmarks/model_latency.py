@@ -21,7 +21,7 @@ def build_payload(
         "model": model,
         "messages": messages,
         "temperature": row.get("temperature", 0.2),
-        "max_tokens": max_tokens_override or row.get("max_tokens", 512),
+        "max_tokens": max_tokens_override if max_tokens_override is not None else row.get("max_tokens", 512),
     }
 
 

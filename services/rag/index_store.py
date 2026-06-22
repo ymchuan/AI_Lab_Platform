@@ -84,10 +84,34 @@ def save_index(index: Dict[str, Any], path: Path) -> None:
     path.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def load_index(path: Path) -> Dict[str, Any]:
+def load_index(path: Path, expected_embedding_model: str | None = None) -> Dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if data.get("version") != INDEX_VERSION:
         raise ValueError(f"Unsupported RAG index version: {data.get('version')}")
+    if expected_embedding_model and data.get("embedding_model") != expected_embedding_model:
+        raise ValueError(
+            "RAG index embedding model mismatch: "
+            f"expected {expected_embedding_model!r}, got {data.get('embedding_model')!r}"
+        )
+    chunks = data.get("chunks")
+    if not isinstance(chunks, list):
+        raise ValueError("RAG index is missing a chunks list")
+    if data.get("chunk_count") != len(chunks):
+        raise ValueError(
+            f"RAG index chunk_count mismatch: expected {data.get('chunk_count')}, got {len(chunks)}"
+        )
+    dimensions = data.get("embedding_dimensions")
+    if not isinstance(dimensions, int) or dimensions < 0:
+        raise ValueError(f"Invalid RAG index embedding_dimensions: {dimensions!r}")
+    for chunk in chunks:
+        vector = chunk.get("embedding")
+        if not isinstance(vector, list):
+            raise ValueError(f"RAG index chunk {chunk.get('id')!r} is missing an embedding list")
+        if dimensions and len(vector) != dimensions:
+            raise ValueError(
+                f"RAG index chunk {chunk.get('id')!r} has embedding dimension "
+                f"{len(vector)}, expected {dimensions}"
+            )
     return data
 
 

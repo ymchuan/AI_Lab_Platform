@@ -4,6 +4,24 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.4] - 2026-06-22
+
+### Added
+- 新增 `docs/CODE_REVIEW_TRIAGE.md`，记录外部 AI review 的采纳、后置和拒绝决策。
+- 新增 `docs/AGENT_OPERATING_RULES.md`，沉淀 Qwen/Cline 短系统提示词、外部系统提示词使用原则和本地 skills 说明。
+- 新增本地 Codex skill：`labagent-code-review`，用于后续 review 分流、RAG/benchmark hardening 和提示词提炼。
+
+### Fixed
+- 将 benchmark / RAG 源码默认 Base URL 改为 `http://127.0.0.1:8000/v1`，公网 LiteLLM 地址只通过环境变量或部署文档显式使用。
+- 修复 `max_tokens_override` 的 falsy 边界问题，避免 `0` 被误判为未传入。
+- 增强 OpenAI-compatible benchmark client 的异常处理，避免 malformed response 或 streaming chunk 直接打断整轮评测。
+- 增加 RAG chunk 参数校验、RAG index embedding model / chunk count / vector dimension 校验。
+- RAG CLI 新增 `--root`，并在 `search` / `ask` 缺失 index 时给出明确错误。
+- 默认 RAG discovery 排除 raw review 和外部系统提示词，避免污染项目知识库。
+
+### Security
+- 将 `docs/CODE_REVIEW_ISSUES.md` 和 `docs/claude-fable-5.md` 作为本地参考加入 `.gitignore`，不提交原始第三方分析或系统提示词。
+
 ## [0.4.3] - 2026-06-16
 
 ### Added

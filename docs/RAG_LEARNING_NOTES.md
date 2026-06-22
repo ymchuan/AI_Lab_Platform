@@ -71,6 +71,15 @@ data/rag/index.json
 
 `data/rag/` 是本地运行数据，不进 Git。
 
+默认 discovery 会跳过 raw review 和外部系统提示词文件：
+
+```text
+docs/CODE_REVIEW_ISSUES.md
+docs/claude-fable-5.md
+```
+
+原因：它们不是 LabAgent 项目事实本身，进入索引会污染 RAG 回答。
+
 ## 4. 当前验证结果
 
 2026-06-18：
@@ -80,6 +89,14 @@ data/rag/index.json
 embedding：embed-local，768 维
 retrieval benchmark：3/3 passed
 端到端 ask：可以回答并给出 [Sx] 引用
+```
+
+2026-06-22 hardening 后：
+
+```text
+默认 discovery 已排除 raw review / 外部系统提示词
+离线发现：21 files / 332 chunks
+当前运行 index 仍是上一轮验证的 319 chunks / 19 files，需下一轮联网重建后更新 benchmark 结果
 ```
 
 验证过的命令：
@@ -104,6 +121,9 @@ python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？
 
 2. 纯向量检索对“当前多节点路由状态”这类工程状态问题不够稳。
    解决：对路由/节点/模型/状态问题做 query expansion，并在排序时加入轻量 keyword/entity score。
+
+3. RAG index 必须记录并校验 embedding model 和向量维度。
+   解决：`load_index` 现在会检查 embedding model、chunk count、embedding dimension 和每个 chunk 的向量长度，避免换模型后静默得到错误检索结果。
 ```
 
 ## 5. 重要边界

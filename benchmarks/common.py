@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 
-DEFAULT_BASE_URL = "http://82.156.69.153:8000/v1"
+DEFAULT_BASE_URL = "http://127.0.0.1:8000/v1"
 DEFAULT_MODEL = "qwen-local"
 
 
@@ -276,7 +276,7 @@ class OpenAICompatibleClient:
                 "error": f"HTTPError: {exc}",
                 "error_body": raw_error[:2000],
             }
-        except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError) as exc:
+        except (urllib.error.URLError, TimeoutError, KeyError, IndexError, json.JSONDecodeError) as exc:
             return {
                 "ok": False,
                 "latency_seconds": time.perf_counter() - started,
@@ -316,7 +316,7 @@ class OpenAICompatibleClient:
                 "error": f"HTTPError: {exc}",
                 "error_body": raw_error[:2000],
             }
-        except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError) as exc:
+        except (urllib.error.URLError, TimeoutError, KeyError, IndexError, json.JSONDecodeError) as exc:
             return {
                 "ok": False,
                 "latency_seconds": time.perf_counter() - started,
@@ -392,7 +392,7 @@ class OpenAICompatibleClient:
                 "error": f"HTTPError: {exc}",
                 "error_body": raw_error[:2000],
             }
-        except (urllib.error.URLError, TimeoutError) as exc:
+        except (urllib.error.URLError, TimeoutError, KeyError, IndexError, json.JSONDecodeError) as exc:
             return {
                 "ok": False,
                 "latency_seconds": time.perf_counter() - started,
@@ -427,7 +427,7 @@ class OpenAICompatibleClient:
                 "error": f"HTTPError: {exc}",
                 "error_body": raw_error[:2000],
             }
-        except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError) as exc:
+        except (urllib.error.URLError, TimeoutError, KeyError, IndexError, json.JSONDecodeError) as exc:
             return {
                 "ok": False,
                 "latency_seconds": time.perf_counter() - started,

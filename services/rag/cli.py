@@ -13,7 +13,7 @@ from .index_store import build_index, compact_sources, load_index, save_index
 from .pipeline import answer, search
 
 
-DEFAULT_BASE_URL = "http://82.156.69.153:8000/v1"
+DEFAULT_BASE_URL = "http://127.0.0.1:8000/v1"
 DEFAULT_INDEX_PATH = Path("data/rag/index.json")
 
 
@@ -29,18 +29,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     index_parser = subparsers.add_parser("index", help="Build a local JSON vector index.")
+    index_parser.add_argument("--index-path", type=Path, default=argparse.SUPPRESS)
     index_parser.add_argument("--source", action="append", default=None, help="Glob pattern. Repeatable.")
     index_parser.add_argument("--max-chars", type=int, default=1200)
     index_parser.add_argument("--overlap-chars", type=int, default=160)
     index_parser.add_argument("--batch-size", type=int, default=16)
+    index_parser.add_argument(
+        "--root",
+        type=Path,
+        default=None,
+        help="Project root to index. Defaults to the current working directory.",
+    )
 
     search_parser = subparsers.add_parser("search", help="Retrieve relevant chunks.")
     search_parser.add_argument("query")
+    search_parser.add_argument("--index-path", type=Path, default=argparse.SUPPRESS)
     search_parser.add_argument("--top-k", type=int, default=5)
     search_parser.add_argument("--json", action="store_true")
 
     ask_parser = subparsers.add_parser("ask", help="Retrieve context and ask the chat model.")
     ask_parser.add_argument("query")
+    ask_parser.add_argument("--index-path", type=Path, default=argparse.SUPPRESS)
     ask_parser.add_argument("--top-k", type=int, default=8)
     ask_parser.add_argument("--max-context-chars", type=int, default=9000)
     ask_parser.add_argument("--max-tokens", type=int, default=900)
@@ -50,7 +59,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     client = OpenAICompatibleClient(args.base_url, args.api_key, args.timeout)
 
     if args.command == "index":
-        root = Path.cwd()
+        root = (args.root or Path.cwd()).resolve()
+        if not root.exists() or not root.is_dir():
+            safe_print(f"Project root does not exist or is not a directory: {root}")
+            return 1
         patterns = args.source or DEFAULT_SOURCE_PATTERNS
         files = discover_markdown_files(root, patterns)
         chunks = load_markdown_chunks(
@@ -70,6 +82,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.command == "search":
+        if not args.index_path.exists():
+            safe_print(f"RAG index does not exist: {args.index_path}. Run `python -m services.rag.cli index` first.")
+            return 1
         results = search(args.index_path, client, args.embedding_model, args.query, top_k=args.top_k)
         if args.json:
             safe_print(json.dumps(compact_sources(results), ensure_ascii=False, indent=2))
@@ -82,6 +97,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.command == "ask":
+        if not args.index_path.exists():
+            safe_print(f"RAG index does not exist: {args.index_path}. Run `python -m services.rag.cli index` first.")
+            return 1
         response = answer(
             args.index_path,
             client,

@@ -15,6 +15,8 @@ Markdown files
 
 This is not the final RAG service. It is a learning and baseline implementation before adding a real vector database, reranker, document parsers, and an API server.
 
+The source-code default base URL is `http://127.0.0.1:8000/v1`. Set `LABAGENT_BASE_URL` explicitly when using the public LiteLLM gateway.
+
 ## Build Index
 
 ```powershell
@@ -33,6 +35,15 @@ HANDOFF.md
 docs/*.md
 ```
 
+Excluded from default discovery:
+
+```text
+docs/CODE_REVIEW_ISSUES.md
+docs/claude-fable-5.md
+```
+
+These are local raw AI references, not trusted LabAgent project facts.
+
 Default output:
 
 ```text
@@ -44,7 +55,7 @@ The generated index is local runtime data and should not be committed.
 ## Search
 
 ```powershell
-python -m services.rag.cli search "LabAgent 当前有哪些模型路由？" --top-k 5
+python -m services.rag.cli search "LabAgent 当前有哪些公网模型路由？" --top-k 5
 ```
 
 ## Ask
