@@ -23,10 +23,15 @@
 - 新增 `docs/DOCUMENTATION_SYNC.md`，明确每个关键节点后必须检查并更新项目文档。
 - 按文档同步规则校准 README、HANDOFF、Progress Summary、MODEL_RESEARCH 的模型定位口径：Qwen3-Coder-30B 暂列 `qwen-agent` 首选候选，Qwen3.6-27B 降为 `qwen-think` baseline。
 - 按 LabAgent 收尾规则补齐 API 文档、历史项目日志、RAG 数据集和 repo-map 数据集的新事实口径，避免后续评测继续使用旧的单 27B baseline。
+- 新增 `services/rag` RAG v0：Markdown chunking、OpenAI-compatible embedding client、本地 JSON 向量索引、cosine retrieval、`qwen-agent` 带引用回答 CLI。
+- 新增 `benchmarks/rag_retrieval_eval.py`，基于真实项目 Markdown 文档测试 retrieval 命中率。
+- 新增 `docs/RAG_LEARNING_NOTES.md`，用于记录 RAG 概念、当前实现、验证结果和后续升级路线。
+- 完成 RAG v0 验证：索引 319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 可返回 `[Sx]` 引用。
 
 ### Fixed
 - 修复 `benchmarks/datasets/model_prompts.jsonl` 中残留的中文乱码，避免 latency / coding prompt 污染。
 - 校准 patch 评分同义词，将 "continuous" 和 "contiguous" 都视为有效表达。
+- 调整 RAG `ask` 默认值为 top-k 8、约 9000 context chars，并强化 entity mapping 约束，减少检索命中后生成端 under-answer 的问题。
 
 ### Security
 - 确认 `.env.local`、`.env.*`、`benchmarks/results/`、`__pycache__/` 不进入版本控制。

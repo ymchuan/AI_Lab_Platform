@@ -39,11 +39,13 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 31.6GB | 暂不规划 | ⛔ 当前无法使用，冻结接入 |
 | 云服务器 | 2核 Ubuntu 24.04 | 2GB | 轻量 API 网关/隧道中转 | ✅ LiteLLM 运行中，不计划升级 |
 
-## 当前阶段：Qwen3-Coder 主模型验证 + 多节点接入
+## 当前阶段：Qwen3-Coder 主模型 + RAG v0
 
 5090 主模型已定为 `qwen/qwen3-coder-30b`。项目已建立 8 层评测体系（model latency / gateway health / agent tasks / RAG oracle / repo map / patch task / Cline dialogue / embedding health），后续重点是用真实 tool call、patch apply、RAG retrieval 和 Cline 多轮工作流验证上线质量。
 
 已测试：qwen3.6-27b（基线）、GLM-4.7-Flash（对照）、Qwen3-Coder-30B、Qwen3.6-35B-A3B、Qwen3-30B-A3B-2507、Gemma 4 31B、Nomic embedding。2026-06-16 已将 Agent/Cline 评测拆成 `strict_passed`、`soft_passed` 和 `keyword_recall`：旧的 `0/4` 不能直接理解为“模型没有 Agent 能力”，只能说明它没有通过严格上线门槛。
+
+2026-06-18 已完成 RAG v0 最小闭环：`README.md` / `HANDOFF.md` / `docs/*.md` -> Markdown chunk -> `embed-local` -> 本地 JSON 向量索引 -> cosine retrieval -> `qwen-agent` 带引用回答。当前索引构建结果为 319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 已能返回 `[Sx]` 引用。该版本是学习和 baseline 实现，不是最终生产 RAG；下一步要接入向量数据库、reranker、answer faithfulness / citation 评测和 API Server。
 
 ## 当前状态
 
@@ -55,6 +57,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | OpenWebUI | ⚠️ 需要时启动或迁移到本地节点 | 云服务器 2GB 内存限制，不能长期常驻 |
 | Cline | ✅ 已配置 | VS Code 插件接入 |
 | 5080 新设备 | ✅ Embedding 已接入 | LM Studio + `:12341` SSH 隧道 + `embed-local` 路由；Rerank/VL 待接入 |
+| RAG v0 | ✅ 最小闭环完成 | `services/rag` 支持 index/search/ask；本地 `data/rag/` 不进 Git |
 | 8060S | ⛔ 暂不可用 | 当前无法使用，冻结近期接入计划 |
 
 ## 快速开始
@@ -94,6 +97,7 @@ Model:    qwen-local
 - [网络配置](docs/NETWORK.md) — NAT、安全组、四节点拓扑
 - [故障排查](docs/TROUBLESHOOTING.md) — 常见问题与解决方案
 - [模型选型调研](docs/MODEL_RESEARCH.md) — 5090 / 5080 新设备模型组合与评测顺序
+- [RAG 学习与实现笔记](docs/RAG_LEARNING_NOTES.md) — RAG 概念、当前 v0 实现、验证结果和升级路线
 - [Agent 深化路线图](docs/AGENT_PROJECT_ROADMAP.md) — RAG / Agent / MCP / Eval / 微调量化规划
 - [Benchmark 结果](docs/BENCHMARK_RESULTS.md) — 模型 / RAG / Agent 评测记录
 - [Benchmark 设计](docs/BENCHMARK_DESIGN.md) — Agent / Coding / RAG 评测分层与解释规则
@@ -114,6 +118,7 @@ Model:    qwen-local
 网关层:   LiteLLM (OpenAI-compatible API Gateway)
 网络层:   SSH Reverse Tunnel + 云服务器 (Ubuntu 24.04)
 客户端:   Cline (VS Code) + OpenWebUI (Web)
+RAG层:    services/rag/ (Markdown chunking + embed-local + local vector index + cited answer)
 评测层:   benchmarks/ (gateway + latency + agent + RAG + repo map + patch + Cline dialogue + embedding)
 协议:     OpenAI Compatible API (/v1/chat/completions)
 ```
@@ -131,6 +136,7 @@ python benchmarks/model_latency.py --stream
 python benchmarks/gateway_health_eval.py
 python benchmarks/run_agent_tasks.py
 python benchmarks/rag_oracle_eval.py
+python benchmarks/rag_retrieval_eval.py
 python benchmarks/repo_map_eval.py
 python benchmarks/patch_task_eval.py
 python benchmarks/cline_dialogue_eval.py
@@ -138,6 +144,17 @@ python benchmarks/embedding_health_eval.py --model embed-local
 ```
 
 结果默认写入 `benchmarks/results/`，该目录已加入 `.gitignore`。
+
+RAG v0 常用命令：
+
+```powershell
+$env:LABAGENT_EMBED_MODEL = "embed-local"
+$env:LABAGENT_MODEL = "qwen-agent"
+
+python -m services.rag.cli index
+python -m services.rag.cli search "LabAgent 当前有哪些公网模型路由？"
+python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？"
+```
 
 ## License
 

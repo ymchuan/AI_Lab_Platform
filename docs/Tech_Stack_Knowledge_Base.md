@@ -474,7 +474,7 @@ NAT 解决：内网设备用私有 IP → 通过路由器/NAT 设备共享一个
 
 ---
 
-## 12. RAG（Retrieval-Augmented Generation）— 待实现
+## 12. RAG（Retrieval-Augmented Generation）
 
 ### 是什么
 
@@ -510,6 +510,55 @@ Embedding 模型  → 把文本变成数字向量（当前新设备已接入 `em
 ```
 
 新设备的 RTX 5080 16GB + RTX 4060 Ti 16GB 是 32GB 专用显存资源池，但不是单个连续 32GB 显存；Windows shared GPU memory 不能按 VRAM 使用。Embedding / Reranker / VL / 第二推理模型更适合按不同 GPU 分配，跨卡跑单个大模型要单独验证推理引擎支持。
+
+### LabAgent 当前实现
+
+2026-06-18 已完成 RAG v0：
+
+```text
+README.md / HANDOFF.md / docs/*.md
+  -> services/rag/chunking.py 切块
+  -> embed-local 生成 768 维向量
+  -> data/rag/index.json 本地 JSON index
+  -> cosine similarity 检索 top-k
+  -> qwen-agent 基于 [S1] / [S2] 证据块回答
+```
+
+当前代码：
+
+```text
+services/rag/cli.py          # index / search / ask
+services/rag/chunking.py     # 文档发现和 chunking
+services/rag/index_store.py  # 本地向量索引和检索
+services/rag/pipeline.py     # 检索 + 生成回答
+benchmarks/rag_retrieval_eval.py
+```
+
+当前验证：
+
+```text
+索引构建：319 chunks / 19 files
+retrieval eval：3/3 passed
+ask：能输出带 [Sx] 引用的回答
+```
+
+当前限制：
+
+```text
+还没有 Qdrant / Chroma 等真正向量库
+还没有 reranker
+还没有 answer faithfulness 自动评测
+还没有文档上传 / PDF / 图片 OCR
+还没有 RAG API Server
+```
+
+RAG 质量不能只看“模型有没有回答”。要拆成三层：
+
+```text
+retrieval quality  -> 有没有找对证据
+grounded answer    -> 有没有忠实基于证据回答
+citation quality   -> 引用是否指向真实来源
+```
 
 ---
 

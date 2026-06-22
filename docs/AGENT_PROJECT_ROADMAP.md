@@ -77,7 +77,21 @@ services/rag/
 └── tests/
 ```
 
-第一版不要做全平台。先支持当前项目文档目录：
+当前 RAG v0 已完成第一步：
+
+```text
+docs/ + README.md + HANDOFF.md
+  -> markdown loader
+  -> chunk
+  -> embed-local
+  -> local JSON index
+  -> cosine retrieval
+  -> qwen-agent answer with citations
+```
+
+当前验证：319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 可带 `[Sx]` 引用回答。
+
+下一版不要一开始做全平台。先把当前项目文档目录升级为 RAG Service v1：
 
 ```text
 docs/ + README.md + HANDOFF.md
@@ -201,6 +215,7 @@ benchmarks/
 - `model_latency.py`：测试 OpenAI-compatible 模型延迟、粗略吞吐、流式首 token 时间。
 - `run_agent_tasks.py`：用固定任务集测试模型的规划、工具选择、故障恢复表达。
 - `rag_oracle_eval.py`：给定正确上下文，测试模型是否能按事实回答，为后续真实检索 RAG 做上限基线。
+- `rag_retrieval_eval.py`：基于真实 Markdown chunk 和 `embed-local` 检索项目文档，测试 retrieval 是否能命中正确证据。
 - `gateway_health_eval.py`：区分 LiteLLM 网关可达和后端 SSH 隧道/模型可达。
 - `repo_map_eval.py`：用真实项目文件测试模型是否能理解当前工程状态。
 - `patch_task_eval.py`：测试模型能否生成小而可审查的 diff，贴近 Cline 修改文件流程。
@@ -260,8 +275,9 @@ benchmarks/
 
 ### M4：RAG MVP
 
-- 文档上传 -> 解析 -> embedding -> 检索 -> rerank -> 带引用回答。
-- 至少支持当前项目文档问答。
+- [x] RAG v0：Markdown 文档 -> chunk -> embedding -> 本地 JSON index -> 检索 -> 带引用回答。
+- [x] 至少支持当前项目文档问答。
+- [ ] RAG Service v1：向量数据库、reranker、API Server、answer faithfulness / citation eval。
 
 ### M5：Agent MVP
 

@@ -10,6 +10,7 @@ The goal is not a single leaderboard score. The goal is to make every model or w
 - `gateway_health_eval.py` - public gateway and SSH tunnel health check
 - `run_agent_tasks.py` - tool choice, planning, recovery, output stability
 - `rag_oracle_eval.py` - oracle-context RAG upper bound
+- `rag_retrieval_eval.py` - real project-document retrieval over the local RAG index
 - `repo_map_eval.py` - repo understanding from actual project files
 - `patch_task_eval.py` - patch generation for Cline-like file edits
 - `cline_dialogue_eval.py` - multi-turn workflow reasoning
@@ -61,25 +62,36 @@ python benchmarks/rag_oracle_eval.py
 python benchmarks/rag_oracle_eval.py --no-think
 ```
 
-### 5. Repo Understanding
+### 5. RAG Retrieval
+
+Build the local RAG index first:
+
+```powershell
+python -m services.rag.cli index
+python benchmarks/rag_retrieval_eval.py
+```
+
+This checks whether retrieval over `README.md`, `HANDOFF.md`, and `docs/*.md` can find evidence for fixed LabAgent questions. It does not yet score answer faithfulness.
+
+### 6. Repo Understanding
 
 ```powershell
 python benchmarks/repo_map_eval.py
 ```
 
-### 6. Patch Generation
+### 7. Patch Generation
 
 ```powershell
 python benchmarks/patch_task_eval.py
 ```
 
-### 7. Multi-turn Cline Workflow
+### 8. Multi-turn Cline Workflow
 
 ```powershell
 python benchmarks/cline_dialogue_eval.py
 ```
 
-### 8. Embedding Health
+### 9. Embedding Health
 
 ```powershell
 python benchmarks/embedding_health_eval.py --model embed-local

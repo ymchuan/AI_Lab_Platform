@@ -1,4 +1,4 @@
-# Benchmark Results
+﻿# Benchmark Results
 
 > This document records repeatable model, RAG, and Agent benchmark results.
 
@@ -23,6 +23,7 @@
 | 2026-06-15 | zai-org/glm-4.7-flash | LM Studio local direct | baseline v2 raw | `model_latency_20260615_200008.jsonl` etc. | Local health OK; patch/repo/Cline tasks failed |
 | 2026-06-15 | zai-org/glm-4.7-flash | LM Studio local direct | baseline v2 `/no_think` | `model_latency_20260615_200656.jsonl` etc. | `/no_think` did not remove reasoning; agent planning improved only |
 | 2026-06-18 | embed-local | LiteLLM public gateway -> new device LM Studio | embedding health | `embedding_health_20260618_180017.jsonl` | Multi-node route v1; 768-dimensional embeddings; tiny retrieval probe 2/3 |
+| 2026-06-18 | embed-local + qwen-agent | LiteLLM public gateway -> local nodes | rag_retrieval / RAG v0 | `rag_retrieval_20260618_215213.jsonl` | 319 chunks / 19 files; retrieval benchmark 3/3; end-to-end ask can answer with `[Sx]` citations |
 
 ## 2026-06-10 Baseline Summary
 
@@ -527,3 +528,36 @@ Interpretation:
 1. LabAgent is no longer a single-node gateway; it now has a working second local node behind the same LiteLLM entrypoint.
 2. The cloud server still performs only lightweight routing and authentication. Model work stays on local machines.
 3. The tiny retrieval probe is intentionally weak and scored 2/3, so this is not yet a full RAG service. The next step is real chunking + vector store + retrieval benchmark, then reranker and VL routes.
+
+## 2026-06-18 RAG v0 Retrieval Baseline
+
+Implementation:
+
+```text
+services/rag/
+  Markdown docs -> chunks -> embed-local -> data/rag/index.json -> cosine retrieval -> qwen-agent cited answer
+```
+
+Validation:
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| Index build | pass | 319 chunks from 19 Markdown files |
+| Embedding backend | pass | `embed-local`, 768-dimensional vectors |
+| `rag_retrieval_eval.py` | pass | 3/3 fixed retrieval tasks passed |
+| `services.rag.cli search` | pass | Can retrieve route/API/architecture evidence |
+| `services.rag.cli ask` | pass with caveat | Can answer with `[Sx]` citations; default ask now uses top-k 8 and about 9000 context chars |
+
+Representative command:
+
+```powershell
+python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？"
+```
+
+Interpretation:
+
+1. The project now has a real RAG baseline instead of only oracle-context prompts.
+2. Retrieval and generation are separate quality gates. `rag_retrieval_eval.py` checks retrieval evidence; it does not prove every generated answer is faithful.
+3. The first end-to-end run exposed a real RAG issue: a too-small context or too-strict system prompt can make the model under-answer even when relevant chunks exist. The pipeline now defaults to 8 chunks and 9000 context characters.
+4. A later rebuild exposed another real RAG issue: heading-like or command-example chunks can outrank evidence chunks. The chunker now filters very short chunks, and the retriever adds lightweight query expansion / hybrid scoring for route, node, model, and status questions.
+5. Next benchmark upgrade should score answer faithfulness, citation accuracy, and entity mapping accuracy, especially `qwen-agent` vs `embed-local` vs node status.

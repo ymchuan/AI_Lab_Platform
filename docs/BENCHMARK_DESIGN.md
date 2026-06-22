@@ -71,6 +71,7 @@ Project implication:
 ```text
 RAG oracle is only an upper-bound generator test.
 True RAG benchmark needs retrieval quality, grounded answer quality, and citation/trace checks.
+The project now has `rag_retrieval_eval.py` for the first part; grounded answer and citation scoring are still pending.
 ```
 
 ## Recommended Benchmark Layers
@@ -106,6 +107,7 @@ Scripts:
 
 ```text
 rag_oracle_eval.py
+rag_retrieval_eval.py
 repo_map_eval.py
 patch_task_eval.py
 ```
@@ -114,6 +116,7 @@ Metrics:
 
 ```text
 oracle_context_pass_rate
+retrieved_context_pass_rate
 repo_understanding_keyword_recall
 diff_found
 patch_keyword_recall
@@ -157,7 +160,7 @@ Next scripts to build:
 tool_call_eval.py       -> structured tool selection / tool sequence accuracy
 patch_apply_eval.py     -> generate diff, apply it, run tests
 repo_task_eval.py       -> read fixture repo, modify files, verify final state
-rag_retrieval_eval.py   -> embed, retrieve, rerank, answer, cite
+rag_answer_eval.py      -> answer faithfulness, citation accuracy, entity mapping
 trace_eval.py           -> record steps, decisions, tool calls, failures
 ```
 
