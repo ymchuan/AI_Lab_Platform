@@ -47,7 +47,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 2026-06-18 已完成 RAG v0 最小闭环：`README.md` / `HANDOFF.md` / `docs/*.md` -> Markdown chunk -> `embed-local` -> 本地 JSON 向量索引 -> cosine retrieval -> `qwen-agent` 带引用回答。当前干净索引构建结果为 319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 已能返回 `[Sx]` 引用。该版本是学习和 baseline 实现，不是最终生产 RAG；下一步要接入向量数据库、reranker、answer faithfulness / citation 评测和 API Server。
 
-2026-06-22 已完成第一轮 code review hardening：benchmark / RAG 源码默认 URL 改为 localhost，公网网关必须通过环境变量显式指定；RAG index 增加 embedding model / chunk count / vector dimension 校验；默认 RAG discovery 排除 raw review 和外部系统提示词，避免污染知识库。新增 `docs/CODE_REVIEW_TRIAGE.md` 和 `docs/AGENT_OPERATING_RULES.md`，并创建本地 Codex skill `labagent-code-review`。离线 discovery 已确认当前默认源会发现 21 files / 332 chunks；需要下一轮用 `embed-local` 重建运行索引后再更新 benchmark 结果。
+2026-06-22 已完成第一轮 code review hardening：benchmark / RAG 源码默认 URL 改为 localhost，公网网关必须通过环境变量显式指定；RAG index 增加 embedding model / chunk count / vector dimension 校验；默认 RAG discovery 排除 raw review 和外部系统提示词，避免污染知识库。新增 `docs/CODE_REVIEW_TRIAGE.md` 和 `docs/AGENT_OPERATING_RULES.md`，并创建本地 Codex skill `labagent-code-review`。离线 discovery 已确认当前默认源会发现 21 files / 333 chunks；需要下一轮用 `embed-local` 重建运行索引后再更新 benchmark 结果。
 
 ## 当前状态
 

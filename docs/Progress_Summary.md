@@ -165,7 +165,7 @@ README.md / HANDOFF.md / docs/*.md
 ✅ raw review / 外部系统提示词不进入 Git，也不进入默认 RAG discovery
 ✅ 新增 docs/CODE_REVIEW_TRIAGE.md 和 docs/AGENT_OPERATING_RULES.md
 ✅ 新增本地 Codex skill：labagent-code-review
-✅ 离线 discovery：默认源当前为 21 files / 332 chunks，等待下一轮 embed-local 重建索引
+✅ 离线 discovery：默认源当前为 21 files / 333 chunks，等待下一轮 embed-local 重建索引
 ```
 
 ## 四、当前架构

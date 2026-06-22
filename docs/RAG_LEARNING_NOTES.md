@@ -95,7 +95,7 @@ retrieval benchmark：3/3 passed
 
 ```text
 默认 discovery 已排除 raw review / 外部系统提示词
-离线发现：21 files / 332 chunks
+离线发现：21 files / 333 chunks
 当前运行 index 仍是上一轮验证的 319 chunks / 19 files，需下一轮联网重建后更新 benchmark 结果
 ```
 
