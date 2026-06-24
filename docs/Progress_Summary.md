@@ -132,9 +132,9 @@ README.md / HANDOFF.md / docs/*.md
 验证结果：
 
 ```text
-✅ 索引构建：319 chunks / 19 files
+✅ 索引构建：354 chunks / 21 files（2026-06-23 重建）
 ✅ embedding：embed-local，768 维
-✅ retrieval benchmark：rag_retrieval_eval.py 3/3 通过
+✅ retrieval benchmark：rag_retrieval_eval.py 默认 top-k 8，3/3 通过
 ✅ 端到端 ask：能基于检索片段回答并输出 [Sx] 引用
 ```
 
@@ -165,7 +165,7 @@ README.md / HANDOFF.md / docs/*.md
 ✅ raw review / 外部系统提示词不进入 Git，也不进入默认 RAG discovery
 ✅ 新增 docs/CODE_REVIEW_TRIAGE.md 和 docs/AGENT_OPERATING_RULES.md
 ✅ 新增本地 Codex skill：labagent-code-review
-✅ 离线 discovery：默认源当前为 21 files / 333 chunks，等待下一轮 embed-local 重建索引
+✅ 运行索引已用 embed-local 重建：354 chunks / 21 files
 ```
 
 ### 成果 9：新增 RAG Service v1 HTTP API
@@ -187,6 +187,7 @@ README.md / HANDOFF.md / docs/*.md
 ✅ David/Cline 可以通过 SSH 反向隧道远程调用 5090 的 RAG index
 ✅ 文档不需要复制到 David；RAG Service 读取 5090 本地 data/rag/index.json
 ✅ 仍保持零依赖，先降低学习和调试成本
+✅ RAG Service 支持 embedding/chat 分离 endpoint：新设备继续承载 embed-local，5090 只需 load Qwen-Coder
 ```
 
 当前边界：
@@ -196,6 +197,7 @@ README.md / HANDOFF.md / docs/*.md
 还没有 reranker
 还没有 answer faithfulness 自动评测
 OpenAI-compatible 兼容入口暂不支持 stream=true
+LiteLLM 只负责模型路由，不负责读取文档或执行 RAG
 ```
 
 ## 四、当前架构

@@ -537,7 +537,7 @@ benchmarks/rag_retrieval_eval.py
 当前验证：
 
 ```text
-索引构建：319 chunks / 19 files
+索引构建：354 chunks / 21 files（2026-06-23 重建）
 retrieval eval：3/3 passed
 ask：能输出带 [Sx] 引用的回答
 ```

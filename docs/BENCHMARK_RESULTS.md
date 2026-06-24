@@ -25,6 +25,7 @@
 | 2026-06-18 | embed-local | LiteLLM public gateway -> new device LM Studio | embedding health | `embedding_health_20260618_180017.jsonl` | Multi-node route v1; 768-dimensional embeddings; tiny retrieval probe 2/3 |
 | 2026-06-18 | embed-local + qwen-agent | LiteLLM public gateway -> local nodes | rag_retrieval / RAG v0 | `rag_retrieval_20260618_215213.jsonl` | 319 chunks / 19 files; retrieval benchmark 3/3; end-to-end ask can answer with `[Sx]` citations |
 | 2026-06-22 | RAG Service v1 | 5090 local HTTP service | unit / smoke | local unit tests | Added zero-dependency HTTP API; local tests cover health/auth/sources; remote David test pending |
+| 2026-06-23 | embed-local + qwen-agent | LiteLLM public gateway -> 5090/new-device nodes | rag_retrieval / RAG v1 baseline | `rag_retrieval_20260624_113757.jsonl` | Rebuilt local index: 354 chunks / 21 files; default retrieval eval top-k 8 passed 3/3; CLI search and ask verified through cloud LiteLLM |
 
 ## 2026-06-10 Baseline Summary
 
@@ -543,7 +544,7 @@ Validation:
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| Index build | pass | 319 chunks from 19 Markdown files |
+| Index build | pass | 354 chunks from 21 Markdown files after 2026-06-23 doc sync |
 | Embedding backend | pass | `embed-local`, 768-dimensional vectors |
 | `rag_retrieval_eval.py` | pass | 3/3 fixed retrieval tasks passed |
 | `services.rag.cli search` | pass | Can retrieve route/API/architecture evidence |

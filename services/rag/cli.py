@@ -19,7 +19,21 @@ DEFAULT_INDEX_PATH = Path("data/rag/index.json")
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="LabAgent RAG v0 command line tool.")
-    parser.add_argument("--base-url", default=os.environ.get("LABAGENT_BASE_URL", DEFAULT_BASE_URL))
+    parser.add_argument(
+        "--base-url",
+        default=os.environ.get("LABAGENT_BASE_URL", DEFAULT_BASE_URL),
+        help="Fallback OpenAI-compatible base URL for both embedding and chat.",
+    )
+    parser.add_argument(
+        "--embed-base-url",
+        default=os.environ.get("LABAGENT_EMBED_BASE_URL"),
+        help="OpenAI-compatible embedding base URL. Defaults to --base-url.",
+    )
+    parser.add_argument(
+        "--chat-base-url",
+        default=os.environ.get("LABAGENT_CHAT_BASE_URL"),
+        help="OpenAI-compatible chat base URL. Defaults to --base-url.",
+    )
     parser.add_argument("--api-key", default=os.environ.get("LABAGENT_API_KEY"))
     parser.add_argument("--embedding-model", default=os.environ.get("LABAGENT_EMBED_MODEL", "embed-local"))
     parser.add_argument("--chat-model", default=os.environ.get("LABAGENT_MODEL", "qwen-agent"))
@@ -56,7 +70,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     ask_parser.add_argument("--json", action="store_true")
 
     args = parser.parse_args(argv)
-    client = OpenAICompatibleClient(args.base_url, args.api_key, args.timeout)
+    embed_base_url = args.embed_base_url or args.base_url
+    chat_base_url = args.chat_base_url or args.base_url
+    embedding_client = OpenAICompatibleClient(embed_base_url, args.api_key, args.timeout)
+    chat_client = OpenAICompatibleClient(chat_base_url, args.api_key, args.timeout)
 
     if args.command == "index":
         root = (args.root or Path.cwd()).resolve()
@@ -71,7 +88,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_chars=args.max_chars,
             overlap_chars=args.overlap_chars,
         )
-        index = build_index(chunks, client, args.embedding_model, batch_size=args.batch_size)
+        try:
+            index = build_index(chunks, embedding_client, args.embedding_model, batch_size=args.batch_size)
+        except RuntimeError as exc:
+            safe_print(format_endpoint_error("embedding", embed_base_url, args.embedding_model, exc))
+            return 2
         index["source_patterns"] = patterns
         index["source_files"] = [path.relative_to(root).as_posix() for path in files]
         save_index(index, args.index_path)
@@ -85,7 +106,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not args.index_path.exists():
             safe_print(f"RAG index does not exist: {args.index_path}. Run `python -m services.rag.cli index` first.")
             return 1
-        results = search(args.index_path, client, args.embedding_model, args.query, top_k=args.top_k)
+        try:
+            results = search(args.index_path, embedding_client, args.embedding_model, args.query, top_k=args.top_k)
+        except RuntimeError as exc:
+            safe_print(format_endpoint_error("embedding", embed_base_url, args.embedding_model, exc))
+            return 2
         if args.json:
             safe_print(json.dumps(compact_sources(results), ensure_ascii=False, indent=2))
         else:
@@ -100,16 +125,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not args.index_path.exists():
             safe_print(f"RAG index does not exist: {args.index_path}. Run `python -m services.rag.cli index` first.")
             return 1
-        response = answer(
-            args.index_path,
-            client,
-            args.embedding_model,
-            args.chat_model,
-            args.query,
-            top_k=args.top_k,
-            max_context_chars=args.max_context_chars,
-            max_tokens=args.max_tokens,
-        )
+        try:
+            response = answer(
+                args.index_path,
+                embedding_client,
+                chat_client,
+                args.embedding_model,
+                args.chat_model,
+                args.query,
+                top_k=args.top_k,
+                max_context_chars=args.max_context_chars,
+                max_tokens=args.max_tokens,
+            )
+        except RuntimeError as exc:
+            safe_print(
+                "RAG ask failed. Check both endpoints:\n"
+                f"- embedding: {embed_base_url}/embeddings model={args.embedding_model}\n"
+                f"- chat:      {chat_base_url}/chat/completions model={args.chat_model}\n"
+                f"Error: {exc}"
+            )
+            return 2
         if args.json:
             safe_print(json.dumps(response, ensure_ascii=False, indent=2))
         else:
@@ -129,6 +164,19 @@ def safe_print(text: str = "") -> None:
     encoding = sys.stdout.encoding or "utf-8"
     printable = text.encode(encoding, errors="replace").decode(encoding, errors="replace")
     print(printable)
+
+
+def format_endpoint_error(kind: str, base_url: str, model: str, exc: Exception) -> str:
+    endpoint = "embeddings" if kind == "embedding" else "chat/completions"
+    return (
+        f"RAG {kind} endpoint is not reachable or returned an invalid response.\n"
+        f"Endpoint: {base_url.rstrip('/')}/{endpoint}\n"
+        f"Model: {model}\n"
+        f"Error: {exc}\n\n"
+        "For the current LabAgent layout, either set LABAGENT_BASE_URL to the "
+        "cloud LiteLLM gateway, or set LABAGENT_EMBED_BASE_URL and "
+        "LABAGENT_CHAT_BASE_URL separately."
+    )
 
 
 if __name__ == "__main__":

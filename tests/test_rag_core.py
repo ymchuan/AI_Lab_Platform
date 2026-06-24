@@ -9,7 +9,7 @@ from urllib.error import HTTPError
 from services.rag.chunking import discover_markdown_files, split_markdown
 from services.rag.index_store import load_index, cosine_similarity, retrieve, save_index
 from services.rag.pipeline import expand_query
-from services.rag.server import RagServiceConfig, create_server
+from services.rag.server import RagServiceConfig, config_from_args, create_server, parse_args
 
 
 class RagCoreTest(unittest.TestCase):
@@ -201,7 +201,8 @@ class RagCoreTest(unittest.TestCase):
             config = RagServiceConfig(
                 host="127.0.0.1",
                 port=0,
-                base_url="http://127.0.0.1:9/v1",
+                embedding_base_url="http://127.0.0.1:9/v1",
+                chat_base_url="http://127.0.0.1:10/v1",
                 api_key=None,
                 embedding_model="embed-local",
                 chat_model="qwen-agent",
@@ -237,6 +238,29 @@ class RagCoreTest(unittest.TestCase):
             finally:
                 server.shutdown()
                 server.server_close()
+
+    def test_rag_server_can_configure_separate_embedding_and_chat_urls(self) -> None:
+        args = parse_args(
+            [
+                "--base-url",
+                "http://gateway.example/v1",
+                "--embed-base-url",
+                "http://embed.example/v1",
+                "--chat-base-url",
+                "http://chat.example/v1",
+            ]
+        )
+        config = config_from_args(args)
+
+        self.assertEqual(config.embedding_base_url, "http://embed.example/v1")
+        self.assertEqual(config.chat_base_url, "http://chat.example/v1")
+
+    def test_rag_server_defaults_separate_urls_to_base_url(self) -> None:
+        args = parse_args(["--base-url", "http://gateway.example/v1"])
+        config = config_from_args(args)
+
+        self.assertEqual(config.embedding_base_url, "http://gateway.example/v1")
+        self.assertEqual(config.chat_base_url, "http://gateway.example/v1")
 
 
 def http_json(

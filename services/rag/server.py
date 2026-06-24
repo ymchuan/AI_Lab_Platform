@@ -24,7 +24,8 @@ DEFAULT_RAG_PORT = 8010
 class RagServiceConfig:
     host: str
     port: int
-    base_url: str
+    embedding_base_url: str
+    chat_base_url: str
     api_key: str | None
     embedding_model: str
     chat_model: str
@@ -103,8 +104,8 @@ def create_server(config: RagServiceConfig) -> ThreadingHTTPServer:
             query = require_query(body)
             top_k = positive_int(body.get("top_k", 5), "top_k")
             max_text_chars = positive_int(body.get("max_text_chars", 900), "max_text_chars")
-            client = make_client(config)
-            results = search(config.index_path, client, config.embedding_model, query, top_k=top_k)
+            embedding_client = make_embedding_client(config)
+            results = search(config.index_path, embedding_client, config.embedding_model, query, top_k=top_k)
             self._send_json(
                 {
                     "ok": True,
@@ -119,10 +120,12 @@ def create_server(config: RagServiceConfig) -> ThreadingHTTPServer:
             top_k = positive_int(body.get("top_k", 8), "top_k")
             max_context_chars = positive_int(body.get("max_context_chars", 9000), "max_context_chars")
             max_tokens = positive_int(body.get("max_tokens", 900), "max_tokens")
-            client = make_client(config)
+            embedding_client = make_embedding_client(config)
+            chat_client = make_chat_client(config)
             response = answer(
                 config.index_path,
-                client,
+                embedding_client,
+                chat_client,
                 config.embedding_model,
                 config.chat_model,
                 query,
@@ -141,10 +144,12 @@ def create_server(config: RagServiceConfig) -> ThreadingHTTPServer:
             top_k = positive_int(body.get("top_k", 8), "top_k")
             max_context_chars = positive_int(body.get("max_context_chars", 9000), "max_context_chars")
             max_tokens = positive_int(body.get("max_tokens", 900), "max_tokens")
-            client = make_client(config)
+            embedding_client = make_embedding_client(config)
+            chat_client = make_chat_client(config)
             response = answer(
                 config.index_path,
-                client,
+                embedding_client,
+                chat_client,
                 config.embedding_model,
                 config.chat_model,
                 query,
@@ -210,6 +215,8 @@ def index_health(config: RagServiceConfig) -> Dict[str, Any]:
         "service": "labagent-rag",
         "index_path": str(config.index_path),
         "index_exists": config.index_path.exists(),
+        "embedding_base_url": config.embedding_base_url,
+        "chat_base_url": config.chat_base_url,
         "embedding_model": config.embedding_model,
         "chat_model": config.chat_model,
         "rag_model": config.rag_model,
@@ -245,8 +252,12 @@ def index_sources(config: RagServiceConfig) -> Dict[str, Any]:
     }
 
 
-def make_client(config: RagServiceConfig) -> OpenAICompatibleClient:
-    return OpenAICompatibleClient(config.base_url, config.api_key, config.timeout)
+def make_embedding_client(config: RagServiceConfig) -> OpenAICompatibleClient:
+    return OpenAICompatibleClient(config.embedding_base_url, config.api_key, config.timeout)
+
+
+def make_chat_client(config: RagServiceConfig) -> OpenAICompatibleClient:
+    return OpenAICompatibleClient(config.chat_base_url, config.api_key, config.timeout)
 
 
 def require_query(body: Dict[str, Any]) -> str:
@@ -316,7 +327,21 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the LabAgent RAG Service v1 HTTP API.")
     parser.add_argument("--host", default=os.environ.get("LABAGENT_RAG_HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.environ.get("LABAGENT_RAG_PORT", DEFAULT_RAG_PORT)))
-    parser.add_argument("--base-url", default=os.environ.get("LABAGENT_BASE_URL", DEFAULT_BASE_URL))
+    parser.add_argument(
+        "--base-url",
+        default=os.environ.get("LABAGENT_BASE_URL", DEFAULT_BASE_URL),
+        help="Fallback OpenAI-compatible base URL for both embedding and chat.",
+    )
+    parser.add_argument(
+        "--embed-base-url",
+        default=os.environ.get("LABAGENT_EMBED_BASE_URL"),
+        help="OpenAI-compatible embedding base URL. Defaults to --base-url.",
+    )
+    parser.add_argument(
+        "--chat-base-url",
+        default=os.environ.get("LABAGENT_CHAT_BASE_URL"),
+        help="OpenAI-compatible chat base URL. Defaults to --base-url.",
+    )
     parser.add_argument("--api-key", default=os.environ.get("LABAGENT_API_KEY"))
     parser.add_argument("--embedding-model", default=os.environ.get("LABAGENT_EMBED_MODEL", "embed-local"))
     parser.add_argument("--chat-model", default=os.environ.get("LABAGENT_MODEL", "qwen-agent"))
@@ -331,7 +356,8 @@ def config_from_args(args: argparse.Namespace) -> RagServiceConfig:
     return RagServiceConfig(
         host=args.host,
         port=args.port,
-        base_url=args.base_url,
+        embedding_base_url=args.embed_base_url or args.base_url,
+        chat_base_url=args.chat_base_url or args.base_url,
         api_key=args.api_key,
         embedding_model=args.embedding_model,
         chat_model=args.chat_model,
@@ -347,7 +373,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     server = create_server(config)
     print(f"LabAgent RAG Service listening on http://{config.host}:{server.server_port}")
     print(f"Index: {config.index_path}")
-    print(f"Embedding model: {config.embedding_model}; chat model: {config.chat_model}")
+    print(f"Embedding: {config.embedding_base_url} model={config.embedding_model}")
+    print(f"Chat: {config.chat_base_url} model={config.chat_model}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

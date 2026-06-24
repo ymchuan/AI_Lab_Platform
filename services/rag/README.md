@@ -17,10 +17,27 @@ This is not the final production RAG stack. It is the baseline before adding Qdr
 
 ## Build Index
 
+Current recommended layout: run the RAG process on the 5090 host, keep the project
+documents and `data/rag/index.json` on the 5090 host, and let LiteLLM route
+embedding requests to the new device. LiteLLM does not perform RAG by itself; it
+only forwards `embed-local` and `qwen-agent` model calls.
+
 ```powershell
 $env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
 $env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
 $env:LABAGENT_EMBED_MODEL = "embed-local"
+
+python -m services.rag.cli index
+```
+
+If embedding and chat should use different endpoints, set them explicitly:
+
+```powershell
+$env:LABAGENT_EMBED_BASE_URL = "http://82.156.69.153:8000/v1"
+$env:LABAGENT_CHAT_BASE_URL = "http://127.0.0.1:1234/v1"
+$env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
+$env:LABAGENT_EMBED_MODEL = "embed-local"
+$env:LABAGENT_MODEL = "qwen/qwen3-coder-30b"
 
 python -m services.rag.cli index
 ```
@@ -53,6 +70,8 @@ python -m services.rag.cli search "LabAgent 当前有哪些公网模型路由？
 ```
 
 Search only retrieves evidence. It does not call the chat model.
+It still needs the embedding endpoint, because the query must be converted into a
+vector before similarity search can run.
 
 ## CLI Ask
 
@@ -65,13 +84,26 @@ Ask retrieves evidence, sends it to `qwen-agent`, and expects `[S1]` style citat
 
 ## HTTP Service
 
-Start locally on the 5090 host:
+Start locally on the 5090 host, using LiteLLM as the unified model gateway:
 
 ```powershell
 $env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
 $env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
 $env:LABAGENT_EMBED_MODEL = "embed-local"
 $env:LABAGENT_MODEL = "qwen-agent"
+$env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
+
+python -m services.rag.server --host 127.0.0.1 --port 8010
+```
+
+Split endpoint mode is also supported:
+
+```powershell
+$env:LABAGENT_EMBED_BASE_URL = "http://82.156.69.153:8000/v1"
+$env:LABAGENT_CHAT_BASE_URL = "http://127.0.0.1:1234/v1"
+$env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
+$env:LABAGENT_EMBED_MODEL = "embed-local"
+$env:LABAGENT_MODEL = "qwen/qwen3-coder-30b"
 $env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
 
 python -m services.rag.server --host 127.0.0.1 --port 8010

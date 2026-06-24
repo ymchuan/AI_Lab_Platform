@@ -72,6 +72,7 @@ Project implication:
 RAG oracle is only an upper-bound generator test.
 True RAG benchmark needs retrieval quality, grounded answer quality, and citation/trace checks.
 The project now has `rag_retrieval_eval.py` for the first part; grounded answer and citation scoring are still pending.
+The retrieval eval uses top-k 8 by default to match the current RAG `ask` path. A smaller top-k can still be used manually when testing stricter retrieval-only behavior.
 ```
 
 ## Recommended Benchmark Layers

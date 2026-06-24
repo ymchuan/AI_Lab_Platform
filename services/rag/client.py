@@ -61,8 +61,9 @@ class OpenAICompatibleClient:
 
     def _post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         body = json.dumps(payload).encode("utf-8")
+        url = f"{self.base_url}{path}"
         request = urllib.request.Request(
-            f"{self.base_url}{path}",
+            url,
             data=body,
             method="POST",
             headers=self._headers(),
@@ -73,9 +74,9 @@ class OpenAICompatibleClient:
             return json.loads(raw)
         except urllib.error.HTTPError as exc:
             raw_error = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"HTTP {exc.code}: {raw_error[:1000]}") from exc
+            raise RuntimeError(f"{url}: HTTP {exc.code}: {raw_error[:1000]}") from exc
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-            raise RuntimeError(f"{type(exc).__name__}: {exc}") from exc
+            raise RuntimeError(f"{url}: {type(exc).__name__}: {exc}") from exc
 
     def _headers(self) -> Dict[str, str]:
         headers = {"Content-Type": "application/json"}

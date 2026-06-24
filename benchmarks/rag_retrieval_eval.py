@@ -11,6 +11,7 @@ import sys
 sys.path.insert(0, str(repo_root()))
 
 from services.rag.index_store import load_index, retrieve  # noqa: E402
+from services.rag.pipeline import expand_query  # noqa: E402
 
 
 TASKS = [
@@ -60,7 +61,12 @@ def main() -> int:
         default=None,
         help="Embedding model alias. Defaults to LABAGENT_EMBED_MODEL or embed-local.",
     )
-    parser.add_argument("--top-k", type=int, default=5)
+    parser.add_argument(
+        "--embed-base-url",
+        default=os.environ.get("LABAGENT_EMBED_BASE_URL"),
+        help="Embedding base URL. Defaults to --base-url / LABAGENT_BASE_URL.",
+    )
+    parser.add_argument("--top-k", type=int, default=8)
     parser.add_argument(
         "--output",
         type=Path,
@@ -69,14 +75,15 @@ def main() -> int:
     args = parser.parse_args()
 
     embedding_model = args.embedding_model or os.environ.get("LABAGENT_EMBED_MODEL", "embed-local")
-    client = OpenAICompatibleClient(args.base_url, args.api_key, args.timeout)
+    client = OpenAICompatibleClient(args.embed_base_url or args.base_url, args.api_key, args.timeout)
     index = load_index(args.index_path, expected_embedding_model=embedding_model)
     rows: List[Dict[str, Any]] = []
 
     for task in TASKS:
-        query_result = client.embeddings({"model": embedding_model, "input": task["query"]})
+        retrieval_query = expand_query(task["query"])
+        query_result = client.embeddings({"model": embedding_model, "input": retrieval_query})
         vectors = query_result.get("embeddings") or []
-        results = retrieve(index, vectors[0] if vectors else [], top_k=args.top_k)
+        results = retrieve(index, vectors[0] if vectors else [], top_k=args.top_k, query_text=task["query"])
         top_sources = [item["source_path"] for item in results]
         source_hit = any(source in top_sources for source in task["expected_sources"])
         joined_text = "\n".join(item["text"] for item in results).lower()

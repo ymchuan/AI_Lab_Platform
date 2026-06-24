@@ -8,7 +8,9 @@
 
 当前事实基线（2026-06-18 校准）：5090 主机已接入 LM Studio，默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 只保留为 `qwen-think` reasoning baseline。已测试 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`google/gemma-4-31b`、`zai-org/glm-4.7-flash`、`text-embedding-nomic-embed-text-v1.5`。新设备硬件已校准为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，内网 IP 为 `172.16.14.17`，已通过 `:12341` SSH 反向隧道把 LM Studio 上的 `text-embedding-nomic-embed-text-v1.5-embedding` 接入云端 LiteLLM，公网别名为 `embed-local`。8060S 当前无法使用，冻结近期接入计划。云服务器是 2 核 2GB Ubuntu 24.04，短期无法升级，也没有预算扩容，后续只能作为轻量网关和中转节点。当前 SSH 反向隧道不是常驻状态，需要在 5090 和新设备分别手动保持。
 
-RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.md`、`docs/*.md` 切块，调用 `embed-local` 生成 768 维向量，保存本地 `data/rag/index.json`，再用 cosine similarity 检索并调用 `qwen-agent` 生成带 `[Sx]` 引用的回答。2026-06-18 验证：索引 319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 可回答当前多节点路由状态。2026-06-22 已新增 RAG Service v1：`services/rag/server.py` 提供零依赖 HTTP API，支持本地和 David/Cline 远程调试。注意：当前仍是 baseline，还没有真实向量数据库、reranker、文档上传和 answer faithfulness 自动评测。
+RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.md`、`docs/*.md` 切块，调用 `embed-local` 生成 768 维向量，保存本地 `data/rag/index.json`，再用 cosine similarity 检索并调用 `qwen-agent` 生成带 `[Sx]` 引用的回答。2026-06-23 重建运行索引：354 chunks / 21 files，`rag_retrieval_eval.py` 默认 top-k 8 复测 3/3 通过，端到端 `ask` 可回答当前多节点路由状态。2026-06-22 已新增 RAG Service v1：`services/rag/server.py` 提供零依赖 HTTP API，支持本地和 David/Cline 远程调试。注意：当前仍是 baseline，还没有真实向量数据库、reranker、文档上传和 answer faithfulness 自动评测。
+
+2026-06-23 校准：LiteLLM 不负责 RAG，只负责模型路由。RAG Service 应运行在 5090，读取 5090 的 `data/rag/index.json`；embedding 可继续放在新设备，通过 `embed-local` 路由调用。`services/rag` 支持统一网关 `LABAGENT_BASE_URL`，也支持拆分 `LABAGENT_EMBED_BASE_URL` / `LABAGENT_CHAT_BASE_URL`。如果 CLI 默认请求 `127.0.0.1:8000/v1/embeddings` 并失败，说明没有显式设置 embedding endpoint，不是 RAG 检索逻辑坏了。
 
 新设备的 RTX 5080 16GB + RTX 4060 Ti 16GB 可以按资源规划理解为 32GB 专用显存池，但不是单个连续 32GB 显存。RTX 5080 在 Windows 任务管理器里显示的总 GPU 内存包含共享系统内存，不能当作 46.7GB VRAM 使用。短期更稳的使用方式是 5080 承担第二推理/视觉/中等代码模型，4060 Ti 承担 Embedding、Reranker 或轻量实验模型；单模型跨卡需要看推理引擎是否支持并行或分层卸载。
 
@@ -204,6 +206,8 @@ python benchmarks/embedding_health_eval.py --model embed-local
 
 ```powershell
 $env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
+$env:LABAGENT_EMBED_BASE_URL = "http://82.156.69.153:8000/v1"
+$env:LABAGENT_CHAT_BASE_URL = "http://82.156.69.153:8000/v1"
 $env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
 $env:LABAGENT_EMBED_MODEL = "embed-local"
 $env:LABAGENT_MODEL = "qwen-agent"

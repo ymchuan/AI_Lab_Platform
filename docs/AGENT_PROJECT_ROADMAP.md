@@ -89,7 +89,7 @@ docs/ + README.md + HANDOFF.md
   -> qwen-agent answer with citations
 ```
 
-当前验证：319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 可带 `[Sx]` 引用回答。
+当前验证：2026-06-23 重建运行索引为 354 chunks / 21 files，`rag_retrieval_eval.py` 默认 top-k 8 复测 3/3 通过，端到端 `ask` 可带 `[Sx]` 引用回答。
 
 2026-06-22 已新增 RAG Service v1 HTTP baseline：
 

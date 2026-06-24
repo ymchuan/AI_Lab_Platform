@@ -11,6 +11,8 @@ The goal is not a single leaderboard score. The goal is to make every model or w
 - `run_agent_tasks.py` - tool choice, planning, recovery, output stability
 - `rag_oracle_eval.py` - oracle-context RAG upper bound
 - `rag_retrieval_eval.py` - real project-document retrieval over the local RAG index
+
+`rag_retrieval_eval.py` defaults to top-k 8 so it matches the current RAG `ask` behavior. Use `--top-k 5` only when intentionally testing a stricter retrieval-only setting.
 - `repo_map_eval.py` - repo understanding from actual project files
 - `patch_task_eval.py` - patch generation for Cline-like file edits
 - `cline_dialogue_eval.py` - multi-turn workflow reasoning

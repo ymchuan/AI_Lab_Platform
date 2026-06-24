@@ -9,14 +9,14 @@ from .index_store import load_index, retrieve
 
 def search(
     index_path: Path,
-    client: OpenAICompatibleClient,
+    embedding_client: OpenAICompatibleClient,
     embedding_model: str,
     query: str,
     top_k: int = 5,
 ) -> List[Dict[str, Any]]:
     index = load_index(index_path, expected_embedding_model=embedding_model)
     retrieval_query = expand_query(query)
-    response = client.embeddings(embedding_model, [retrieval_query])
+    response = embedding_client.embeddings(embedding_model, [retrieval_query])
     vectors = response["vectors"]
     if not vectors:
         raise RuntimeError("Embedding endpoint returned no query vector")
@@ -25,7 +25,8 @@ def search(
 
 def answer(
     index_path: Path,
-    client: OpenAICompatibleClient,
+    embedding_client: OpenAICompatibleClient,
+    chat_client: OpenAICompatibleClient,
     embedding_model: str,
     chat_model: str,
     query: str,
@@ -33,7 +34,7 @@ def answer(
     max_context_chars: int = 9000,
     max_tokens: int = 900,
 ) -> Dict[str, Any]:
-    results = search(index_path, client, embedding_model, query, top_k=top_k)
+    results = search(index_path, embedding_client, embedding_model, query, top_k=top_k)
     context = format_context(results, max_chars=max_context_chars)
     messages = [
         {
@@ -53,7 +54,7 @@ def answer(
             "content": f"QUESTION:\n{query}\n\nCONTEXT:\n{context}",
         },
     ]
-    response = client.chat(chat_model, messages, max_tokens=max_tokens, temperature=0.2)
+    response = chat_client.chat(chat_model, messages, max_tokens=max_tokens, temperature=0.2)
     return {
         "query": query,
         "answer": response["response_text"],

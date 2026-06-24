@@ -122,11 +122,13 @@ RAG v0 请求的数据流：
 1. 本地执行 python -m services.rag.cli index
 2. 读取 README.md / HANDOFF.md / docs/*.md
 3. Markdown 文档按标题和长度切成 chunks
-4. 每个 chunk 通过公网 LiteLLM 调用 embed-local 生成 768 维向量
+4. RAG CLI 调用 embedding endpoint；当前推荐通过公网 LiteLLM 的 embed-local 路由转发到新设备
 5. 本地保存 data/rag/index.json
 6. 用户执行 search/ask 时，问题先转成向量，再用 cosine similarity 检索 top-k chunks
 7. ask 把 [S1] / [S2] 证据块交给 qwen-agent 生成带引用回答
 ```
+
+注意：LiteLLM 不执行 RAG。它只负责把 `embed-local` 转发到新设备，把 `qwen-agent` 转发到 5090。真正读取文档、切 chunk、保存 index、检索和拼接 context 的是 5090 上的 `services/rag`。
 
 RAG Service v1 远程请求的数据流：
 
@@ -134,9 +136,9 @@ RAG Service v1 远程请求的数据流：
 1. David/Cline 请求 http://82.156.69.153:18010/v1/rag/ask
 2. 云服务器 SSH reverse tunnel 转发到 5090:8010
 3. 5090 RAG Service 读取本地 data/rag/index.json
-4. RAG Service 调用公网 LiteLLM 的 embed-local 做 query embedding
+4. RAG Service 调用 embedding endpoint；当前可通过公网 LiteLLM 的 embed-local 路由到新设备
 5. 本地检索 top-k chunks
-6. RAG Service 调用公网 LiteLLM 的 qwen-agent 生成带引用回答
+6. RAG Service 调用 chat endpoint；可通过公网 LiteLLM 的 qwen-agent 路由到 5090，也可直接调用 5090 本机 LM Studio
 7. 答案和 sources 返回 David/Cline
 ```
 

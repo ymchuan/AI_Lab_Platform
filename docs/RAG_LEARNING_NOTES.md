@@ -58,6 +58,16 @@ LabAgent 当前的流程是：
 RAG = 先找资料，再让模型根据资料回答。
 ```
 
+这里要特别区分三个角色：
+
+| 角色 | 它做什么 | 它不做什么 |
+|------|----------|------------|
+| LiteLLM | 根据 `model` 名字把请求转发到 5090 或新设备 | 不读文档、不切 chunk、不保存向量索引 |
+| Embedding 模型 | 把文档片段或用户问题变成向量 | 不理解项目架构，也不生成最终回答 |
+| RAG Service | 读取 5090 本地文档索引，调用 embedding 检索，再调用 chat 模型回答 | 不替代 LiteLLM，也不是新的大模型 |
+
+所以当前架构里，新设备只 load 了 embedding 模型是合理的。RAG Service 可以跑在 5090，上面有项目文档和索引；它通过云服务器 LiteLLM 的 `embed-local` 路由调用新设备 embedding，再通过 `qwen-agent` 路由或 5090 本机 LM Studio 调用 Qwen-Coder 生成答案。
+
 ## 3. 核心概念
 
 | 概念 | 白话解释 | 本项目当前对应 |
@@ -150,6 +160,8 @@ POST /v1/chat/completions
 4. 当前仓库在 5090 的 E:\qwen_setup
 ```
 
+如果 5090 本机只 load 了 Qwen-Coder，没有 load embedding，这是正常状态。只要新设备的 embedding 模型和 `:12341` 隧道可用，5090 上的 RAG 仍然可以通过 LiteLLM 调用 `embed-local`。
+
 ### 第一步：设置环境变量
 
 PowerShell：
@@ -161,6 +173,20 @@ $env:LABAGENT_EMBED_MODEL = "embed-local"
 $env:LABAGENT_MODEL = "qwen-agent"
 ```
 
+这是“统一 LiteLLM 网关模式”：embedding 和 chat 都发到云服务器 LiteLLM，由 LiteLLM 分别转发到新设备和 5090。
+
+也可以显式拆开两个 endpoint：
+
+```powershell
+$env:LABAGENT_EMBED_BASE_URL = "http://82.156.69.153:8000/v1"
+$env:LABAGENT_CHAT_BASE_URL = "http://127.0.0.1:1234/v1"
+$env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
+$env:LABAGENT_EMBED_MODEL = "embed-local"
+$env:LABAGENT_MODEL = "qwen/qwen3-coder-30b"
+```
+
+这个模式表示：query embedding 走云端 LiteLLM 到新设备；最终回答直接调用 5090 本机 LM Studio。它适合“5090 只 load Qwen-Coder，新设备 load embedding”的状态。
+
 ### 第二步：重建索引
 
 ```powershell
@@ -170,7 +196,7 @@ python -m services.rag.cli index
 你应该看到类似：
 
 ```text
-Indexed 333 chunks from 21 files into data/rag/index.json using embed-local.
+Indexed 354 chunks from 21 files into data/rag/index.json using embed-local.
 ```
 
 如果这里失败，通常是：
@@ -191,6 +217,14 @@ python -m services.rag.cli search "LabAgent 当前有哪些公网模型路由？
 这一步只做 retrieval。它回答的是：“系统觉得哪些文档片段最相关？”
 
 如果 search 找不到正确文档，说明问题在检索层，不是 Qwen 回答能力的问题。
+
+如果这里报 `ConnectionRefusedError` 或 `URLError`，先看错误里的 endpoint。比如：
+
+```text
+http://127.0.0.1:8000/v1/embeddings
+```
+
+这通常表示你没有设置 `LABAGENT_BASE_URL` 或 `LABAGENT_EMBED_BASE_URL`，CLI 正在请求本机默认 8000 端口；但 5090 本机没有 LiteLLM 服务，所以连接被拒绝。当前推荐让 embedding 走云服务器 LiteLLM 的 `embed-local` 路由，或者在 5090 本机也 load 一个 embedding 模型后改成本机 endpoint。
 
 ### 第四步：完整问答
 
@@ -215,6 +249,19 @@ $env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
 $env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
 $env:LABAGENT_EMBED_MODEL = "embed-local"
 $env:LABAGENT_MODEL = "qwen-agent"
+$env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
+
+python -m services.rag.server --host 127.0.0.1 --port 8010
+```
+
+如果要显式拆分 embedding/chat endpoint：
+
+```powershell
+$env:LABAGENT_EMBED_BASE_URL = "http://82.156.69.153:8000/v1"
+$env:LABAGENT_CHAT_BASE_URL = "http://127.0.0.1:1234/v1"
+$env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
+$env:LABAGENT_EMBED_MODEL = "embed-local"
+$env:LABAGENT_MODEL = "qwen/qwen3-coder-30b"
 $env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
 
 python -m services.rag.server --host 127.0.0.1 --port 8010

@@ -45,11 +45,13 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 已测试：qwen3.6-27b（基线）、GLM-4.7-Flash（对照）、Qwen3-Coder-30B、Qwen3.6-35B-A3B、Qwen3-30B-A3B-2507、Gemma 4 31B、Nomic embedding。2026-06-16 已将 Agent/Cline 评测拆成 `strict_passed`、`soft_passed` 和 `keyword_recall`：旧的 `0/4` 不能直接理解为“模型没有 Agent 能力”，只能说明它没有通过严格上线门槛。
 
-2026-06-18 已完成 RAG v0 最小闭环：`README.md` / `HANDOFF.md` / `docs/*.md` -> Markdown chunk -> `embed-local` -> 本地 JSON 向量索引 -> cosine retrieval -> `qwen-agent` 带引用回答。当前干净索引构建结果为 319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 已能返回 `[Sx]` 引用。该版本是学习和 baseline 实现，不是最终生产 RAG；下一步要接入向量数据库、reranker、answer faithfulness / citation 评测和 API Server。
+2026-06-18 已完成 RAG v0 最小闭环：`README.md` / `HANDOFF.md` / `docs/*.md` -> Markdown chunk -> `embed-local` -> 本地 JSON 向量索引 -> cosine retrieval -> `qwen-agent` 带引用回答。2026-06-23 重建运行索引后为 354 chunks / 21 files，`rag_retrieval_eval.py` 默认 top-k 8 复测 3/3 通过，端到端 `ask` 已能返回 `[Sx]` 引用。该版本是学习和 baseline 实现，不是最终生产 RAG；下一步要接入向量数据库、reranker、answer faithfulness / citation 评测和 API Server。
 
-2026-06-22 已完成第一轮 code review hardening：benchmark / RAG 源码默认 URL 改为 localhost，公网网关必须通过环境变量显式指定；RAG index 增加 embedding model / chunk count / vector dimension 校验；默认 RAG discovery 排除 raw review 和外部系统提示词，避免污染知识库。新增 `docs/CODE_REVIEW_TRIAGE.md` 和 `docs/AGENT_OPERATING_RULES.md`，并创建本地 Codex skill `labagent-code-review`。离线 discovery 已确认当前默认源会发现 21 files / 333 chunks；需要下一轮用 `embed-local` 重建运行索引后再更新 benchmark 结果。
+2026-06-22 已完成第一轮 code review hardening：benchmark / RAG 源码默认 URL 改为 localhost，公网网关必须通过环境变量显式指定；RAG index 增加 embedding model / chunk count / vector dimension 校验；默认 RAG discovery 排除 raw review 和外部系统提示词，避免污染知识库。新增 `docs/CODE_REVIEW_TRIAGE.md` 和 `docs/AGENT_OPERATING_RULES.md`，并创建本地 Codex skill `labagent-code-review`。
 
 2026-06-22 已新增 RAG Service v1：`services/rag/server.py` 提供零依赖 HTTP API，包含 `/health`、`/v1/rag/search`、`/v1/rag/ask` 和简化 OpenAI-compatible `/v1/chat/completions`。它仍使用本地 JSON index，但已经可以通过 SSH 反向隧道暴露给 David/Cline 远程调试；向量数据库、reranker 和 answer eval 作为后续 v1.x。
+
+2026-06-23 校准 RAG 调用链：LiteLLM 只做模型路由，不做 RAG。RAG Service 运行在 5090，读取 5090 本地 `data/rag/index.json`；embedding 可以继续由新设备承载并通过 `embed-local` 路由调用。`services/rag` 已支持 `LABAGENT_EMBED_BASE_URL` 和 `LABAGENT_CHAT_BASE_URL`，便于 embedding/chat 分离。
 
 ## 当前状态
 
@@ -156,6 +158,8 @@ RAG v0 常用命令：
 
 ```powershell
 $env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
+$env:LABAGENT_EMBED_BASE_URL = "http://82.156.69.153:8000/v1"
+$env:LABAGENT_CHAT_BASE_URL = "http://82.156.69.153:8000/v1"
 $env:LABAGENT_EMBED_MODEL = "embed-local"
 $env:LABAGENT_MODEL = "qwen-agent"
 

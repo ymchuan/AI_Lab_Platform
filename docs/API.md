@@ -113,6 +113,19 @@ Auth: Authorization: Bearer <LABAGENT_RAG_API_KEY>
 
 该服务不是 LiteLLM 的一部分。它读取 5090 本地 `data/rag/index.json`，再调用公网 LiteLLM 的 `embed-local` 和 `qwen-agent`。
 
+LiteLLM 只做模型路由，不读取 RAG 文档库。当前 RAG Service 可以使用统一网关：
+
+```powershell
+$env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
+```
+
+也可以拆分 embedding/chat endpoint：
+
+```powershell
+$env:LABAGENT_EMBED_BASE_URL = "http://82.156.69.153:8000/v1"
+$env:LABAGENT_CHAT_BASE_URL = "http://127.0.0.1:1234/v1"
+```
+
 ### GET /health
 
 ```powershell
