@@ -6,12 +6,12 @@
 
 | 技能 | 当前状态 | 简历关键词 |
 |------|---------|-----------|
-| 本地大模型部署 | ✅ 5090 + LM Studio + `qwen/qwen3-coder-30b`；新设备 + LM Studio + `embed-local` | LLM Deployment, Local Inference |
+| 本地大模型部署 | ✅ 5090 + LM Studio + `qwen/qwen3-coder-30b`；新设备 + LM Studio + `embed-local` / `vision-local` | LLM Deployment, Local Inference |
 | OpenAI-compatible API | ✅ LiteLLM 网关 | API Gateway, OpenAI Protocol |
 | 网络架构 | ✅ SSH Reverse Tunnel + NAT 约束处理 | Network Engineering, Reverse Proxy |
 | 云服务器运维 | ✅ Ubuntu 24.04 + systemd + 安全组 | Cloud Infrastructure, Linux Administration |
 | 客户端接入 | ✅ Cline / OpenAI SDK | Agent Tooling, Developer Experience |
-| 多节点调度 | ✅ v1：`qwen-agent` + `embed-local`；Reranker/VL 待补 | Multi-node Orchestration |
+| 多节点调度 | ✅ v1：`qwen-agent` + `embed-local` + `vision-local`；Reranker 待补 | Multi-node Orchestration |
 | RAG baseline | ✅ v0：Markdown chunking + `embed-local` + 本地 JSON index + retrieval eval + cited answer | RAG Pipeline, Retrieval Evaluation |
 
 **结论：基础设施已经有雏形，RAG v0 已经起步，但智能层深度仍不足。下一阶段要把 RAG v0 升级为 RAG Service v1，并继续补 Agent Runtime、MCP、评测、模型工程（量化/微调）这些能体现 Agent 开发岗能力的部分。**
@@ -55,7 +55,7 @@
 
 ```text
 5090 -> 主力模型 / 代码模型 / Agent 主脑
-5080 + 4060 Ti -> 32GB 专用显存资源池，但不是单块连续 32GB；Windows shared GPU memory 不能按 VRAM 使用；当前已接入 Embedding，后续分配 Rerank / VL / 第二推理节点
+5080 + 4060 Ti -> 32GB 专用显存资源池，但不是单块连续 32GB；Windows shared GPU memory 不能按 VRAM 使用；当前已接入 Embedding 和 Vision，后续分配 Rerank / 第二推理节点
 云服务器 -> LiteLLM / HTTPS / 鉴权 / 隧道中转
 ```
 

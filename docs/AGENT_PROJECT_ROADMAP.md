@@ -257,6 +257,32 @@ benchmarks/
 3. 微调前后跑同一套 RAG / Agent / coding benchmark。
 4. 记录是否真的提升，而不是只记录“我微调过”。
 
+### 8. Claude Code Compatibility
+
+目标：把 `Claude Code` 的文本链路和 `tool use` 兼容性单独拆开评测，不把协议连通性误当作完整工作流可用。
+
+当前状态：
+
+- 文本问答链路已可通过 LiteLLM + `qwen-agent` 跑通。
+- `tool use` 目前仍会遇到参数 schema 不匹配问题。
+- 这条线应当作为实验项单独处理，不影响主力 `Cline + qwen-agent` 路径。
+
+建议交付物：
+
+```text
+benchmarks/
+├── claude_code_compat_eval.py
+└── datasets/
+    └── claude_code_compat_tasks.jsonl
+```
+
+评测重点：
+
+1. 能否稳定发起 `tool use`。
+2. 参数 schema 是否和本地模型输出一致。
+3. 失败时是否能给出可读错误，而不是只暴露笼统的参数异常。
+4. 与 `Cline` 主路径相比，兼容性差异在哪里。
+
 ## 里程碑
 
 ### M1：当前状态校准 ✅
@@ -281,7 +307,7 @@ benchmarks/
 - 新设备 `embed-local` 已接入。
 - 后续继续接入 `rerank-local` / `vision-local` / `coder-small-local`。
 - 8060S 当前无法使用，`whisper-local` / OCR / 文档解析服务后移到新设备或后续节点。
-- LiteLLM 多节点基础路由已完成；完整 RAG/VL/第二推理路由待补。
+- LiteLLM 多节点基础路由已完成；`vision-local` 已接入，完整 RAG / Reranker / 第二推理路由待补。
 
 ### M4：RAG MVP
 

@@ -9,7 +9,7 @@
 │  5090 主机             新设备                                    │
 │  172.16.14.240         172.16.14.17                               │
 │  RTX 5090 32GB         RTX 5080 16GB + RTX 4060 Ti 16GB           │
-│  Qwen3-Coder-30B       Nomic Embed Text v1.5                      │
+│  Qwen3-Coder-30B       Nomic Embed Text v1.5 + Qwen3-VL-30B        │
 │                                                                 │
 │  出口 NAT: 123.127.159.1                                        │
 └───────────────┬────────────────────┬────────────────────┘
@@ -21,8 +21,8 @@
 │ 腾讯云 CVM：82.156.69.153                                        │
 │ Ubuntu 24.04 · 2核 · 2GB                                         │
 │                                                                  │
-│ LiteLLM :8000 -> qwen-local/qwen-agent 到 5090；embed-local 到新设备 │
-│ 规划：HTTPS 入口 + Reranker/VL/第二推理路由                         │
+│ LiteLLM :8000 -> qwen-local/qwen-agent 到 5090；embed/vision 到新设备 │
+│ 规划：HTTPS 入口 + Reranker/第二推理路由                              │
 │ 约束：不再把 OpenWebUI / RAG / Agent Runtime 常驻在云服务器       │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -33,7 +33,7 @@
 |------|------|------|---------|------|
 | 1234 | 5090 | LM Studio API | 本机/局域网 | ✅ 已用 |
 | 12340 | 云服务器 | SSH 隧道 -> 5090 | 仅本机 | ⏸️ 需手动开启 |
-| 12341 | 云服务器 | SSH 隧道 -> 新设备 | 仅本机 | ✅ 已用于 `embed-local` |
+| 12341 | 云服务器 | SSH 隧道 -> 新设备 | 仅本机 | ✅ 已用于 `embed-local` / `vision-local` |
 | 8000 | 云服务器 | LiteLLM API | 公网 | ✅ 已用 |
 | 3000 | 云服务器或本地节点 | OpenWebUI | 需要时开放 | ⚠️ 不建议云端常驻 |
 | 22 | 云服务器 | SSH Server | 公网 | ✅ 已用 |

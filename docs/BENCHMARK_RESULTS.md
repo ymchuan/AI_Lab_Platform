@@ -26,6 +26,7 @@
 | 2026-06-18 | embed-local + qwen-agent | LiteLLM public gateway -> local nodes | rag_retrieval / RAG v0 | `rag_retrieval_20260618_215213.jsonl` | 319 chunks / 19 files; retrieval benchmark 3/3; end-to-end ask can answer with `[Sx]` citations |
 | 2026-06-22 | RAG Service v1 | 5090 local HTTP service | unit / smoke | local unit tests | Added zero-dependency HTTP API; local tests cover health/auth/sources; remote David test pending |
 | 2026-06-23 | embed-local + qwen-agent | LiteLLM public gateway -> 5090/new-device nodes | rag_retrieval / RAG v1 baseline | `rag_retrieval_20260624_113757.jsonl` | Rebuilt local index: 354 chunks / 21 files; default retrieval eval top-k 8 passed 3/3; CLI search and ask verified through cloud LiteLLM |
+| 2026-06-24 | vision-local | LiteLLM public gateway -> new device LM Studio | VL route smoke | pending | `qwen/qwen3-vl-30b` is routed as `vision-local`; image QA / screenshot / OCR-ish benchmark pending |
 
 ## 2026-06-10 Baseline Summary
 
@@ -521,7 +522,7 @@ Validation:
 |-------|--------|-------|
 | Cloud direct `:12340/v1/models` | pass | 5090 tunnel reachable; model list includes Qwen3-Coder and historical local models |
 | Cloud direct `:12341/v1/models` | pass | New device tunnel reachable; model list includes Nomic embedding ids |
-| Public `/v1/models` | pass | Returns `qwen-local`, `qwen-agent`, `embed-local` |
+| Public `/v1/models` | pass | Returns `qwen-local`, `qwen-agent`, `embed-local`; 2026-06-24 docs updated to expect `vision-local` as well |
 | Public `/v1/embeddings` | pass | `embed-local` returns 2 vectors, each 768 dimensions |
 | `embedding_health_eval.py --model embed-local` | mixed | document embeddings OK, 768 dimensions, tiny retrieval probe 2/3 |
 
@@ -529,7 +530,7 @@ Interpretation:
 
 1. LabAgent is no longer a single-node gateway; it now has a working second local node behind the same LiteLLM entrypoint.
 2. The cloud server still performs only lightweight routing and authentication. Model work stays on local machines.
-3. The tiny retrieval probe is intentionally weak and scored 2/3, so this is not yet a full RAG service. The next step is real chunking + vector store + retrieval benchmark, then reranker and VL routes.
+3. The tiny retrieval probe is intentionally weak and scored 2/3, so this is not yet a full RAG service. The next step is vector store + reranker + answer eval, plus a minimal `vision-local` benchmark for image QA, screenshot understanding, and OCR-ish tasks.
 
 ## 2026-06-18 RAG v0 Retrieval Baseline
 

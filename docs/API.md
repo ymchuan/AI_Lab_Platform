@@ -25,6 +25,7 @@ Authorization: Bearer <LABAGENT_API_KEY>
 | `qwen-local` | Chat | 5090 / LM Studio | ✅ 已路由，需保持 `:12340` 隧道 | 兼容旧客户端的默认别名；当前指向 `qwen/qwen3-coder-30b` |
 | `qwen-agent` | Chat | 5090 / LM Studio | ✅ 已路由，需保持 `:12340` 隧道 | 当前默认 Agent/Cline 执行模型，指向 `qwen/qwen3-coder-30b` |
 | `embed-local` | Embedding | 新设备 / LM Studio | ✅ 已路由，需保持 `:12341` 隧道 | 指向 `text-embedding-nomic-embed-text-v1.5-embedding`，返回 768 维向量 |
+| `vision-local` | Vision / VL | 新设备 / LM Studio | ✅ 已路由，需保持 `:12341` 隧道 | 指向 `qwen/qwen3-vl-30b`，用于图片问答、截图理解和 OCR-ish 场景 |
 
 ## 规划 / 待正式路由的模型别名
 
@@ -32,7 +33,6 @@ Authorization: Bearer <LABAGENT_API_KEY>
 |---------|------|----------|------|------|
 | `qwen-think` | Chat | 5090 / LM Studio | ⏳ 待正式路由 | `qwen/qwen3.6-27b` reasoning baseline。因 final `content` 经常为空，不作为默认执行模型 |
 | `rerank-local` | Rerank | 新设备 | ⏳ 待部署 | RAG 检索重排 |
-| `vision-local` | Vision / VL | 新设备 | ⏳ 待部署 | OCR、多模态文档理解候选 |
 | `whisper-local` | Audio | - | ⛔ 暂不部署 | 8060S 当前不可用，语音识别计划后移 |
 
 ## 接口列表
@@ -46,14 +46,15 @@ curl http://82.156.69.153:8000/v1/models \
   -H "Authorization: Bearer <LABAGENT_API_KEY>"
 ```
 
-当前预期至少包含 `qwen-local`、`qwen-agent` 和 `embed-local`。注意：能列出模型只说明 LiteLLM 网关配置可达，不代表 5090 或新设备的反向隧道已经开启，也不代表 LM Studio 当前加载的是目标模型。
+当前预期至少包含 `qwen-local`、`qwen-agent`、`embed-local` 和 `vision-local`。注意：能列出模型只说明 LiteLLM 网关配置可达，不代表 5090 或新设备的反向隧道已经开启，也不代表 LM Studio 当前加载的是目标模型。
 
 ```json
 {
   "data": [
     {"id": "qwen-local", "object": "model", "owned_by": "openai"},
     {"id": "qwen-agent", "object": "model", "owned_by": "openai"},
-    {"id": "embed-local", "object": "model", "owned_by": "openai"}
+    {"id": "embed-local", "object": "model", "owned_by": "openai"},
+    {"id": "vision-local", "object": "model", "owned_by": "openai"}
   ],
   "object": "list"
 }
@@ -100,6 +101,31 @@ curl http://82.156.69.153:8000/v1/embeddings \
 ```
 
 当前验证结果：公网 LiteLLM 路由可返回 2 条 embedding，每条 768 维。
+
+### POST /v1/chat/completions with vision-local
+
+多模态图片问答接口。当前 `vision-local` 由新设备 LM Studio 承载，通过同一个云服务器 `:12341` SSH 反向隧道路由。
+
+```bash
+curl http://82.156.69.153:8000/v1/chat/completions \
+  -H "Authorization: Bearer <LABAGENT_API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "vision-local",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {"type": "text", "text": "请描述这张图片里的主要内容，并尽量读出可见文字。"},
+          {"type": "image_url", "image_url": {"url": "data:image/png;base64,<BASE64_IMAGE>"}}
+        ]
+      }
+    ],
+    "max_tokens": 500
+  }'
+```
+
+当前状态：路由已接入，仍需要补最小图片识别 / 截图理解 / OCR-ish benchmark，确认不同图片格式和消息格式的兼容性。
 
 ## RAG Service v1 接口
 
@@ -221,9 +247,10 @@ console.log(data.choices[0].message.content);
 
 验证公网调用时必须同时检查：
 
-1. `GET /v1/models` 返回预期别名（至少 `qwen-local`、`qwen-agent`、`embed-local`）。
+1. `GET /v1/models` 返回预期别名（至少 `qwen-local`、`qwen-agent`、`embed-local`、`vision-local`）。
 2. `POST /v1/chat/completions` 返回正常回答。
 3. `POST /v1/embeddings` 使用 `embed-local` 返回 768 维向量。
+4. `POST /v1/chat/completions` 使用 `vision-local` 和图片消息返回正常图像描述。
 
 如果只通过第 1 步，说明云端 LiteLLM 正常；如果第 2 步失败，优先确认 5090 是否已经手动开启 SSH 反向隧道。
 

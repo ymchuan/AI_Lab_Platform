@@ -6,7 +6,7 @@
 
 把内网 GPU 主机的大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何客户端像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-06-18 校准）：5090 主机已接入 LM Studio，默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 只保留为 `qwen-think` reasoning baseline。已测试 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`google/gemma-4-31b`、`zai-org/glm-4.7-flash`、`text-embedding-nomic-embed-text-v1.5`。新设备硬件已校准为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，内网 IP 为 `172.16.14.17`，已通过 `:12341` SSH 反向隧道把 LM Studio 上的 `text-embedding-nomic-embed-text-v1.5-embedding` 接入云端 LiteLLM，公网别名为 `embed-local`。8060S 当前无法使用，冻结近期接入计划。云服务器是 2 核 2GB Ubuntu 24.04，短期无法升级，也没有预算扩容，后续只能作为轻量网关和中转节点。当前 SSH 反向隧道不是常驻状态，需要在 5090 和新设备分别手动保持。
+当前事实基线（2026-06-24 校准）：5090 主机已接入 LM Studio，默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 只保留为 `qwen-think` reasoning baseline。已测试 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`google/gemma-4-31b`、`zai-org/glm-4.7-flash`、`text-embedding-nomic-embed-text-v1.5`。新设备硬件已校准为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，内网 IP 为 `172.16.14.17`，已通过 `:12341` SSH 反向隧道把 LM Studio 上的 `text-embedding-nomic-embed-text-v1.5-embedding` 和 `qwen/qwen3-vl-30b` 接入云端 LiteLLM，公网别名为 `embed-local` 和 `vision-local`。8060S 当前无法使用，冻结近期接入计划。云服务器是 2 核 2GB Ubuntu 24.04，短期无法升级，也没有预算扩容，后续只能作为轻量网关和中转节点。当前 SSH 反向隧道不是常驻状态，需要在 5090 和新设备分别手动保持。
 
 RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.md`、`docs/*.md` 切块，调用 `embed-local` 生成 768 维向量，保存本地 `data/rag/index.json`，再用 cosine similarity 检索并调用 `qwen-agent` 生成带 `[Sx]` 引用的回答。2026-06-23 重建运行索引：354 chunks / 21 files，`rag_retrieval_eval.py` 默认 top-k 8 复测 3/3 通过，端到端 `ask` 可回答当前多节点路由状态。2026-06-22 已新增 RAG Service v1：`services/rag/server.py` 提供零依赖 HTTP API，支持本地和 David/Cline 远程调试。注意：当前仍是 baseline，还没有真实向量数据库、reranker、文档上传和 answer faithfulness 自动评测。
 
@@ -14,12 +14,14 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 新设备的 RTX 5080 16GB + RTX 4060 Ti 16GB 可以按资源规划理解为 32GB 专用显存池，但不是单个连续 32GB 显存。RTX 5080 在 Windows 任务管理器里显示的总 GPU 内存包含共享系统内存，不能当作 46.7GB VRAM 使用。短期更稳的使用方式是 5080 承担第二推理/视觉/中等代码模型，4060 Ti 承担 Embedding、Reranker 或轻量实验模型；单模型跨卡需要看推理引擎是否支持并行或分层卸载。
 
+2026-06-24 Claude Code 兼容性结论：通过 LiteLLM Anthropic-compatible `/v1/messages` 调用 `qwen-agent` 的文本链路已验证可用；但 Claude Code 内置工具调用要求模型输出严格合法的 `tool_use` 参数，当前 Qwen-Coder 经 LiteLLM 适配后出现 `Invalid tool parameters`。因此 Claude Code + 本地 Qwen 先作为实验链路，主力 Agent/Coding 仍用 Cline + OpenAI-compatible `qwen-agent`。后续单独补 `claude_code_compat_eval`。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
 |------|------|---------|---------|---------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ LM Studio 已接入，默认 load Qwen3-Coder-30B | 主力推理 / `qwen-agent` |
-| 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM | 172.16.14.17 | ✅ `embed-local` 已接入 | Embedding 已上线；后续第二推理/VL/Reranker |
+| 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM | 172.16.14.17 | ✅ `embed-local` / `vision-local` 已接入 | Embedding 和 Vision 已上线；后续第二推理/Reranker |
 | 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 31.6GB RAM | 172.16.14.142 | ⛔ 当前无法使用 | 冻结近期接入计划 |
 | 云服务器 | 2核 2GB Ubuntu 24.04 | 82.156.69.153 (公网) | ✅ LiteLLM 运行中 | 轻量 API 网关 |
 
@@ -33,6 +35,7 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 5090 LM Studio → `qwen/qwen3-coder-30b`（当前默认 `qwen-agent`）
     ↓ SSH :12341（需要新设备手动开启反向隧道）
 新设备 LM Studio → `text-embedding-nomic-embed-text-v1.5-embedding`（`embed-local`）
+              → `qwen/qwen3-vl-30b`（`vision-local`）
 RAG Service v1 → `services/rag` 本地索引 / HTTP 检索 / 带引用回答
 ```
 
@@ -54,7 +57,7 @@ curl.exe http://82.156.69.153:8000/v1/models -H "Authorization: Bearer <LABAGENT
 
 返回模型列表只能说明 LiteLLM 网关可达；要确认全链路必须继续测试 `/v1/chat/completions`。如果没有在 5090 手动开启 SSH 反向隧道，chat 报 500/502/Connection error 是预期状态。
 
-当前模型列表应至少包含 `qwen-local`、`qwen-agent`、`embed-local`。其中 `embed-local` 还需要继续测试 `/v1/embeddings`。
+当前模型列表应至少包含 `qwen-local`、`qwen-agent`、`embed-local`、`vision-local`。其中 `embed-local` 需要测试 `/v1/embeddings`，`vision-local` 需要测试图片消息格式。
 
 真实 API Key 保存在项目根目录 `.env.local`，文档和简历材料只使用 `<LABAGENT_API_KEY>` 占位符。
 
@@ -130,7 +133,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 3. **5090 不能通过公网 IP 访问自己** — NAT 回环问题。5090 本机直接连 `127.0.0.1:1234`。
 
-4. **新设备已完成 embedding 路由 v1，8060S 暂不可用** — 新设备当前只正式承载 `embed-local`，Reranker、VL、第二代码模型仍待接入；8060S 不再作为短期 RAG/OCR/Whisper 节点。
+4. **新设备已完成 embedding / vision 路由 v1，8060S 暂不可用** — 新设备当前正式承载 `embed-local` 和 `vision-local`，Reranker、第二代码模型仍待接入；8060S 不再作为短期 RAG/OCR/Whisper 节点。
 
 5. **当前项目代码深度还不够** — 目前主要是部署、网关、隧道和文档。为了支撑 Agent 开发岗简历，下一阶段必须补 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型 benchmark、量化和小规模 LoRA/QLoRA 实验。
 
@@ -166,23 +169,26 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 21. **RAG Service v1 已新增，但还未作为公网正式入口** — `python -m services.rag.server --host 127.0.0.1 --port 8010` 可在 5090 本机启动 RAG HTTP API。David 远程调试需要额外开启 `ssh -N -R 18010:127.0.0.1:8010 ... ubuntu@82.156.69.153`，并确保云服务器安全组或后续 Nginx/Caddy 入口允许访问。RAG 文档不需要在 David 上，David 只是远程调用 5090 上的 RAG index。
 
+22. **Claude Code 本地 Qwen 后端是实验链路，不是当前主通道** — LiteLLM `/v1/messages` 可以把 Claude Code 文本请求转到 `qwen-agent`，但 Qwen-Coder 对 Claude Code 内置工具 schema 不稳定，可能报 `Invalid tool parameters`。Cline 仍是当前可靠的本地 Agent 客户端；Claude Code 兼容性后续作为单独 benchmark 和适配任务。
+
 ## 下一步要做的事
 
-**当前阶段：RAG v0 -> RAG Service v1**。模型选型已经暂定 5090 的 `qwen-agent` 为 Qwen3-Coder-30B；新设备已承担 `embed-local`。现在重点从“能否部署模型”转向“能否构建真实 RAG/Agent 工程闭环”。
+**当前阶段：RAG v0 -> RAG Service v1 + Vision 路由验证**。模型选型已经暂定 5090 的 `qwen-agent` 为 Qwen3-Coder-30B；新设备已承担 `embed-local` 和 `vision-local`。现在重点从“能否部署模型”转向“能否构建真实 RAG/Agent/VL 工程闭环”。
 
 按优先级：
 
 1. 在 5090 手动开启 SSH 反向隧道，并在另一台机器验证公网 `qwen-local` 全链路。
 2. 启动 RAG Service v1 并从 David 验证 `/health`、`/v1/rag/search`、`/v1/rag/ask`。
 3. 把 RAG v1.x 迁移到 Qdrant 或 Chroma，保留当前 JSON index 作为 baseline。
-4. 增加 reranker 对照：先在新设备 4060 Ti / 5080 上测试 Qwen3-Reranker 或 BGE reranker。
-5. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。
-6. 以 `qwen/qwen3-coder-30b` 继续补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval` 和 `trace_eval`。
-7. 在新设备上继续接入 Reranker / VL / 第二代码模型，优先保持 LM Studio + SSH 隧道的简单路线，后续再评估 llama.cpp / vLLM / SGLang。
-8. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。
-9. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
-10. 构建 MCP Server / Skills / Eval Harness / LoRA-QLoRA 和量化实验。
-11. 用新的 RAG/index 校验规则重新构建索引，并在接入向量数据库前保留 JSON index baseline。
+4. 验证 `vision-local` 图片问答、截图理解和 OCR-ish 输出质量，并补最小 VL benchmark。
+5. 增加 reranker 对照：先在新设备 4060 Ti / 5080 上测试 Qwen3-Reranker 或 BGE reranker。
+6. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。
+7. 以 `qwen/qwen3-coder-30b` 继续补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval`、`claude_code_compat_eval` 和 `trace_eval`。
+8. 在新设备上继续接入 Reranker / 第二代码模型，优先保持 LM Studio + SSH 隧道的简单路线，后续再评估 llama.cpp / vLLM / SGLang。
+9. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。
+10. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
+11. 构建 MCP Server / Skills / Eval Harness / LoRA-QLoRA 和量化实验。
+12. 用新的 RAG/index 校验规则重新构建索引，并在接入向量数据库前保留 JSON index baseline。
 
 ## 当前 Benchmark 命令
 

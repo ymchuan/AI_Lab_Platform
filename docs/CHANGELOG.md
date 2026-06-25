@@ -4,6 +4,14 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.5] - 2026-06-25
+
+### Added
+- 新增 `docs/CLAUDE_CODE_COMPATIBILITY.md`，记录 Claude Code 通过 LiteLLM 调用本地模型的可用边界、`tool use` 参数错误现象和后续处理计划。
+- 将 Claude Code 本地 Qwen 路径明确标记为实验链路，主力 Agent / Coding 仍保持 `Cline + qwen-agent`。
+- 在 README / HANDOFF / Progress Summary 中同步 Claude Code 兼容性结论，避免把文本连通性误解为完整工具链可用。
+- 补齐 `vision-local` 文档收尾：API、部署、网络、架构、模型调研、进展汇报、benchmark 结果和技能路线统一为 `embed-local` / `vision-local` 已接入，下一步验证图片识别质量。
+
 ## [0.4.4] - 2026-06-22
 
 ### Added

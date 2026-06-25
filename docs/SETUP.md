@@ -7,7 +7,7 @@
 | 设备 | 用途 | 状态 |
 |------|------|------|
 | 5090 (RTX 5090 32GB) | 主力推理 | ✅ 已配置 LM Studio；Qwen3-Coder-30B 已定为 `qwen-agent` 默认模型 |
-| 新设备 (RTX 5080 16GB + RTX 4060 Ti 16GB) | Embedding / 第二推理 / VL / Rerank | ✅ `embed-local` 已接入；Rerank/VL 待配置 |
+| 新设备 (RTX 5080 16GB + RTX 4060 Ti 16GB) | Embedding / Vision / 第二推理 / Rerank | ✅ `embed-local` / `vision-local` 已接入；Rerank 待配置 |
 | 8060S (AMD 395 / 31.6GB) | 暂不规划 | ⛔ 当前无法使用，冻结接入 |
 | 云服务器 (Ubuntu 24.04, 2核 2GB) | 轻量 API 网关 / 隧道中转 | ✅ 已配置，短期无法升级 |
 
@@ -26,6 +26,13 @@
 ```text
 LM Studio model id: text-embedding-nomic-embed-text-v1.5-embedding
 公网 LiteLLM alias: embed-local
+```
+
+新设备 vision v1 当前使用：
+
+```text
+LM Studio model id: qwen/qwen3-vl-30b
+公网 LiteLLM alias: vision-local
 ```
 
 ## 步骤 2：SSH 密钥认证（每台 GPU 主机）
@@ -81,6 +88,11 @@ model_list:
   - model_name: embed-local
     litellm_params:
       model: openai/text-embedding-nomic-embed-text-v1.5-embedding
+      api_base: http://127.0.0.1:12341/v1
+      api_key: lm-studio
+  - model_name: vision-local
+    litellm_params:
+      model: openai/qwen/qwen3-vl-30b
       api_base: http://127.0.0.1:12341/v1
       api_key: lm-studio
 general_settings:
@@ -153,6 +165,16 @@ Model: embed-local
 Endpoint: /v1/embeddings
 ```
 
+Vision 客户端使用：
+
+```text
+Base URL: http://82.156.69.153:8000/v1
+API Key: <LABAGENT_API_KEY>
+Model: vision-local
+Endpoint: /v1/chat/completions
+Message format: OpenAI image_url content block
+```
+
 ## 步骤 9：另一台机器验证全链路
 
 公网验证前，先在 5090 上确认 LM Studio Local Server 正在运行，然后开启反向隧道：
@@ -185,4 +207,13 @@ curl.exe http://82.156.69.153:8000/v1/embeddings `
   -H "Authorization: Bearer <LABAGENT_API_KEY>" `
   -H "Content-Type: application/json" `
   --data-raw '{ "model": "embed-local", "input": "hello labagent" }'
+```
+
+验证新设备 vision 路由：
+
+```powershell
+curl.exe http://82.156.69.153:8000/v1/chat/completions `
+  -H "Authorization: Bearer <LABAGENT_API_KEY>" `
+  -H "Content-Type: application/json" `
+  --data-raw '{ "model": "vision-local", "messages": [{"role":"user","content":[{"type":"text","text":"请描述图片内容并读出可见文字。"},{"type":"image_url","image_url":{"url":"data:image/png;base64,<BASE64_IMAGE>"}}]}], "max_tokens": 500 }'
 ```
