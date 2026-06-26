@@ -217,3 +217,34 @@ curl.exe http://82.156.69.153:8000/v1/chat/completions `
   -H "Content-Type: application/json" `
   --data-raw '{ "model": "vision-local", "messages": [{"role":"user","content":[{"type":"text","text":"请描述图片内容并读出可见文字。"},{"type":"image_url","image_url":{"url":"data:image/png;base64,<BASE64_IMAGE>"}}]}], "max_tokens": 500 }'
 ```
+
+## 步骤 10：启动并验证 RAG Service v1 公网入口
+
+RAG Service v1 运行在 5090，不在新设备上运行。它读取 5090 本地 `data/rag/index.json`，embedding 可通过云端 LiteLLM 路由到新设备 `embed-local`，chat 可直连 5090 本机 LM Studio。
+
+在 5090 PowerShell 启动服务：
+
+```powershell
+cd E:\qwen_setup
+Get-Content .env.local | ForEach-Object {
+  $p = $_.Split("=", 2)
+  if ($p.Count -eq 2) { [Environment]::SetEnvironmentVariable($p[0], $p[1]) }
+}
+python -m services.rag.server --host 127.0.0.1 --port 8010
+```
+
+另开一个 5090 PowerShell 窗口，开启公网反向隧道：
+
+```powershell
+ssh -N -R 0.0.0.0:18010:127.0.0.1:8010 -i C:\Users\N\.ssh\id_ed25519 `
+  -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 `
+  ubuntu@82.156.69.153
+```
+
+公网验证：
+
+```powershell
+curl.exe http://82.156.69.153:18010/health -H "Authorization: Bearer <LABAGENT_RAG_API_KEY>"
+```
+
+2026-06-26 状态：本地 HTTP 四端点已通过，公网 `/health` 已由 David 外部机器验证返回 `ok=true`。当前服务和隧道仍需手动维持，关闭对应 PowerShell 窗口后公网 RAG 入口会停止。

@@ -1134,6 +1134,139 @@ SSH Reverse Tunnel (auto_tunnel.ps1 自动重连 + 心跳保活)
 - 远程模型服务暴露
 - Agent 工具链集成
 
+## 17. RAG Service v1 端到端验证（2026-06-26）
+
+### 目标
+
+完成 RAG Service v1 从本地启动到公网暴露的完整验证闭环，确认 HTTP API 可供外部设备（David 机器）远程调用。
+
+### 执行步骤与结果
+
+**Step 0 — 补全 `.env.local`**
+
+`.env.local` 原来只有 `LABAGENT_API_KEY`，补充了：
+- `LABAGENT_BASE_URL` / `LABAGENT_EMBED_BASE_URL` / `LABAGENT_CHAT_BASE_URL`
+- `LABAGENT_MODEL=qwen-agent`、`LABAGENT_EMBED_MODEL=embed-local`
+- `LABAGENT_RAG_API_KEY`（独立 key，与 LiteLLM key 分离）
+- `LABAGENT_RAG_PORT=8010`
+
+chat 走 `127.0.0.1:1234/v1` 直连 LM Studio，embed 走云端 LiteLLM `82.156.69.153:8000/v1` → 新设备隧道 `:12341`。
+
+**Step 1-2 — SSH 隧道 + 云端网关验证**
+
+手动在 5090 开 `:12340` 反向隧道，新设备开 `:12341` 反向隧道，通过 `/v1/models`、`/v1/chat/completions`、`/v1/embeddings` 三条链路全部确认可用。
+
+**Step 3 — 重建 RAG 索引**
+
+旧索引停在 2026-06-23（354 chunks / 21 files），因 docs 已多次更新必须重建：
+
+```powershell
+python -m services.rag.cli index
+# 结果：364 chunks / 22 files
+```
+
+**Step 4 — CLI 冒烟测试（HTTP 启动前验证 pipeline）**
+
+- `search "LabAgent 当前有哪些公网模型路由？"` → top-5 全部命中，最高 score 0.8524
+- `ask "LabAgent 当前多节点路由是什么状态？"` → 回答含 [S1]-[S8] 引用，`finish_reason=stop`
+
+**Step 5 — 启动 RAG HTTP 服务**
+
+```powershell
+python -m services.rag.server --host 127.0.0.1 --port 8010
+# 输出：LabAgent RAG Service listening on http://127.0.0.1:8010
+```
+
+**Step 6 — 本地 HTTP 冒烟测试（4 个端点全过）**
+
+| 端点 | 结果 |
+|------|------|
+| `GET /health` | ✅ `ok=true`, 364 chunks, 768 dim, 22 files |
+| `POST /v1/rag/search` | ✅ top-5 返回，与 CLI 一致 |
+| `POST /v1/rag/ask` | ✅ 带 [S1]-[S8] 引用，`finish_reason=stop` |
+| `POST /v1/chat/completions` | ✅ OpenAI-compatible，content 末尾附 Sources 列表 |
+
+curl 中文 query 时遇到 Windows bash 控制台 GBK 编码导致 `utf-8 codec can't decode` 报错（服务端收到乱码），改用 Python `urllib.request` + `sys.stdout = io.TextIOWrapper(..., encoding='utf-8')` 绕过，服务端实际运行正常。
+
+**Step 7 — 暴露到公网（遇到一个坑）**
+
+排查顺序：
+1. 启 `ssh -N -R 0.0.0.0:18010:127.0.0.1:8010 ubuntu@82.156.69.153` 反向隧道 → 云端 `ss -ltn` 确认 `0.0.0.0:18010 LISTEN` ✅
+2. 云端 `curl 127.0.0.1:18010/health` → 200 ✅
+3. 云端内网 IP `10.2.0.16:18010` → 401（TCP 通、认证缺） ✅
+4. **5090 curl 公网 IP `82.156.69.153:18010` → timeout ❌**
+
+**根因**：sshd `GatewayPorts` 默认 `no`，需要改为 `clientspecified` 才允许客户端指定 `0.0.0.0:` 绑定。修复方式：
+
+```bash
+echo "GatewayPorts clientspecified" | sudo tee /etc/ssh/sshd_config.d/99-labagent-gatewayports.conf
+sudo sshd -t && sudo systemctl reload ssh
+```
+
+修复后 `ss -ltn` 确认隧道重绑到 `0.0.0.0:18010` ✅，但公网仍 timeout。
+
+继续排查：宿主 iptables `YJ-FIREWALL-INPUT` 链只屏蔽攻击者 IP，无端口白名单逻辑；`ufw inactive`。问题定位到**腾讯云安全组**没有 TCP 18010 入站规则（对照：8000 端口工作正常）。
+
+**安全组开放 TCP 18010 后**：
+
+```bash
+curl.exe http://82.156.69.153:18010/health -H "Authorization: Bearer $LABAGENT_RAG_API_KEY"
+# 返回：{"ok": true, "chunk_count": 364, ...}
+```
+
+✅ Step 7 完成。
+
+### 当前状态
+
+| 组件 | 状态 |
+|------|------|
+| RAG CLI pipeline | ✅ 端到端验证通过 |
+| RAG HTTP 服务 (8010) | ✅ 本地 4 端点通过 |
+| 公网 `82.156.69.153:18010` | ✅ health 验证通过，David 外部机器 Step 8 已确认 |
+
+### 注意：当前后台进程生命周期
+
+RAG HTTP 服务和 `:18010` 反向隧道目前作为后台任务跑在 Claude 会话中，**会话结束后即停止**。长期使用需在自己的 PowerShell 里手动维持（与 `:12340` / `:12341` 同样的手动模式）。持久启动命令：
+
+```powershell
+# 窗口 1：RAG HTTP 服务
+cd e:\qwen_setup
+Get-Content .env.local | ForEach-Object {
+  $p = $_.Split("=", 2)
+  if ($p.Count -eq 2) { [Environment]::SetEnvironmentVariable($p[0], $p[1]) }
+}
+python -m services.rag.server --host 127.0.0.1 --port 8010
+
+# 窗口 2：RAG 反向隧道
+ssh -N -R 0.0.0.0:18010:127.0.0.1:8010 -i C:\Users\N\.ssh\id_ed25519 `
+  -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 `
+  ubuntu@82.156.69.153
+```
+
+David 机器已使用同一个 `LABAGENT_RAG_API_KEY` 调用公网 `/health` 并返回 `ok=true`，确认外部网络、腾讯云安全组、SSH 反向隧道和 5090 RAG HTTP 服务形成完整闭环。
+
+### Key 轮换说明
+
+验证过程中曾误把 `LABAGENT_API_KEY` 粘贴到会话记录中，已完成轮换。该 key 属于 LiteLLM 网关鉴权，需要同步更新：
+
+- 5090 / 新设备 / David / Cline 等客户端侧 `.env.local` 或客户端配置中的 `LABAGENT_API_KEY`
+- 云服务器 LiteLLM `master_key`
+- 修改云端 key 后重启 LiteLLM 服务
+
+`LABAGENT_RAG_API_KEY` 没有泄露也没有轮换，因此 RAG Service、David 的 RAG 验证命令和 `:18010` 链路不需要改 RAG key。
+
+### 发现的质量问题（待 RAG v1.x 修复）
+
+1. **检索召回偏差**：「有哪些公网模型路由？」最佳答案（README 支持的模型表格）没进 top-5，因 cosine/keyword 对列表知识召回不强 → 待 Reranker 接入解决。
+2. **Answer 不完整但不 hallucinate**：8060S 状态、`qwen-think` baseline 等未被召回的内容不出现在回答里 → 检索覆盖率问题，不是忠实性问题。
+
+### 简历价值
+
+- 端到端 RAG Service：文档 → chunk → embedding → 检索 → 带引用回答，全链路可验证
+- 多跳排障能力：GatewayPorts 坑 → iptables 分析 → 安全组确认，每层原因明确
+- OpenAI-compatible HTTP API：`/v1/chat/completions` 可直接替换 Cline 的 base URL 做项目问答
+- 后续方向：Qdrant/Chroma 替换 JSON index、Reranker 接入、answer faithfulness eval
+
 ## 9. 后续记录规则
 
 后续每次进行配置、调试、验证或遇到错误时，都应该更新本文档，至少记录：

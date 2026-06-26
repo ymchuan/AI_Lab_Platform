@@ -6,7 +6,7 @@
 
 本项目将内网 GPU 主机上的本地大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何支持 OpenAI 协议的客户端（Cline、OpenWebUI、Cursor 等）都能像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-06-24 校准）：5090 主机已部署并运行 LM Studio，5090 上的默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 保留为 `qwen-think` reasoning baseline。此前已验证 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`zai-org/glm-4.7-flash`、`google/gemma-4-31b` 等候选模型；新设备已确认为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，并已通过 `:12341` SSH 反向隧道把 `text-embedding-nomic-embed-text-v1.5-embedding` 和 `qwen/qwen3-vl-30b` 接入云端 LiteLLM，公网别名分别为 `embed-local` 和 `vision-local`。8060S 当前无法使用，暂不纳入近期资源池。云服务器固定为 2 核 2GB Ubuntu 24.04，短期内不会升级，后续设计必须把它当作轻量控制面，而不是计算节点。当前 SSH 反向隧道需要在 5090 和新设备手动保持；未开启时对应后端调用失败是预期状态。
+当前事实基线（2026-06-26 校准）：5090 主机已部署并运行 LM Studio，5090 上的默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 保留为 `qwen-think` reasoning baseline。此前已验证 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`zai-org/glm-4.7-flash`、`google/gemma-4-31b` 等候选模型；新设备已确认为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，并已通过 `:12341` SSH 反向隧道把 `text-embedding-nomic-embed-text-v1.5-embedding` 和 `qwen/qwen3-vl-30b` 接入云端 LiteLLM，公网别名分别为 `embed-local` 和 `vision-local`。8060S 当前无法使用，暂不纳入近期资源池。云服务器固定为 2 核 2GB Ubuntu 24.04，短期内不会升级，后续设计必须把它当作轻量控制面，而不是计算节点。当前 SSH 反向隧道需要在 5090 和新设备手动保持；未开启时对应后端调用失败是预期状态。
 
 新设备的专用显存可以按资源规划理解为 `16GB + 16GB = 32GB`，但它不是一块连续 32GB 显存。Windows 任务管理器里 RTX 5080 显示的 `46.7GB GPU 内存`包含约 `30.7GB` 共享系统内存，不能按 46.7GB VRAM 规划大模型。单个模型能否跨 RTX 5080 和 RTX 4060 Ti 运行，取决于推理引擎是否支持 tensor parallel、pipeline parallel、layer offload 或手动把不同模型分配到不同 GPU。短期更稳妥的规划是：5080 跑第二推理/视觉/中等代码模型，4060 Ti 跑 Embedding、Reranker 或轻量实验模型。
 
@@ -54,6 +54,8 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 2026-06-23 校准 RAG 调用链：LiteLLM 只做模型路由，不做 RAG。RAG Service 运行在 5090，读取 5090 本地 `data/rag/index.json`；embedding 可以继续由新设备承载并通过 `embed-local` 路由调用。`services/rag` 已支持 `LABAGENT_EMBED_BASE_URL` 和 `LABAGENT_CHAT_BASE_URL`，便于 embedding/chat 分离。
 
+2026-06-26 完成 RAG Service v1 端到端公网验证：索引重建为 364 chunks / 22 files；本地 `/health`、`/v1/rag/search`、`/v1/rag/ask` 和 `/v1/chat/completions` 均通过；5090 通过 `ssh -N -R 0.0.0.0:18010:127.0.0.1:8010` 暴露 RAG HTTP 服务，腾讯云安全组开放 TCP 18010 后，David 外部机器访问 `http://82.156.69.153:18010/health` 返回 `ok=true`。该服务仍是手动维护的验证入口，不是生产常驻服务。
+
 2026-06-24 新设备完成 `vision-local` 路由接入：同一个 `:12341` SSH 反向隧道同时承载 embedding 和 Qwen3-VL-30B，云端 LiteLLM `/v1/models` 已返回 `vision-local`。该能力用于图片问答、截图理解和 OCR-ish 场景；Qwen3-Coder 仍负责代码/Agent 主任务。Claude Code 已能通过 LiteLLM Anthropic-compatible `/v1/messages` 调用 `qwen-agent` 做文本问答，但本地 Qwen-Coder 在 Claude Code 内置工具参数 schema 上不稳定，已记录为后续兼容性评测方向，当前主力 Agent 客户端仍是 Cline。
 
 ## 当前状态
@@ -66,7 +68,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | OpenWebUI | ⚠️ 需要时启动或迁移到本地节点 | 云服务器 2GB 内存限制，不能长期常驻 |
 | Cline | ✅ 已配置 | VS Code 插件接入 |
 | 5080 新设备 | ✅ Embedding / Vision 已接入 | LM Studio + `:12341` SSH 隧道 + `embed-local` / `vision-local` 路由；Rerank 待接入 |
-| RAG Service v1 | ✅ 最小 HTTP API 已完成 | `services/rag` 支持 CLI index/search/ask 和 HTTP search/ask；本地 `data/rag/` 不进 Git |
+| RAG Service v1 | ✅ 公网 health 已由 David 验证 | `services/rag` 支持 CLI index/search/ask 和 HTTP search/ask；`82.156.69.153:18010` 通过 SSH 反向隧道临时暴露；本地 `data/rag/` 不进 Git |
 | 8060S | ⛔ 暂不可用 | 当前无法使用，冻结近期接入计划 |
 
 ## 快速开始
@@ -180,10 +182,10 @@ $env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
 python -m services.rag.server --host 127.0.0.1 --port 8010
 ```
 
-David 远程调试时，可在 5090 额外开启：
+David 远程调试时，可在 5090 额外开启公网 RAG 隧道。云端 sshd 已设置 `GatewayPorts clientspecified`，腾讯云安全组需放行 TCP 18010：
 
 ```powershell
-ssh -N -R 18010:127.0.0.1:8010 -i C:\Users\N\.ssh\id_ed25519 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+ssh -N -R 0.0.0.0:18010:127.0.0.1:8010 -i C:\Users\N\.ssh\id_ed25519 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
 ```
 
 ## License

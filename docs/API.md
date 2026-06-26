@@ -137,6 +137,8 @@ Remote test URL example: http://82.156.69.153:18010
 Auth: Authorization: Bearer <LABAGENT_RAG_API_KEY>
 ```
 
+2026-06-26 验证状态：本地四个 RAG HTTP 端点已通过；公网 `http://82.156.69.153:18010/health` 已由 David 外部机器验证返回 `ok=true`。公网入口依赖 5090 手动运行 RAG 服务和 `:18010` SSH 反向隧道，当前不是生产常驻服务。
+
 该服务不是 LiteLLM 的一部分。它读取 5090 本地 `data/rag/index.json`，再调用公网 LiteLLM 的 `embed-local` 和 `qwen-agent`。
 
 LiteLLM 只做模型路由，不读取 RAG 文档库。当前 RAG Service 可以使用统一网关：
