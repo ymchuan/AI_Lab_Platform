@@ -21,7 +21,7 @@ Team client
   -> qwen-agent / qwen-think / vision-local / RAG
 ```
 
-The current reliable path remains `Cline + OpenAI-compatible qwen-agent`.
+The current reliable paths are `Cline + OpenAI-compatible qwen-agent` and basic `Codex CLI + qwen-agent` workflows. Codex CLI has passed plain chat, read-only shell listing, and a one-file create/write smoke test on David's machine.
 
 ## Compatibility Is Not One Thing
 
@@ -29,17 +29,17 @@ OpenAI-compatible chat completion is only the first layer. Coding-agent clients 
 
 | Layer | What It Checks | Current Status |
 |------|----------------|----------------|
-| Basic chat | `/v1/chat/completions`, non-empty content | Works through LiteLLM for `qwen-agent` |
-| Streaming | SSE chunks, first token, finish reason | Covered by existing latency scripts for text models |
-| Tool/function calling | Schema-following tool calls | Not proven for Codex CLI; Claude Code has known schema failures |
-| File-edit workflow | Diff quality, patch application, multi-turn stability | Cline-like benchmark exists; client-specific CLI tests pending |
+| Basic chat | `/v1/chat/completions` or `/v1/responses`, non-empty content | Works through LiteLLM for `qwen-agent`; Codex CLI plain chat passed |
+| Streaming | SSE chunks, first token, finish reason | Covered by existing latency scripts for text models; Codex CLI not separately scored yet |
+| Tool/function calling | Schema-following tool calls | Codex CLI can run basic local shell commands; complex tool/file workflow pending. Claude Code has known schema failures |
+| File-edit workflow | Diff quality, patch application, multi-turn stability | Codex CLI one-file create/write passed; multi-file patch workflow pending |
 | Vision input | OpenAI image message format | `vision-local` route works; client image upload behavior still pending |
 | RAG/project QA | Project docs over RAG Service | HTTP service works; client integration pending |
 
 ## Client Priority
 
 1. **Cline** - current primary coding client. Already useful with `qwen-agent`.
-2. **Codex CLI** - next priority for team rollout because it is expected to work with OpenAI-compatible base URL + key, but tool/file behavior still needs validation.
+2. **Codex CLI** - basic workflow passed on David's machine; next priority is a small compatibility matrix before team rollout.
 3. **Claude Code CLI** - keep as experimental until `tool_use` schema compatibility is measured and either adapted or documented as unsupported.
 4. **OpenWebUI / Cursor** - useful for general chat or project QA, but less important than CLI coding-agent workflows.
 
@@ -47,15 +47,37 @@ OpenAI-compatible chat completion is only the first layer. Coding-agent clients 
 
 Minimum tests before recommending it to the team:
 
-1. Configure Codex CLI with `LABAGENT_BASE_URL`, `LABAGENT_API_KEY`, and `qwen-agent`.
-2. Plain chat: ask for a short answer and confirm non-empty content.
-3. Repo read task: ask it to summarize `README.md` / `HANDOFF.md` without edits.
-4. Patch task: ask it to generate a tiny diff in a throwaway file or fixture.
-5. Tool behavior: check whether it uses native tool calls, plain text patches, or an OpenAI tool/function schema.
-6. Error handling: confirm failures are readable when the SSH tunnel or backend model is unavailable.
-7. Record exact client version, config shape, request/response behavior, and limitations.
+1. Configure Codex CLI with `base_url=http://82.156.69.153:8000/v1`, `wire_api="responses"`, `model=qwen-agent`, and `LABAGENT_API_KEY` exposed as the OpenAI auth token. Passed on David's machine.
+2. Plain chat: ask for a short answer and confirm non-empty content. Passed; response identified the backend as Qwen rather than OpenAI.
+3. Read-only shell task: list the current directory without modifying files. Passed; Codex ran `Get-ChildItem -Force` and summarized the directory.
+4. One-file write task: create `hello_labagent.txt` with a fixed string. Passed; Codex ran `Set-Content`.
+5. Patch task: ask it to generate a tiny diff in a throwaway file or fixture. Pending.
+6. Tool behavior: check whether it uses native tool calls, plain text patches, or an OpenAI tool/function schema. Partially observed; basic shell tools work.
+7. Error handling: confirm failures are readable when the SSH tunnel or backend model is unavailable. Pending.
+8. Record exact client version, config shape, request/response behavior, and limitations. Pending.
 
 The result should become a dedicated benchmark or smoke script only after the manual protocol is understood.
+
+## Codex CLI Current Result
+
+Observed on David's machine:
+
+```text
+model_provider = "LabAgent" or custom provider
+model = "qwen-agent"
+base_url = "http://82.156.69.153:8000/v1"
+wire_api = "responses"
+requires_openai_auth = true
+```
+
+Result:
+
+- Plain chat reached LabAgent and returned a Qwen-backed answer.
+- Codex warned: `Model metadata for qwen-agent not found`; this is expected for a custom model alias and means Codex falls back to generic metadata.
+- Read-only directory listing worked through `Get-ChildItem -Force`.
+- One-file creation worked through `Set-Content`.
+
+Current status: `Codex CLI + LabAgent + qwen-agent` is suitable for basic self-use and small team experiments, but not yet certified for complex multi-file coding tasks.
 
 ## Claude Code CLI Status
 
