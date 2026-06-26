@@ -18,6 +18,8 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-06-26 `vision-local` 最小公网 smoke test 已通过：`/v1/models` 返回 `vision-local`；通过 LiteLLM 向 Qwen3-VL-30B 发送内存生成 PNG，模型成功读出 `LABAGENT VL TEST 42`、蓝色方块和红色圆形；截图式 dashboard 测试能读出模型路由表和 alert，但长回答会触发 `finish_reason=length`。正式 VL benchmark 应限制输出为 JSON/表格，避免截图 OCR 场景浪费 token。
 
+2026-06-26 团队接入需求新增：后续不只自己用 Cline，还要支持团队成员通过 Codex CLI / Claude Code CLI / Cline 等客户端接入同一个 LabAgent 网关。OpenAI-compatible chat 可用不等于 coding-agent CLI 完整可用，必须单独验证 streaming、工具/函数调用、文件编辑、错误处理和图片消息格式。当前优先级：Cline 保持主通道；Codex CLI 下一步优先验证；Claude Code CLI 因 `tool_use` schema 问题继续作为实验链路。详见 `docs/TEAM_CLIENT_COMPATIBILITY.md`。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
@@ -173,6 +175,8 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 22. **Claude Code 本地 Qwen 后端是实验链路，不是当前主通道** — LiteLLM `/v1/messages` 可以把 Claude Code 文本请求转到 `qwen-agent`，但 Qwen-Coder 对 Claude Code 内置工具 schema 不稳定，可能报 `Invalid tool parameters`。Cline 仍是当前可靠的本地 Agent 客户端；Claude Code 兼容性后续作为单独 benchmark 和适配任务。
 
+23. **团队 CLI 客户端兼容性需要单独做矩阵测试** — 团队成员可能更习惯 Codex CLI 或 Claude Code CLI。不要假设“Cline 能用”就代表 Codex/Claude Code 的工具调用和文件编辑也能用。下一步优先验证 Codex CLI 的 base URL + key + `qwen-agent` 路径，再决定是否需要 `labagent-agent` router 或 adapter 层。
+
 ## 下一步要做的事
 
 **当前阶段：RAG Service v1 已完成公网验证，下一步转向 RAG v1.x + Vision 质量评测**。模型选型已经暂定 5090 的 `qwen-agent` 为 Qwen3-Coder-30B；新设备已承担 `embed-local` 和 `vision-local`。现在重点从“能否部署模型”转向“能否构建真实 RAG/Agent/VL 工程闭环”。
@@ -184,10 +188,11 @@ TCP 3000 — OpenWebUI（需要时开放）
 3. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。
 4. 把 `vision-local` smoke test 固化为最小 VL benchmark，覆盖图片问答、截图理解和 OCR-ish 输出质量。
 5. 以 `qwen/qwen3-coder-30b` 继续补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval`、`claude_code_compat_eval` 和 `trace_eval`。
-6. 在新设备上继续接入第二代码模型，优先保持 LM Studio + SSH 隧道的简单路线，后续再评估 llama.cpp / vLLM / SGLang。
-7. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。
-8. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
-9. 构建 MCP Server / Skills / Eval Harness / LoRA-QLoRA 和量化实验。
+6. 验证 Codex CLI 作为团队客户端接入 LabAgent 网关：plain chat、repo read、patch、工具调用、错误处理。
+7. 在新设备上继续接入第二代码模型，优先保持 LM Studio + SSH 隧道的简单路线，后续再评估 llama.cpp / vLLM / SGLang。
+8. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。
+9. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
+10. 构建 MCP Server / Skills / Eval Harness / LoRA-QLoRA 和量化实验。
 
 ## 当前 Benchmark 命令
 
@@ -257,6 +262,7 @@ docs/
 ├── CHANGELOG.md             # 更新日志
 ├── CODE_REVIEW_TRIAGE.md    # 外部 review 采纳/后置/拒绝记录
 ├── AGENT_OPERATING_RULES.md # Qwen/Cline 系统提示词与 skills 使用规则
+├── TEAM_CLIENT_COMPATIBILITY.md # 团队 Codex/Claude/Cline 客户端接入验证计划
 ├── Progress_Summary.md      # 进展汇报（给别人看的）
 ├── Tech_Stack_Knowledge_Base.md  # 技术知识手册
 ├── AI_Engineer_Skills_Roadmap.md # 技能路线图

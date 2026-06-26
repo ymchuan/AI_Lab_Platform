@@ -116,6 +116,7 @@ Model:    qwen-local
 - [Benchmark 结果](docs/BENCHMARK_RESULTS.md) — 模型 / RAG / Agent 评测记录
 - [Benchmark 设计](docs/BENCHMARK_DESIGN.md) — Agent / Coding / RAG 评测分层与解释规则
 - [Claude Code 兼容性](docs/CLAUDE_CODE_COMPATIBILITY.md) — Claude Code 通过 LiteLLM 接本地模型的可用边界与后续评测计划
+- [团队客户端兼容性](docs/TEAM_CLIENT_COMPATIBILITY.md) — Codex CLI / Claude Code CLI / Cline 等团队接入路径和验证计划
 - [文档同步规则](docs/DOCUMENTATION_SYNC.md) — 每个关键节点后的复盘与文档更新契约
 - [Code Review 分流记录](docs/CODE_REVIEW_TRIAGE.md) — 外部 AI review 的采纳、后置和拒绝决策
 - [Agent 操作规则](docs/AGENT_OPERATING_RULES.md) — Qwen/Cline 系统提示词建议与本地 skills 说明

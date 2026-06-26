@@ -283,6 +283,34 @@ benchmarks/
 3. 失败时是否能给出可读错误，而不是只暴露笼统的参数异常。
 4. 与 `Cline` 主路径相比，兼容性差异在哪里。
 
+### 9. Team Client Compatibility
+
+目标：让团队成员可以用自己熟悉的 coding-agent CLI 接入 LabAgent 网关，而不是只支持项目发起人的 Cline 配置。
+
+当前判断：
+
+- `Cline + qwen-agent` 是当前主通道。
+- `Codex CLI` 是下一步优先验证对象，因为它理论上更可能直接使用 OpenAI-compatible base URL + key。
+- `Claude Code CLI` 已验证文本链路，但工具调用 schema 不稳定，暂不作为团队主通道。
+
+验证矩阵：
+
+1. plain chat 是否有非空 `content`。
+2. streaming 是否正常。
+3. repo read 是否能读取/理解项目文件。
+4. patch/file edit 是否可用。
+5. tool/function calling 是否符合客户端 schema。
+6. 图片消息是否能被路由到 `vision-local` 或后续 `labagent-agent` router。
+7. 后端隧道断开、模型未 load、key 错误时，错误是否可读。
+
+交付物：
+
+```text
+docs/TEAM_CLIENT_COMPATIBILITY.md
+benchmarks/codex_cli_compat_eval.py        # 待验证后再定
+benchmarks/claude_code_compat_eval.py      # 已规划
+```
+
 ## 里程碑
 
 ### M1：当前状态校准 ✅
