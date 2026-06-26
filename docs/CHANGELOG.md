@@ -11,6 +11,7 @@
 - 通过 `ssh -N -R 0.0.0.0:18010:127.0.0.1:8010` 将 5090 RAG Service 暴露到云服务器公网 `82.156.69.153:18010`，David 外部机器 `/health` 验证返回 `ok=true`。
 - 云端 sshd 增加 `GatewayPorts clientspecified`，腾讯云安全组开放 TCP 18010，用于 RAG Service 远程验证。
 - 完成 `vision-local` 最小公网 smoke test：Qwen3-VL-30B 成功识别测试图片文字、颜色形状和截图式路由表，确认 OpenAI image message 路径端到端可用。
+- 新增 `benchmarks/vision_local_eval.py`，把手工 VL smoke 固化为可重复回归测试，覆盖合成图片 OCR/形状识别和截图式表格读取。
 
 ### Changed
 - 将 RAG Service v1 从“可远程调试”更新为“公网 health 已验证”，但仍标记为手动维护的 baseline 服务，而非生产常驻入口。

@@ -26,7 +26,7 @@
 | 2026-06-18 | embed-local + qwen-agent | LiteLLM public gateway -> local nodes | rag_retrieval / RAG v0 | `rag_retrieval_20260618_215213.jsonl` | 319 chunks / 19 files; retrieval benchmark 3/3; end-to-end ask can answer with `[Sx]` citations |
 | 2026-06-26 | RAG Service v1 | 5090 local HTTP service + public :18010 tunnel | HTTP smoke | manual smoke | Local HTTP endpoints passed; David external `/health` returned `ok=true`; production hardening pending |
 | 2026-06-23 | embed-local + qwen-agent | LiteLLM public gateway -> 5090/new-device nodes | rag_retrieval / RAG v1 baseline | `rag_retrieval_20260624_113757.jsonl` | Rebuilt local index: 354 chunks / 21 files; default retrieval eval top-k 8 passed 3/3; CLI search and ask verified through cloud LiteLLM |
-| 2026-06-26 | vision-local | LiteLLM public gateway -> new device LM Studio | VL route smoke | manual smoke | `qwen/qwen3-vl-30b` read test image text/shapes and screenshot-style routing table; formal VL benchmark pending |
+| 2026-06-26 | vision-local | LiteLLM public gateway -> new device LM Studio | `vision_local_eval.py` | `vision_local_20260626_174104.jsonl` | 2/2 passed: shape/text OCR and screenshot-style routing table |
 
 ## 2026-06-10 Baseline Summary
 
@@ -548,13 +548,13 @@ Validation:
 |-------|--------|-------|
 | Public `/v1/models` | pass | Returned `qwen-local`, `qwen-agent`, `embed-local`, `vision-local` |
 | Synthetic image OCR / shape read | pass | Generated PNG with `LABAGENT VL TEST 42`, blue square, red circle; model read the text and identified colors/shapes |
-| Screenshot-style dashboard OCR | partial pass | Model read table rows for `qwen-agent`, `embed-local`, `vision-local`, `qwen-think` and the alert text, but verbose response hit `finish_reason=length` |
+| Screenshot-style dashboard OCR | pass | With compact JSON prompt, model read rows for `qwen-agent`, `embed-local`, `vision-local`, `qwen-think` and the alert text |
 
 Interpretation:
 
 1. `vision-local` is no longer only routed; the public OpenAI-compatible image message path works end to end.
 2. Qwen3-VL-30B is good enough for the planned Agent visual side channel: screenshot description, OCR-ish extraction, and image context summarization.
-3. Formal VL benchmark should force compact JSON/table output and score exact OCR fields, otherwise the model wastes output budget on explanatory prose.
+3. Formal VL benchmark now forces compact JSON output and scores exact OCR fields. The first manual attempt showed that unconstrained screenshot prompts can waste output budget or omit rows, so structured output is required for the Agent visual side channel.
 
 ## 2026-06-18 RAG v0 Retrieval Baseline
 

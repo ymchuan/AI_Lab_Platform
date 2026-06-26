@@ -17,6 +17,7 @@ The goal is not a single leaderboard score. The goal is to make every model or w
 - `patch_task_eval.py` - patch generation for Cline-like file edits
 - `cline_dialogue_eval.py` - multi-turn workflow reasoning
 - `embedding_health_eval.py` - embedding endpoint health and tiny retrieval probe
+- `vision_local_eval.py` - `vision-local` image OCR / screenshot understanding smoke test
 
 ## Configuration
 
@@ -102,6 +103,14 @@ python benchmarks/embedding_health_eval.py --model embed-local
 ```
 
 This checks `/v1/embeddings`, vector dimensionality, and a tiny cosine-similarity retrieval probe. It is not a full RAG benchmark.
+
+### 10. Vision Local Smoke
+
+```powershell
+python benchmarks/vision_local_eval.py --model vision-local
+```
+
+This generates small PNG images in memory, sends them through the public OpenAI-compatible `vision-local` route, and checks whether Qwen3-VL can read text, shapes, and a screenshot-style routing table.
 
 ## What This Baseline Checks
 

@@ -159,6 +159,7 @@ python benchmarks/repo_map_eval.py
 python benchmarks/patch_task_eval.py
 python benchmarks/cline_dialogue_eval.py
 python benchmarks/embedding_health_eval.py --model embed-local
+python benchmarks/vision_local_eval.py --model vision-local
 ```
 
 结果默认写入 `benchmarks/results/`，该目录已加入 `.gitignore`。
