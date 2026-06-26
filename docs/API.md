@@ -125,7 +125,7 @@ curl http://82.156.69.153:8000/v1/chat/completions \
   }'
 ```
 
-当前状态：路由已接入，仍需要补最小图片识别 / 截图理解 / OCR-ish benchmark，确认不同图片格式和消息格式的兼容性。
+当前状态：路由已接入，2026-06-26 最小公网 smoke test 已通过：可读出测试图片中的英文文字/数字、颜色形状，并能读取截图式 dashboard 表格。截图 OCR-ish 场景容易因为回答太长触发 `finish_reason=length`，正式 benchmark 需要约束输出格式和 token 预算。
 
 ## RAG Service v1 接口
 

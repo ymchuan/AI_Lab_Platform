@@ -24,9 +24,9 @@
 | 2026-06-15 | zai-org/glm-4.7-flash | LM Studio local direct | baseline v2 `/no_think` | `model_latency_20260615_200656.jsonl` etc. | `/no_think` did not remove reasoning; agent planning improved only |
 | 2026-06-18 | embed-local | LiteLLM public gateway -> new device LM Studio | embedding health | `embedding_health_20260618_180017.jsonl` | Multi-node route v1; 768-dimensional embeddings; tiny retrieval probe 2/3 |
 | 2026-06-18 | embed-local + qwen-agent | LiteLLM public gateway -> local nodes | rag_retrieval / RAG v0 | `rag_retrieval_20260618_215213.jsonl` | 319 chunks / 19 files; retrieval benchmark 3/3; end-to-end ask can answer with `[Sx]` citations |
-| 2026-06-22 | RAG Service v1 | 5090 local HTTP service | unit / smoke | local unit tests | Added zero-dependency HTTP API; local tests cover health/auth/sources; remote David test pending |
+| 2026-06-26 | RAG Service v1 | 5090 local HTTP service + public :18010 tunnel | HTTP smoke | manual smoke | Local HTTP endpoints passed; David external `/health` returned `ok=true`; production hardening pending |
 | 2026-06-23 | embed-local + qwen-agent | LiteLLM public gateway -> 5090/new-device nodes | rag_retrieval / RAG v1 baseline | `rag_retrieval_20260624_113757.jsonl` | Rebuilt local index: 354 chunks / 21 files; default retrieval eval top-k 8 passed 3/3; CLI search and ask verified through cloud LiteLLM |
-| 2026-06-24 | vision-local | LiteLLM public gateway -> new device LM Studio | VL route smoke | pending | `qwen/qwen3-vl-30b` is routed as `vision-local`; image QA / screenshot / OCR-ish benchmark pending |
+| 2026-06-26 | vision-local | LiteLLM public gateway -> new device LM Studio | VL route smoke | manual smoke | `qwen/qwen3-vl-30b` read test image text/shapes and screenshot-style routing table; formal VL benchmark pending |
 
 ## 2026-06-10 Baseline Summary
 
@@ -531,6 +531,30 @@ Interpretation:
 1. LabAgent is no longer a single-node gateway; it now has a working second local node behind the same LiteLLM entrypoint.
 2. The cloud server still performs only lightweight routing and authentication. Model work stays on local machines.
 3. The tiny retrieval probe is intentionally weak and scored 2/3, so this is not yet a full RAG service. The next step is vector store + reranker + answer eval, plus a minimal `vision-local` benchmark for image QA, screenshot understanding, and OCR-ish tasks.
+
+## 2026-06-26 Vision Route Smoke Test
+
+Route:
+
+```text
+Public LiteLLM alias: vision-local
+Model: qwen/qwen3-vl-30b
+Path: 82.156.69.153:8000/v1 -> cloud LiteLLM -> SSH :12341 -> new device LM Studio
+```
+
+Validation:
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| Public `/v1/models` | pass | Returned `qwen-local`, `qwen-agent`, `embed-local`, `vision-local` |
+| Synthetic image OCR / shape read | pass | Generated PNG with `LABAGENT VL TEST 42`, blue square, red circle; model read the text and identified colors/shapes |
+| Screenshot-style dashboard OCR | partial pass | Model read table rows for `qwen-agent`, `embed-local`, `vision-local`, `qwen-think` and the alert text, but verbose response hit `finish_reason=length` |
+
+Interpretation:
+
+1. `vision-local` is no longer only routed; the public OpenAI-compatible image message path works end to end.
+2. Qwen3-VL-30B is good enough for the planned Agent visual side channel: screenshot description, OCR-ish extraction, and image context summarization.
+3. Formal VL benchmark should force compact JSON/table output and score exact OCR fields, otherwise the model wastes output budget on explanatory prose.
 
 ## 2026-06-18 RAG v0 Retrieval Baseline
 

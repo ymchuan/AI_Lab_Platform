@@ -16,12 +16,14 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-06-24 Claude Code 兼容性结论：通过 LiteLLM Anthropic-compatible `/v1/messages` 调用 `qwen-agent` 的文本链路已验证可用；但 Claude Code 内置工具调用要求模型输出严格合法的 `tool_use` 参数，当前 Qwen-Coder 经 LiteLLM 适配后出现 `Invalid tool parameters`。因此 Claude Code + 本地 Qwen 先作为实验链路，主力 Agent/Coding 仍用 Cline + OpenAI-compatible `qwen-agent`。后续单独补 `claude_code_compat_eval`。
 
+2026-06-26 `vision-local` 最小公网 smoke test 已通过：`/v1/models` 返回 `vision-local`；通过 LiteLLM 向 Qwen3-VL-30B 发送内存生成 PNG，模型成功读出 `LABAGENT VL TEST 42`、蓝色方块和红色圆形；截图式 dashboard 测试能读出模型路由表和 alert，但长回答会触发 `finish_reason=length`。正式 VL benchmark 应限制输出为 JSON/表格，避免截图 OCR 场景浪费 token。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
 |------|------|---------|---------|---------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ LM Studio 已接入，默认 load Qwen3-Coder-30B | 主力推理 / `qwen-agent` |
-| 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM | 172.16.14.17 | ✅ `embed-local` / `vision-local` 已接入 | Embedding 和 Vision 已上线；后续第二推理/Reranker |
+| 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM | 172.16.14.17 | ✅ `embed-local` / `vision-local` 已接入，VL smoke 已通过 | Embedding 和 Vision 已上线；后续第二推理/Reranker |
 | 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 31.6GB RAM | 172.16.14.142 | ⛔ 当前无法使用 | 冻结近期接入计划 |
 | 云服务器 | 2核 2GB Ubuntu 24.04 | 82.156.69.153 (公网) | ✅ LiteLLM 运行中；RAG :18010 已验证 | 轻量 API 网关 / RAG 临时公网入口 |
 
@@ -133,7 +135,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 3. **5090 不能通过公网 IP 访问自己** — NAT 回环问题。5090 本机直接连 `127.0.0.1:1234`。
 
-4. **新设备已完成 embedding / vision 路由 v1，8060S 暂不可用** — 新设备当前正式承载 `embed-local` 和 `vision-local`，Reranker、第二代码模型仍待接入；8060S 不再作为短期 RAG/OCR/Whisper 节点。
+4. **新设备已完成 embedding / vision 路由 v1，8060S 暂不可用** — 新设备当前正式承载 `embed-local` 和 `vision-local`，且 2026-06-26 已通过公网 VL smoke test。Reranker、第二代码模型仍待接入；8060S 不再作为短期 RAG/OCR/Whisper 节点。
 
 5. **当前项目代码深度还不够** — 目前主要是部署、网关、隧道和文档。为了支撑 Agent 开发岗简历，下一阶段必须补 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型 benchmark、量化和小规模 LoRA/QLoRA 实验。
 
@@ -180,7 +182,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 1. 把 RAG v1.x 迁移到 Qdrant 或 Chroma，保留当前 JSON index 作为 baseline。
 2. 增加 reranker 对照：先在新设备 4060 Ti / 5080 上测试 Qwen3-Reranker 或 BGE reranker。
 3. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。
-4. 验证 `vision-local` 图片问答、截图理解和 OCR-ish 输出质量，并补最小 VL benchmark。
+4. 把 `vision-local` smoke test 固化为最小 VL benchmark，覆盖图片问答、截图理解和 OCR-ish 输出质量。
 5. 以 `qwen/qwen3-coder-30b` 继续补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval`、`claude_code_compat_eval` 和 `trace_eval`。
 6. 在新设备上继续接入第二代码模型，优先保持 LM Studio + SSH 隧道的简单路线，后续再评估 llama.cpp / vLLM / SGLang。
 7. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。

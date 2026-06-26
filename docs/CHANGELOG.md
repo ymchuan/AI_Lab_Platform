@@ -10,10 +10,12 @@
 - 完成 RAG Service v1 端到端公网验证：索引重建为 364 chunks / 22 files，本地 `/health`、`/v1/rag/search`、`/v1/rag/ask` 和 `/v1/chat/completions` 均通过。
 - 通过 `ssh -N -R 0.0.0.0:18010:127.0.0.1:8010` 将 5090 RAG Service 暴露到云服务器公网 `82.156.69.153:18010`，David 外部机器 `/health` 验证返回 `ok=true`。
 - 云端 sshd 增加 `GatewayPorts clientspecified`，腾讯云安全组开放 TCP 18010，用于 RAG Service 远程验证。
+- 完成 `vision-local` 最小公网 smoke test：Qwen3-VL-30B 成功识别测试图片文字、颜色形状和截图式路由表，确认 OpenAI image message 路径端到端可用。
 
 ### Changed
 - 将 RAG Service v1 从“可远程调试”更新为“公网 health 已验证”，但仍标记为手动维护的 baseline 服务，而非生产常驻入口。
 - 记录 `LABAGENT_API_KEY` 轮换口径：LiteLLM key 与 `LABAGENT_RAG_API_KEY` 分离，RAG key 未轮换时无需同步改 RAG 服务。
+- 将 `vision-local` 从“待验证图片识别质量”更新为“最小 smoke 已通过，待固化正式 VL benchmark”。
 
 ## [0.4.5] - 2026-06-25
 

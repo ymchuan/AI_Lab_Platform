@@ -58,6 +58,8 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 2026-06-24 新设备完成 `vision-local` 路由接入：同一个 `:12341` SSH 反向隧道同时承载 embedding 和 Qwen3-VL-30B，云端 LiteLLM `/v1/models` 已返回 `vision-local`。该能力用于图片问答、截图理解和 OCR-ish 场景；Qwen3-Coder 仍负责代码/Agent 主任务。Claude Code 已能通过 LiteLLM Anthropic-compatible `/v1/messages` 调用 `qwen-agent` 做文本问答，但本地 Qwen-Coder 在 Claude Code 内置工具参数 schema 上不稳定，已记录为后续兼容性评测方向，当前主力 Agent 客户端仍是 Cline。
 
+2026-06-26 完成 `vision-local` 最小公网 smoke test：通过 LiteLLM `vision-local` 发送内存生成 PNG，Qwen3-VL-30B 成功读出 `LABAGENT VL TEST 42`、蓝色方块和红色圆形；截图式 dashboard 测试能读出 `qwen-agent` / `embed-local` / `vision-local` / `qwen-think` 表格行和底部 alert，但回答过长时会 `finish_reason=length`，后续正式 VL benchmark 需要约束输出格式和 token 预算。
+
 ## 当前状态
 
 | 组件 | 状态 | 说明 |
@@ -67,7 +69,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | LiteLLM | ✅ 运行中 | systemd 后台服务，已路由 `qwen-local` / `qwen-agent` / `embed-local` / `vision-local` |
 | OpenWebUI | ⚠️ 需要时启动或迁移到本地节点 | 云服务器 2GB 内存限制，不能长期常驻 |
 | Cline | ✅ 已配置 | VS Code 插件接入 |
-| 5080 新设备 | ✅ Embedding / Vision 已接入 | LM Studio + `:12341` SSH 隧道 + `embed-local` / `vision-local` 路由；Rerank 待接入 |
+| 5080 新设备 | ✅ Embedding / Vision 已接入并完成 VL smoke | LM Studio + `:12341` SSH 隧道 + `embed-local` / `vision-local` 路由；Rerank 待接入 |
 | RAG Service v1 | ✅ 公网 health 已由 David 验证 | `services/rag` 支持 CLI index/search/ask 和 HTTP search/ask；`82.156.69.153:18010` 通过 SSH 反向隧道临时暴露；本地 `data/rag/` 不进 Git |
 | 8060S | ⛔ 暂不可用 | 当前无法使用，冻结近期接入计划 |
 
@@ -94,7 +96,7 @@ Model:    qwen-local
 | `qwen-agent` | 当前默认：`qwen/qwen3-coder-30b` | 5090 | Cline / coding / Agent 执行模型 |
 | `qwen-think` | `qwen/qwen3.6-27b` GGUF Q6_K | 5090 | reasoning baseline，不作为默认执行模型 |
 | `embed-local` | `text-embedding-nomic-embed-text-v1.5-embedding` | 新设备 | 文本向量化，公网 LiteLLM 路由已接入 |
-| `vision-local` | `qwen/qwen3-vl-30b` | 新设备 | 图片问答 / 截图理解 / OCR-ish，多模态能力已路由，待系统评测 |
+| `vision-local` | `qwen/qwen3-vl-30b` | 新设备 | 图片问答 / 截图理解 / OCR-ish，多模态能力已路由，最小 smoke 已通过，待系统评测 |
 | `whisper-local` | 暂不部署 | - | 8060S 当前不可用，语音识别后移 |
 
 ## 文档索引
