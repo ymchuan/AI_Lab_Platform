@@ -22,6 +22,8 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-06-26 Codex CLI 在 David 机器完成基础 workflow smoke：`wire_api="responses"` 指向 `http://82.156.69.153:8000/v1` 可调用 `qwen-agent`；plain chat 返回 Qwen-backed answer；read-only 目录列表触发 `Get-ChildItem -Force` 并成功总结；一文件创建任务触发 `Set-Content` 并成功生成 `hello_labagent.txt`。Codex 会提示 `qwen-agent` 缺少 model metadata，这是自定义模型别名的预期 warning，不代表失败。当前状态可标为“基础 workflow 可用，复杂 patch/multi-file/长上下文/错误恢复待测”。
 
+2026-06-26 Codex CLI 单文件 patch smoke 继续通过：David 在 `F:\goai\labagent_codex_test` 里让 Codex 修改 `app.py`，模型成功把 `def add(a, b)` 改成 `def add(a: int, b: int) -> int`，并新增 `if __name__ == '__main__': print(add(2, 3))` 示例。当前可把 Codex CLI 标为“基础 chat/read/write + simple single-file code edit 可用”，但 multi-file patch、长上下文 repo task、错误恢复仍未认证。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
@@ -177,7 +179,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 22. **Claude Code 本地 Qwen 后端是实验链路，不是当前主通道** — LiteLLM `/v1/messages` 可以把 Claude Code 文本请求转到 `qwen-agent`，但 Qwen-Coder 对 Claude Code 内置工具 schema 不稳定，可能报 `Invalid tool parameters`。Cline 仍是当前可靠的本地 Agent 客户端；Claude Code 兼容性后续作为单独 benchmark 和适配任务。
 
-23. **团队 CLI 客户端兼容性需要单独做矩阵测试** — 团队成员可能更习惯 Codex CLI 或 Claude Code CLI。不要假设“Cline 能用”就代表 Codex/Claude Code 的工具调用和文件编辑也能用。Codex CLI 已通过 David 机器基础 chat/read/write smoke，下一步测复杂 patch、多文件编辑、长上下文和错误处理，再决定是否需要 `labagent-agent` router 或 adapter 层。
+23. **团队 CLI 客户端兼容性需要单独做矩阵测试** — 团队成员可能更习惯 Codex CLI 或 Claude Code CLI。不要假设“Cline 能用”就代表 Codex/Claude Code 的工具调用和文件编辑也能用。Codex CLI 已通过 David 机器基础 chat/read/write 和单文件 Python patch smoke，下一步测多文件编辑、长上下文和错误处理，再决定是否需要 `labagent-agent` router 或 adapter 层。
 
 ## 下一步要做的事
 
@@ -190,7 +192,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 3. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。
 4. 把 `vision-local` smoke test 固化为最小 VL benchmark，覆盖图片问答、截图理解和 OCR-ish 输出质量。
 5. 以 `qwen/qwen3-coder-30b` 继续补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval`、`claude_code_compat_eval` 和 `trace_eval`。
-6. 扩展 Codex CLI 团队客户端验证：复杂 patch、多文件编辑、长上下文、后端断链/模型未 load/key 错误时的错误处理。
+6. 扩展 Codex CLI 团队客户端验证：多文件编辑、长上下文、后端断链/模型未 load/key 错误时的错误处理。
 7. 在新设备上继续接入第二代码模型，优先保持 LM Studio + SSH 隧道的简单路线，后续再评估 llama.cpp / vLLM / SGLang。
 8. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。
 9. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。

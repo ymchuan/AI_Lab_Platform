@@ -21,7 +21,7 @@ Team client
   -> qwen-agent / qwen-think / vision-local / RAG
 ```
 
-The current reliable paths are `Cline + OpenAI-compatible qwen-agent` and basic `Codex CLI + qwen-agent` workflows. Codex CLI has passed plain chat, read-only shell listing, and a one-file create/write smoke test on David's machine.
+The current reliable paths are `Cline + OpenAI-compatible qwen-agent` and basic `Codex CLI + qwen-agent` workflows. Codex CLI has passed plain chat, read-only shell listing, one-file create/write, and a one-file Python patch smoke test on David's machine.
 
 ## Compatibility Is Not One Thing
 
@@ -32,7 +32,7 @@ OpenAI-compatible chat completion is only the first layer. Coding-agent clients 
 | Basic chat | `/v1/chat/completions` or `/v1/responses`, non-empty content | Works through LiteLLM for `qwen-agent`; Codex CLI plain chat passed |
 | Streaming | SSE chunks, first token, finish reason | Covered by existing latency scripts for text models; Codex CLI not separately scored yet |
 | Tool/function calling | Schema-following tool calls | Codex CLI can run basic local shell commands; complex tool/file workflow pending. Claude Code has known schema failures |
-| File-edit workflow | Diff quality, patch application, multi-turn stability | Codex CLI one-file create/write passed; multi-file patch workflow pending |
+| File-edit workflow | Diff quality, patch application, multi-turn stability | Codex CLI one-file create/write and one-file Python patch passed; multi-file patch workflow pending |
 | Vision input | OpenAI image message format | `vision-local` route works; client image upload behavior still pending |
 | RAG/project QA | Project docs over RAG Service | HTTP service works; client integration pending |
 
@@ -51,7 +51,7 @@ Minimum tests before recommending it to the team:
 2. Plain chat: ask for a short answer and confirm non-empty content. Passed; response identified the backend as Qwen rather than OpenAI.
 3. Read-only shell task: list the current directory without modifying files. Passed; Codex ran `Get-ChildItem -Force` and summarized the directory.
 4. One-file write task: create `hello_labagent.txt` with a fixed string. Passed; Codex ran `Set-Content`.
-5. Patch task: ask it to generate a tiny diff in a throwaway file or fixture. Pending.
+5. Patch task: ask it to generate a tiny diff in a throwaway file or fixture. Passed for single-file Python edit: added type annotations to `add(a, b)` and created an `if __name__ == '__main__'` example.
 6. Tool behavior: check whether it uses native tool calls, plain text patches, or an OpenAI tool/function schema. Partially observed; basic shell tools work.
 7. Error handling: confirm failures are readable when the SSH tunnel or backend model is unavailable. Pending.
 8. Record exact client version, config shape, request/response behavior, and limitations. Pending.
@@ -76,8 +76,9 @@ Result:
 - Codex warned: `Model metadata for qwen-agent not found`; this is expected for a custom model alias and means Codex falls back to generic metadata.
 - Read-only directory listing worked through `Get-ChildItem -Force`.
 - One-file creation worked through `Set-Content`.
+- One-file Python patch worked: Codex modified `app.py` from a plain `add(a, b)` helper into `def add(a: int, b: int) -> int` plus a small `__main__` usage example.
 
-Current status: `Codex CLI + LabAgent + qwen-agent` is suitable for basic self-use and small team experiments, but not yet certified for complex multi-file coding tasks.
+Current status: `Codex CLI + LabAgent + qwen-agent` is suitable for basic self-use and small team experiments, including simple single-file code edits. It is not yet certified for complex multi-file coding tasks, long-context repo work, or failure recovery.
 
 ## Claude Code CLI Status
 

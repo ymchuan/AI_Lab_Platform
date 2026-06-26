@@ -14,6 +14,7 @@
 - 新增 `benchmarks/vision_local_eval.py`，把手工 VL smoke 固化为可重复回归测试，覆盖合成图片 OCR/形状识别和截图式表格读取。
 - 新增 `docs/TEAM_CLIENT_COMPATIBILITY.md`，记录团队成员通过 Codex CLI / Claude Code CLI / Cline 接入 LabAgent 网关的兼容性目标、风险和验证矩阵。
 - 记录 David 机器 Codex CLI 基础 workflow smoke：`qwen-agent` plain chat、目录读取和一文件写入均通过。
+- 记录 David 机器 Codex CLI 单文件 Python patch smoke：成功为 `app.py` 添加类型标注和 `__main__` 示例。
 
 ### Changed
 - 将 RAG Service v1 从“可远程调试”更新为“公网 health 已验证”，但仍标记为手动维护的 baseline 服务，而非生产常驻入口。
@@ -21,6 +22,7 @@
 - 将 `vision-local` 从“待验证图片识别质量”更新为“最小 smoke 已通过，待固化正式 VL benchmark”。
 - 将 Codex CLI 兼容性提升为下一步团队使用优先验证项；Claude Code CLI 继续标记为工具调用 schema 不稳定的实验链路。
 - 将 Codex CLI 状态从“待验证”更新为“基础 workflow 可用，复杂 patch/multi-file/错误恢复待测”。
+- 将 Codex CLI 状态进一步更新为“基础 workflow + simple single-file code edit 可用，多文件/长上下文/错误恢复待测”。
 
 ## [0.4.5] - 2026-06-25
 
