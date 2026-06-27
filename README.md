@@ -60,6 +60,8 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 2026-06-26 完成 `vision-local` 最小公网 smoke test：通过 LiteLLM `vision-local` 发送内存生成 PNG，Qwen3-VL-30B 成功读出 `LABAGENT VL TEST 42`、蓝色方块和红色圆形；截图式 dashboard 测试能读出 `qwen-agent` / `embed-local` / `vision-local` / `qwen-think` 表格行和底部 alert，但回答过长时会 `finish_reason=length`，后续正式 VL benchmark 需要约束输出格式和 token 预算。
 
+2026-06-26 新增 `labagent-agent` 轻量 router：`services/agent` 将 `qwen-agent`、`vision-local` 和 RAG Service 组合成一个 OpenAI-compatible 模型名。当前已通过本地单元测试和 smoke test，但它仍不是完整 Agent Runtime，没有工具执行、memory 或 streaming。
+
 ## 当前状态
 
 | 组件 | 状态 | 说明 |
@@ -112,6 +114,7 @@ Model:    qwen-local
 - [故障排查](docs/TROUBLESHOOTING.md) — 常见问题与解决方案
 - [模型选型调研](docs/MODEL_RESEARCH.md) — 5090 / 5080 新设备模型组合与评测顺序
 - [RAG 学习与实现笔记](docs/RAG_LEARNING_NOTES.md) — RAG 概念、当前 v0 实现、验证结果和升级路线
+- [Agent Router 学习笔记](docs/AGENT_ROUTER_LEARNING_NOTES.md) — `labagent-agent` 编排层、`qwen-think` / `qwen-agent` / `vision-local` / RAG 的分工
 - [Agent 深化路线图](docs/AGENT_PROJECT_ROADMAP.md) — RAG / Agent / MCP / Eval / 微调量化规划
 - [Benchmark 结果](docs/BENCHMARK_RESULTS.md) — 模型 / RAG / Agent 评测记录
 - [Benchmark 设计](docs/BENCHMARK_DESIGN.md) — Agent / Coding / RAG 评测分层与解释规则
@@ -184,6 +187,17 @@ RAG Service v1 本地启动：
 ```powershell
 $env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
 python -m services.rag.server --host 127.0.0.1 --port 8010
+```
+
+Agent router 本地启动：
+
+```powershell
+$env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
+$env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
+$env:LABAGENT_RAG_BASE_URL = "http://127.0.0.1:8010"
+$env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
+$env:LABAGENT_AGENT_API_KEY = "<LABAGENT_AGENT_API_KEY>"
+python -m services.agent.server --host 127.0.0.1 --port 8020
 ```
 
 David 远程调试时，可在 5090 额外开启公网 RAG 隧道。云端 sshd 已设置 `GatewayPorts clientspecified`，腾讯云安全组需放行 TCP 18010：

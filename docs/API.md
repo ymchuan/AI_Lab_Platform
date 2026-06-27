@@ -26,6 +26,7 @@ Authorization: Bearer <LABAGENT_API_KEY>
 | `qwen-agent` | Chat | 5090 / LM Studio | ✅ 已路由，需保持 `:12340` 隧道 | 当前默认 Agent/Cline 执行模型，指向 `qwen/qwen3-coder-30b` |
 | `embed-local` | Embedding | 新设备 / LM Studio | ✅ 已路由，需保持 `:12341` 隧道 | 指向 `text-embedding-nomic-embed-text-v1.5-embedding`，返回 768 维向量 |
 | `vision-local` | Vision / VL | 新设备 / LM Studio | ✅ 已路由，需保持 `:12341` 隧道 | 指向 `qwen/qwen3-vl-30b`，用于图片问答、截图理解和 OCR-ish 场景 |
+| `labagent-agent` | Router / Compose | 5090 / 本地编排层 | ✅ 已实现并通过本地 smoke | 组合 `qwen-agent`、`vision-local` 和 RAG Service 的 OpenAI-compatible 编排层 |
 
 ## 规划 / 待正式路由的模型别名
 
@@ -126,6 +127,36 @@ curl http://82.156.69.153:8000/v1/chat/completions \
 ```
 
 当前状态：路由已接入，2026-06-26 最小公网 smoke test 已通过：可读出测试图片中的英文文字/数字、颜色形状，并能读取截图式 dashboard 表格。截图 OCR-ish 场景容易因为回答太长触发 `finish_reason=length`，正式 benchmark 需要约束输出格式和 token 预算。
+
+## LabAgent Router 接口
+
+`labagent-agent` 是一个独立的 OpenAI-compatible 编排层，地址和鉴权方式与其他本地服务一致，但它不是 LiteLLM 的模型别名。
+
+```text
+Local URL:  http://127.0.0.1:8020
+Auth:       Authorization: Bearer <LABAGENT_AGENT_API_KEY>
+Model ID:   labagent-agent
+```
+
+已支持接口：
+
+- `GET /health`
+- `GET /v1/models`
+- `POST /v1/chat/completions`
+- `POST /v1/responses`
+
+路由规则：
+
+- `image_url` 内容块 -> `vision-local`
+- LabAgent / 项目知识问题 -> RAG Service
+- 其他文本 -> `qwen-agent`
+
+当前边界：
+
+- 不支持 `stream=true`
+- 不执行工具调用
+- 不维护 memory
+- RAG 侧通道依赖可用的 embedding backend
 
 ## RAG Service v1 接口
 

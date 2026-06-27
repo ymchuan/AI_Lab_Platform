@@ -128,6 +128,14 @@ docs/ + README.md + HANDOFF.md
 
 推荐先手写最小 Agent Loop，再引入 LangGraph。
 
+在这之前，先保留一个轻量 router 层：
+
+- 对外暴露单一模型名 `labagent-agent`。
+- 内部把文本、图片和项目知识拆成 side channel。
+- 最后仍由 `qwen-agent` 收口。
+
+这一层的价值是先把团队客户端接入和知识路由做稳，再继续往真正的 planner / executor 走。
+
 交付物：
 
 ```text

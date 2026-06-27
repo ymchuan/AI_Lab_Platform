@@ -1267,6 +1267,42 @@ David 机器已使用同一个 `LABAGENT_RAG_API_KEY` 调用公网 `/health` 并
 - OpenAI-compatible HTTP API：`/v1/chat/completions` 可直接替换 Cline 的 base URL 做项目问答
 - 后续方向：Qdrant/Chroma 替换 JSON index、Reranker 接入、answer faithfulness eval
 
+## 18. `labagent-agent` 轻量 router（2026-06-26）
+
+### 目标
+
+把 `qwen-agent`、`vision-local` 和 RAG Service 组合成一个 OpenAI-compatible 的 router 层，让外部客户端看起来像只接了一个模型名 `labagent-agent`。
+
+### 实现
+
+- 新增 `services/agent/router.py`
+- 新增 `services/agent/server.py`
+- 新增 `services/agent/README.md`
+- 新增 `tests/test_agent_router.py`
+- 新增 `docs/AGENT_ROUTER_LEARNING_NOTES.md`
+
+### 路由规则
+
+- `image_url` 内容块 -> `vision-local`
+- LabAgent / 项目知识关键词 -> RAG Service
+- 其他文本 -> `qwen-agent`
+
+### 本地验证
+
+- `python -m unittest tests.test_agent_router` 通过
+- `python -m py_compile services/agent/router.py services/agent/server.py tests/test_agent_router.py` 通过
+- `GET /health` / `GET /v1/models` / `POST /v1/chat/completions` / `POST /v1/responses` smoke 通过
+
+### 发现的问题
+
+- 纯文本路由可用。
+- RAG 侧通道能连到 RAG Service，但若 embedding backend 报 `No connected db`，router 会把该错误显式传给最终模型。
+- 这证明 router 本身没坏，真正的短板在上游 embedding 服务或其数据库连接。
+
+### 结论
+
+`labagent-agent` 可以作为团队客户端的统一入口原型，但它仍只是编排层，不是完整 Agent Runtime。
+
 ## 9. 后续记录规则
 
 后续每次进行配置、调试、验证或遇到错误时，都应该更新本文档，至少记录：

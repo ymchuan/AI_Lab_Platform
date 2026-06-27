@@ -183,7 +183,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 ## 下一步要做的事
 
-**当前阶段：RAG Service v1 已完成公网验证，下一步转向 RAG v1.x + Vision 质量评测**。模型选型已经暂定 5090 的 `qwen-agent` 为 Qwen3-Coder-30B；新设备已承担 `embed-local` 和 `vision-local`。现在重点从“能否部署模型”转向“能否构建真实 RAG/Agent/VL 工程闭环”。
+**当前阶段：RAG Service v1 已完成公网验证，`labagent-agent` 轻量 router 已落地，下一步转向 RAG v1.x + Vision 质量评测**。模型选型已经暂定 5090 的 `qwen-agent` 为 Qwen3-Coder-30B；新设备已承担 `embed-local` 和 `vision-local`。现在重点从“能否部署模型”转向“能否构建真实 RAG/Agent/VL 工程闭环”。
 
 按优先级：
 
@@ -197,6 +197,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 8. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。
 9. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
 10. 构建 MCP Server / Skills / Eval Harness / LoRA-QLoRA 和量化实验。
+11. 把 `labagent-agent` 从编排层继续往前推：先补 streaming、错误恢复和图像回放，再进入真正的 planner/tool registry。
 
 ## 当前 Benchmark 命令
 

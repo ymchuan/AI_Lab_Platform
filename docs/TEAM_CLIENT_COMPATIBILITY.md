@@ -96,7 +96,7 @@ Do not advertise Claude Code CLI as a stable team client until a `claude_code_co
 
 ## Router Implication
 
-For team use, the eventual `labagent-agent` router should hide internal model choices:
+For team use, the `labagent-agent` router already hides the first layer of internal model choices:
 
 ```text
 qwen-think   -> planning / reasoning side channel

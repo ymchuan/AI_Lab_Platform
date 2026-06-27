@@ -7,6 +7,8 @@
 ## [0.4.6] - 2026-06-26
 
 ### Added
+- 新增 `labagent-agent` 轻量 router：`services/agent` 以 OpenAI-compatible 形式组合 `qwen-agent`、`vision-local` 和 RAG Service，支持 `/health`、`/v1/models`、`/v1/chat/completions` 和 `/v1/responses`。
+- 新增 `docs/AGENT_ROUTER_LEARNING_NOTES.md`，专门解释 router、`qwen-think`、`qwen-agent`、`vision-local` 和 RAG side channel 的分工。
 - 完成 RAG Service v1 端到端公网验证：索引重建为 364 chunks / 22 files，本地 `/health`、`/v1/rag/search`、`/v1/rag/ask` 和 `/v1/chat/completions` 均通过。
 - 通过 `ssh -N -R 0.0.0.0:18010:127.0.0.1:8010` 将 5090 RAG Service 暴露到云服务器公网 `82.156.69.153:18010`，David 外部机器 `/health` 验证返回 `ok=true`。
 - 云端 sshd 增加 `GatewayPorts clientspecified`，腾讯云安全组开放 TCP 18010，用于 RAG Service 远程验证。
@@ -17,6 +19,8 @@
 - 记录 David 机器 Codex CLI 单文件 Python patch smoke：成功为 `app.py` 添加类型标注和 `__main__` 示例。
 
 ### Changed
+- 将 `labagent-agent` 记录为独立的编排层，而不是完整 Agent Runtime；它不负责 tool execution、memory 或 streaming。
+- 文档补充 `labagent-agent` 的路由边界、失败态回传和当前依赖关系，避免把 router 误认为单模型聊天入口。
 - 将 RAG Service v1 从“可远程调试”更新为“公网 health 已验证”，但仍标记为手动维护的 baseline 服务，而非生产常驻入口。
 - 记录 `LABAGENT_API_KEY` 轮换口径：LiteLLM key 与 `LABAGENT_RAG_API_KEY` 分离，RAG key 未轮换时无需同步改 RAG 服务。
 - 将 `vision-local` 从“待验证图片识别质量”更新为“最小 smoke 已通过，待固化正式 VL benchmark”。
