@@ -56,11 +56,11 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 2026-06-26 完成 RAG Service v1 端到端公网验证：索引重建为 364 chunks / 22 files；本地 `/health`、`/v1/rag/search`、`/v1/rag/ask` 和 `/v1/chat/completions` 均通过；5090 通过 `ssh -N -R 0.0.0.0:18010:127.0.0.1:8010` 暴露 RAG HTTP 服务，腾讯云安全组开放 TCP 18010 后，David 外部机器访问 `http://82.156.69.153:18010/health` 返回 `ok=true`。该服务仍是手动维护的验证入口，不是生产常驻服务。
 
-2026-06-24 新设备完成 `vision-local` 路由接入：同一个 `:12341` SSH 反向隧道同时承载 embedding 和 Qwen3-VL-30B，云端 LiteLLM `/v1/models` 已返回 `vision-local`。该能力用于图片问答、截图理解和 OCR-ish 场景；Qwen3-Coder 仍负责代码/Agent 主任务。Claude Code 已能通过 LiteLLM Anthropic-compatible `/v1/messages` 调用 `qwen-agent` 做文本问答，但本地 Qwen-Coder 在 Claude Code 内置工具参数 schema 上不稳定，已记录为后续兼容性评测方向，当前主力 Agent 客户端仍是 Cline。
+2026-06-24 新设备完成 `vision-local` 路由接入：同一个 `:12341` SSH 反向隧道同时承载 embedding 和 Qwen3-VL-30B，云端 LiteLLM `/v1/models` 已返回 `vision-local`。该能力用于图片问答、截图理解和 OCR-ish 场景；Qwen3-Coder 仍负责代码/Agent 主任务。Claude Code 已能通过 LiteLLM Anthropic-compatible `/v1/messages` 调用 `qwen-agent` 做文本问答，但本地 Qwen-Coder 在 Claude Code 内置工具参数 schema 上不稳定，已记录为后续兼容性评测方向，当前主力 Agent 客户端仍是 Cline。2026-06-28 已用 `benchmarks/vision_local_eval.py` 复测 `vision-local`，合成图片 OCR/形状识别与截图式路由表两项均通过（2/2）。
 
 2026-06-26 完成 `vision-local` 最小公网 smoke test：通过 LiteLLM `vision-local` 发送内存生成 PNG，Qwen3-VL-30B 成功读出 `LABAGENT VL TEST 42`、蓝色方块和红色圆形；截图式 dashboard 测试能读出 `qwen-agent` / `embed-local` / `vision-local` / `qwen-think` 表格行和底部 alert，但回答过长时会 `finish_reason=length`，后续正式 VL benchmark 需要约束输出格式和 token 预算。
 
-2026-06-26 新增 `labagent-agent` 轻量 router：`services/agent` 将 `qwen-agent`、`vision-local` 和 RAG Service 组合成一个 OpenAI-compatible 模型名。当前已通过本地单元测试和 smoke test，但它仍不是完整 Agent Runtime，没有工具执行、memory 或 streaming。
+2026-06-26 新增 `labagent-agent` 轻量 router：`services/agent` 将 `qwen-agent`、`vision-local` 和 RAG Service 组合成一个 OpenAI-compatible 模型名。2026-06-29 已补齐独立 `LABAGENT_AGENT_API_KEY`，并验证本地 8020 的鉴权、direct chat、RAG 分支和图片分支均可用；云端 `0.0.0.0:18020` 隧道已监听，但外部公网访问还需要腾讯云安全组放行 TCP 18020。它仍不是完整 Agent Runtime，没有工具执行、memory 或 streaming。
 
 ## 当前状态
 
@@ -73,6 +73,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | Cline | ✅ 已配置 | VS Code 插件接入 |
 | 5080 新设备 | ✅ Embedding / Vision 已接入并完成 VL smoke | LM Studio + `:12341` SSH 隧道 + `embed-local` / `vision-local` 路由；Rerank 待接入 |
 | RAG Service v1 | ✅ 公网 health 已由 David 验证 | `services/rag` 支持 CLI index/search/ask 和 HTTP search/ask；`82.156.69.153:18010` 通过 SSH 反向隧道临时暴露；本地 `data/rag/` 不进 Git |
+| Agent Router v0 | ✅ 本地三分支通过，公网待安全组 | `127.0.0.1:8020` 提供 `labagent-agent`；`18020` 隧道已在云端监听，外部访问需放行 TCP 18020 |
 | 8060S | ⛔ 暂不可用 | 当前无法使用，冻结近期接入计划 |
 
 ## 快速开始
@@ -98,7 +99,7 @@ Model:    qwen-local
 | `qwen-agent` | 当前默认：`qwen/qwen3-coder-30b` | 5090 | Cline / coding / Agent 执行模型 |
 | `qwen-think` | `qwen/qwen3.6-27b` GGUF Q6_K | 5090 | reasoning baseline，不作为默认执行模型 |
 | `embed-local` | `text-embedding-nomic-embed-text-v1.5-embedding` | 新设备 | 文本向量化，公网 LiteLLM 路由已接入 |
-| `vision-local` | `qwen/qwen3-vl-30b` | 新设备 | 图片问答 / 截图理解 / OCR-ish，多模态能力已路由，最小 smoke 已通过，待系统评测 |
+| `vision-local` | `qwen/qwen3-vl-30b` | 新设备 | 图片问答 / 截图理解 / OCR-ish，多模态能力已路由，最小 smoke 已通过；2026-06-28 `vision_local_eval.py` 复测 2/2 通过 |
 | `whisper-local` | 暂不部署 | - | 8060S 当前不可用，语音识别后移 |
 
 ## 文档索引
@@ -139,7 +140,8 @@ Model:    qwen-local
 网关层:   LiteLLM (OpenAI-compatible API Gateway)
 网络层:   SSH Reverse Tunnel + 云服务器 (Ubuntu 24.04)
 客户端:   Cline (VS Code) + OpenWebUI (Web)
-RAG层:    services/rag/ (Markdown chunking + embed-local + local vector index + HTTP search/ask + cited answer)
+RAG层:    services/rag/ (workspace-scoped Markdown chunking + embed-local + local vector index + HTTP search/ask + cited answer)
+          future agentic RAG: iterative retrieval + rerank + citation validation
 评测层:   benchmarks/ (gateway + latency + agent + RAG + repo map + patch + Cline dialogue + embedding)
 协议:     OpenAI Compatible API (/v1/chat/completions)；Claude Code 实验链路使用 Anthropic-compatible /v1/messages
 ```
@@ -192,13 +194,20 @@ python -m services.rag.server --host 127.0.0.1 --port 8010
 Agent router 本地启动：
 
 ```powershell
-$env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
-$env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
-$env:LABAGENT_RAG_BASE_URL = "http://127.0.0.1:8010"
-$env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
-$env:LABAGENT_AGENT_API_KEY = "<LABAGENT_AGENT_API_KEY>"
+Get-Content .env.local | ForEach-Object {
+  $p = $_.Split("=", 2)
+  if ($p.Count -eq 2) { [System.Environment]::SetEnvironmentVariable($p[0], $p[1], "Process") }
+}
 python -m services.agent.server --host 127.0.0.1 --port 8020
 ```
+
+Agent router 公网临时入口：
+
+```powershell
+ssh -N -R 0.0.0.0:18020:127.0.0.1:8020 -i C:\Users\N\.ssh\id_ed25519 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+```
+
+远程客户端配置为 `http://82.156.69.153:18020/v1`、模型 `labagent-agent`、鉴权 `<LABAGENT_AGENT_API_KEY>`。云端已支持 `GatewayPorts clientspecified`，但腾讯云安全组必须额外放行 TCP 18020。
 
 David 远程调试时，可在 5090 额外开启公网 RAG 隧道。云端 sshd 已设置 `GatewayPorts clientspecified`，腾讯云安全组需放行 TCP 18010：
 

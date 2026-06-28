@@ -115,7 +115,9 @@ def route_chat_completion(config: AgentRouterConfig, body: Dict[str, Any]) -> Di
                 messages,
                 (
                     "You are LabAgent's vision side channel. Extract visual facts, UI text, "
-                    "OCR-like text, errors, filenames, tables, and code snippets. Be compact."
+                    "OCR-like text, errors, filenames, tables, code snippets, colors, shapes, "
+                    "and layout or spatial relationships. Be compact, but include enough detail "
+                    "for a final assistant to answer the user's image question."
                 ),
             )
             try:
@@ -265,7 +267,12 @@ def build_final_messages(
             "content": (
                 "You are labagent-agent. You are a router-composed assistant. Use the provided "
                 "vision summary and RAG answer when present. Keep the final answer practical, "
-                "truthful, and concise. Do not claim that you directly saw an image if you only "
+                "truthful, and concise. The user may write Chinese; treat Chinese as normal user "
+                "language, not garbled text, and answer in the user's language unless they ask "
+                "otherwise. If the route includes image_input and the vision summary has relevant "
+                "facts, answer the image question directly from those facts; do not ask for "
+                "clarification merely because the summary is compact. If exact details are missing, "
+                "state only that limitation. Do not claim that you directly saw an image if you only "
                 "received a vision summary; say what the vision side channel found. If a side "
                 "channel failed, say so clearly instead of pretending to have retrieved evidence."
             ),

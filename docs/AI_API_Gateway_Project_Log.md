@@ -688,7 +688,7 @@ Model: qwen-local
 只适合测试，不适合长期公网暴露。建议替换为随机强 key，例如：
 
 ```text
-sk-labagent-随机长字符串
+<RANDOM_LONG_API_KEY>
 ```
 
 需要同步修改：
@@ -1302,6 +1302,77 @@ David 机器已使用同一个 `LABAGENT_RAG_API_KEY` 调用公网 `/health` 并
 ### 结论
 
 `labagent-agent` 可以作为团队客户端的统一入口原型，但它仍只是编排层，不是完整 Agent Runtime。
+
+## 19. `labagent-agent` 本地三分支验证与 18020 公网入口排查（2026-06-29）
+
+### 目标
+
+把 `labagent-agent` 从“代码已落地”推进到“可实际调用”的状态，并为 Cline 远程图片请求准备公网入口。
+
+### 执行结果
+
+- `.env.local` 补齐 `LABAGENT_AGENT_API_KEY`。该 key 是 agent router 自己的鉴权 key，和 LiteLLM 的 `LABAGENT_API_KEY`、RAG Service 的 `LABAGENT_RAG_API_KEY` 分开管理。
+- 重启 5090 本地 RAG Service：`127.0.0.1:8010`。
+- 重启 5090 本地 Agent Router：`127.0.0.1:8020`。
+- 恢复 5090 到云端的 `:12340` 反向隧道，否则云端 `qwen-agent` 会返回 500。
+- 启动 `0.0.0.0:18020 -> 127.0.0.1:8020` 反向隧道，云端 `ss` 已确认监听。
+
+### 验证
+
+```text
+8020 /health:
+  wrong key -> 401
+  LABAGENT_AGENT_API_KEY -> 200
+
+labagent-agent direct_chat:
+  route=direct_chat
+  final_model=qwen-agent
+
+labagent-agent project_context:
+  route=project_context
+  rag_ok=true
+
+labagent-agent image_input:
+  route=image_input
+  vision_model=vision-local
+  final_model=qwen-agent
+```
+
+图片 smoke 使用临时生成 PNG，包含 `VISION TEST 42`、蓝色矩形和绿色矩形。`vision-local` 成功识别文字、颜色和左上/右下布局；`qwen-agent` 能用中文汇总最终回答。
+
+### 代码调整
+
+- `services/agent/router.py` 的 vision side-channel prompt 增加颜色、形状、布局提取要求。
+- 最终汇总 prompt 明确中文是正常用户语言；图片请求命中 vision summary 时应直接回答，不能因为摘要较短就要求用户澄清。
+- `.env.example` 恢复并补充 `LABAGENT_AGENT_*` 占位变量，避免本地私有 `.env.local` 成为唯一配置来源。
+
+### 公网状态
+
+云端本机验证已通过：
+
+```text
+curl 127.0.0.1:18020/health -> ok=true
+```
+
+外部访问：
+
+```text
+curl http://82.156.69.153:18020/health -> timeout
+```
+
+排查结果与之前 RAG `18010` 类似：SSH 隧道和云端 sshd `GatewayPorts clientspecified` 正常，宿主 iptables 未按端口拦截。剩余阻塞点是腾讯云安全组尚未放行 TCP 18020。放行后需要从 David/Cline 远程重测。
+
+### 当前边界
+
+- `labagent-agent` 仍不是完整 Agent Runtime，不执行工具、不做 planner、不维护 memory，也不支持 streaming。
+- 18020 入口仍是手动 SSH 隧道，不是生产常驻服务。
+- PowerShell `curl.exe -d` 直接发送中文 JSON 时可能出现编码问题；真实客户端或 Python UTF-8 请求更可靠。
+
+### 简历价值
+
+- 将多模型能力包装成单一 OpenAI-compatible `labagent-agent` 入口。
+- 形成 `qwen-agent` / `vision-local` / RAG Service 的可测编排层。
+- 完成鉴权分层、side-channel 失败暴露、公网隧道分层排障。
 
 ## 9. 后续记录规则
 

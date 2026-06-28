@@ -1,94 +1,94 @@
-# Benchmark Design
+# Benchmark 设计
 
-> Goal: make local model selection measurable without confusing "bare LLM ability" with "full Agent Runtime ability".
+> 目标：让本地模型选型变得可度量，而不是把“裸模型能力”和“完整 Agent Runtime 能力”混在一起看。
 
-## Why The Old 0/4 Was Misleading
+## 为什么旧的 0/4 会误导人
 
-The current `agent_tasks` and `cline_dialogue` baselines are useful smoke tests, but they are not full agent benchmarks yet.
+当前 `agent_tasks` 和 `cline_dialogue` 基线很适合作为 smoke test，但它们还不是真正完整的 agent benchmark。
 
-Problems found on 2026-06-16:
+2026-06-16 发现的问题：
 
-1. The dataset files are valid UTF-8. Garbled Chinese in PowerShell is a terminal display issue.
-2. The old scoring was all-or-nothing keyword matching. A response could be useful but still score 0 if it missed one exact keyword.
-3. `finish_reason=length` was treated as strict failure, which is correct for Cline compatibility, but it hides partial capability signals.
-4. A bare LLM behind LM Studio is not a full agent. Real agent evaluation needs tool calls, state transitions, patches applied to files, and execution traces.
+1. 数据集文件本身是有效 UTF-8。PowerShell 里中文乱码只是终端显示问题。
+2. 旧评分是全有全无的关键词匹配。回答即使有用，只要漏掉一个精确关键词也可能得 0 分。
+3. `finish_reason=length` 被当成严格失败，这是对 Cline 兼容性来说正确的，但它会掩盖部分能力信号。
+4. 通过 LM Studio 暴露的裸 LLM 不是完整 agent。真正的 agent 评测需要工具调用、状态转换、对文件的 patch，以及执行 trace。
 
-So future reports must separate:
+所以以后报告里必须把这些分开：
 
 ```text
-strict_pass_rate  -> can this model be used directly in Cline/Agent without cleanup?
-soft_pass_rate    -> did the answer contain useful partial capability?
-keyword_recall    -> how much of the expected behavior appeared?
+strict_pass_rate  -> 这个模型能不能直接用于 Cline/Agent，而不用额外清理？
+soft_pass_rate    -> 回答里有没有有用的部分能力？
+keyword_recall    -> 预期行为出现了多少？
 ```
 
-## External Benchmark Lessons
+## 外部 benchmark 的启发
 
-### Coding / Patch Work
+### 编码 / Patch 工作
 
-SWE-bench evaluates whether a model can generate a patch for real GitHub issues. The key idea is not "does the answer sound good", but "does the patch resolve the issue under tests". SWE-bench Verified further filters tasks with human review so the issues are clear and solvable.
+SWE-bench 评估的是模型能不能为真实 GitHub issue 生成 patch。关键不在于“回答听起来像不像”，而在于“这个 patch 在测试里能不能把问题修掉”。SWE-bench Verified 还会经过人工筛选，保证任务清晰且可解。
 
-Project implication:
+项目启发：
 
 ```text
-Patch generation should not stop at keyword checks.
-Next version should apply the diff to a fixture repo and run deterministic tests.
+Patch 生成不能只停留在关键词检查。
+下一版应该把 diff 应用到 fixture repo 上，再跑确定性测试。
 ```
 
-### Agent Work
+### Agent 工作
 
-AgentBench evaluates LLMs as agents in interactive environments, focusing on reasoning and decision-making over multi-turn tasks.
+AgentBench 评估的是 LLM 作为 agent 在交互环境里的表现，重点是多轮任务中的推理和决策。
 
-GAIA evaluates general AI assistants on real-world tasks that require reasoning, tool use, web browsing, files, and short verifiable answers.
+GAIA 评估的是通用 AI 助手在真实任务上的能力，这些任务通常需要推理、工具使用、网页浏览、文件操作和可验证的短答案。
 
-Project implication:
+项目启发：
 
 ```text
-Agent evaluation should include environment feedback, not only one-shot text answers.
-Our current agent_tasks are Level 1/2 smoke tests, not a full Agent Runtime benchmark.
+Agent 评测应该包含环境反馈，而不只是一次性文本回答。
+我们当前的 agent_tasks 只是 Level 1/2 的 smoke test，不是完整 Agent Runtime benchmark。
 ```
 
-### Tool Calling
+### 工具调用
 
-The Berkeley Function Calling Leaderboard evaluates whether models select and call tools/functions accurately, including multi-turn and multi-step tool use.
+Berkeley Function Calling Leaderboard 评估的是模型是否能准确选择并调用工具/函数，包括多轮、多步骤 tool use。
 
-Project implication:
+项目启发：
 
 ```text
-Tool-choice tasks should evolve from prose answers into structured tool-call expectations.
-Example: expected tool sequence = ["check_gateway", "check_tunnel", "check_backend", "curl_chat"].
+工具选择任务应该从自然语言答案演进到结构化的 tool-call 预期。
+例如：期望的工具序列 = ["check_gateway", "check_tunnel", "check_backend", "curl_chat"]。
 ```
 
 ### RAG
 
-RAGAS evaluates retrieval and generation with metrics such as context precision, context recall, response relevancy, and faithfulness.
+RAGAS 用 context precision、context recall、response relevancy 和 faithfulness 等指标评估检索和生成。
 
-TruLens frames RAG quality as a triad: context relevance, groundedness, and answer relevance.
+TruLens 把 RAG 质量看成三角：context relevance、groundedness 和 answer relevance。
 
-ARES evaluates RAG systems along context relevance, answer faithfulness, and answer relevance, using lightweight judge models plus a small amount of human annotation.
+ARES 则用轻量 judge 模型加少量人工标注来评估 context relevance、answer faithfulness 和 answer relevance。
 
-Project implication:
+项目启发：
 
 ```text
-RAG oracle is only an upper-bound generator test.
-True RAG benchmark needs retrieval quality, grounded answer quality, and citation/trace checks.
-The project now has `rag_retrieval_eval.py` for the first part; grounded answer and citation scoring are still pending.
-The retrieval eval uses top-k 8 by default to match the current RAG `ask` path. A smaller top-k can still be used manually when testing stricter retrieval-only behavior.
+RAG oracle 只是上限生成测试。
+真正的 RAG benchmark 需要同时测检索质量、基于证据的回答质量和 citation / trace 检查。
+项目现在已经有 `rag_retrieval_eval.py` 覆盖第一部分；grounded answer 和 citation 评分还没做。
+检索评测默认使用 top-k 8，以匹配当前 RAG `ask` 路径；手工测试时仍可以用更小的 top-k 做更严格的检索-only 行为测试。
 ```
 
-## Recommended Benchmark Layers
+## 推荐的 benchmark 分层
 
-### Layer 0: Service Health
+### Layer 0：服务健康
 
-Purpose: prove the route works.
+目的：证明链路能通。
 
-Scripts:
+脚本：
 
 ```text
 gateway_health_eval.py
 model_latency.py
 ```
 
-Metrics:
+指标：
 
 ```text
 ok_rate
@@ -100,11 +100,11 @@ reasoning_len / content_len
 finish_reason
 ```
 
-### Layer 1: Bare LLM Capability
+### Layer 1：裸模型能力
 
-Purpose: test the loaded model without claiming it is an agent.
+目的：测试加载的模型，但不把它当成 agent。
 
-Scripts:
+脚本：
 
 ```text
 rag_oracle_eval.py
@@ -113,7 +113,7 @@ repo_map_eval.py
 patch_task_eval.py
 ```
 
-Metrics:
+指标：
 
 ```text
 oracle_context_pass_rate
@@ -123,18 +123,18 @@ diff_found
 patch_keyword_recall
 ```
 
-### Layer 2: Agent-Readiness Smoke Tests
+### Layer 2：Agent 就绪 smoke test
 
-Purpose: test whether the model can plan, recover, route, and discuss tool use.
+目的：测试模型是否能规划、恢复、路由以及讨论工具使用。
 
-Scripts:
+脚本：
 
 ```text
 run_agent_tasks.py
 cline_dialogue_eval.py
 ```
 
-Metrics:
+指标：
 
 ```text
 strict_pass_rate
@@ -144,28 +144,28 @@ forbidden_keyword_rate
 length_stop_rate
 ```
 
-Important interpretation:
+重要解释：
 
 ```text
-0 strict pass does not mean "the model cannot be used at all".
-It means "do not promote this model to default Agent/Cline execution without more harnessing".
+agent_tasks / cline_dialogue 的 0 个 strict pass，不代表“这个模型完全不能用”。
+它只代表“还不应该在没有更多 harness 的情况下把它提升为默认 Agent/Cline 执行模型”。
 ```
 
-### Layer 3: Real Workflow Harness
+### Layer 3：真实工作流 harness
 
-Purpose: test actual Cline-like work.
+目的：测试真正类似 Cline 的工作方式。
 
-Next scripts to build:
+下一步要做的脚本：
 
 ```text
-tool_call_eval.py       -> structured tool selection / tool sequence accuracy
-patch_apply_eval.py     -> generate diff, apply it, run tests
-repo_task_eval.py       -> read fixture repo, modify files, verify final state
-rag_answer_eval.py      -> answer faithfulness, citation accuracy, entity mapping
-trace_eval.py           -> record steps, decisions, tool calls, failures
+tool_call_eval.py       -> 结构化工具选择 / tool sequence 准确率
+patch_apply_eval.py     -> 生成 diff，应用 diff，再跑测试
+repo_task_eval.py       -> 读取 fixture repo，修改文件，验证最终状态
+rag_answer_eval.py      -> answer faithfulness、citation accuracy、entity mapping
+trace_eval.py           -> 记录步骤、决策、工具调用和失败
 ```
 
-Metrics:
+指标：
 
 ```text
 task_success_rate
@@ -179,43 +179,43 @@ answer_relevance
 trace_completeness
 ```
 
-## Current Interpretation Rule
+## 当前解释规则
 
-For local model selection:
+对于本地模型选型：
 
 ```text
-Primary gate:
-  content must be non-empty
-  finish_reason should not be length
-  patch tasks should produce real diffs
+第一道门：
+  content 必须非空
+  finish_reason 不应该是 length
+  patch 任务应该产出真实 diff
 
-Secondary gate:
+第二道门：
   agent_tasks soft score
   cline_dialogue soft score
-  repo_map latency and recall
+  repo_map 延迟和 recall
 
-Promotion rule:
-  A model can be "coding / patch candidate" if patch_apply passes.
-  A model can be "agent candidate" only after tool sequence and workflow harness pass.
+晋升规则：
+  如果 patch_apply 通过，模型可以被视为“coding / patch 候选”。
+  只有在 tool sequence 和 workflow harness 通过后，模型才可以被视为“agent 候选”。
 ```
 
-As of the latest tests:
+按最近几轮测试：
 
 ```text
 qwen/qwen3-coder-30b:
-  best current coding / patch candidate
-  still needs better tool-choice, repo-map, and multi-turn scores
+  当前最好的 coding / patch 候选
+  仍然需要更好的 tool-choice、repo-map 和多轮得分
 
 google/gemma-4-31b:
-  useful non-Qwen comparison
-  patch-capable but slow and unstable for agent/Cline flow
+  有用的非 Qwen 对照
+  能做 patch，但对 agent / Cline 流程又慢又不稳定
 
 qwen/qwen3.6-35b-a3b:
-  fast reasoning/chat comparison
-  not suitable as default Agent execution model in current preset
+  适合做快速推理 / 聊天对照
+  按当前 preset，不适合作为默认 Agent 执行模型
 ```
 
-## References
+## 参考资料
 
 - SWE-bench: https://www.swebench.com/
 - SWE-bench Verified: https://www.swebench.com/verified.html

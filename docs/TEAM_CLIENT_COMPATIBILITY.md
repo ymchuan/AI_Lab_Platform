@@ -1,10 +1,10 @@
-# Team Client Compatibility
+# 团队客户端兼容性
 
-> Goal: let team members use the LabAgent gateway from familiar local AI coding CLIs while keeping model routing, keys, and limitations explicit.
+> 目标：让团队成员能用熟悉的本地 AI 编码客户端接入 LabAgent 网关，同时把路由、密钥和限制讲清楚。
 
-## Target User Story
+## 目标使用场景
 
-Team members should be able to install a client such as Cline, Codex CLI, Claude Code CLI, Cursor, or OpenWebUI, then point it at the LabAgent public endpoint:
+团队成员安装 Cline、Codex CLI、Claude Code CLI、Cursor 或 OpenWebUI 之后，把它们指向 LabAgent 公网入口：
 
 ```text
 Base URL: http://82.156.69.153:8000/v1
@@ -12,55 +12,57 @@ API Key:  <LABAGENT_API_KEY>
 Model:    qwen-agent
 ```
 
-The long-term product shape is:
+长期的产品形态是：
 
 ```text
-Team client
-  -> LabAgent public gateway
-  -> model/router compatibility layer
+团队客户端
+  -> LabAgent 公网网关
+  -> model/router 兼容层
   -> qwen-agent / qwen-think / vision-local / RAG
 ```
 
-The current reliable paths are `Cline + OpenAI-compatible qwen-agent` and basic `Codex CLI + qwen-agent` workflows. Codex CLI has passed plain chat, read-only shell listing, one-file create/write, and a one-file Python patch smoke test on David's machine.
+当前最可靠的路径是 `Cline + OpenAI-compatible qwen-agent`，以及基础的 `Codex CLI + qwen-agent` 工作流。Codex CLI 已在 David 机器上通过纯聊天、只读 shell 列目录、单文件创建/写入、以及单文件 Python patch smoke。
 
-## Compatibility Is Not One Thing
+## 兼容性不是一件事
 
-OpenAI-compatible chat completion is only the first layer. Coding-agent clients need more than plain text generation:
+OpenAI-compatible 的 chat completion 只是第一层。编码类客户端需要的不只是纯文本生成：
 
-| Layer | What It Checks | Current Status |
-|------|----------------|----------------|
-| Basic chat | `/v1/chat/completions` or `/v1/responses`, non-empty content | Works through LiteLLM for `qwen-agent`; Codex CLI plain chat passed |
-| Streaming | SSE chunks, first token, finish reason | Covered by existing latency scripts for text models; Codex CLI not separately scored yet |
-| Tool/function calling | Schema-following tool calls | Codex CLI can run basic local shell commands; complex tool/file workflow pending. Claude Code has known schema failures |
-| File-edit workflow | Diff quality, patch application, multi-turn stability | Codex CLI one-file create/write and one-file Python patch passed; multi-file patch workflow pending |
-| Vision input | OpenAI image message format | `vision-local` route works; client image upload behavior still pending |
-| RAG/project QA | Project docs over RAG Service | HTTP service works; client integration pending |
+| 层级 | 检查什么 | 当前状态 |
+|------|----------|----------|
+| 基础聊天 | `/v1/chat/completions` 或 `/v1/responses`，非空 content | 通过 LiteLLM 可用；Codex CLI 纯聊天已通过 |
+| 流式输出 | SSE 分块、首 token、结束原因 | 已有延迟脚本覆盖文本模型；Codex CLI 还没单独评分 |
+| 工具/函数调用 | 是否遵守 schema 的 tool call | Codex CLI 能跑基础 shell 命令；复杂 tool/file 工作流待测。Claude Code 已知有 schema 失败 |
+| 文件编辑流程 | diff 质量、patch 应用、多轮稳定性 | Codex CLI 单文件创建/写入和单文件 Python patch 已通过；多文件 patch 待测 |
+| 视觉输入 | OpenAI 图片消息格式 | `vision-local` 路由可用；客户端图片上传行为还没测完 |
+| RAG / 项目问答 | 通过 RAG Service 访问 workspace 文档 | HTTP 服务可用；workspace 集成与客户端集成待测 |
 
-## Client Priority
+RAG 对团队的意义不是“开发时每次都依赖它”，而是当成员问自己 workspace 里的当前状态、路由、节点、接口、历史决策和 benchmark 结论时，能快速拿到带引用的答案。日常写代码仍然优先走 `qwen-agent` / `labagent-agent` / Cline；RAG 更像 workspace 级项目记忆和查证层。
 
-1. **Cline** - current primary coding client. Already useful with `qwen-agent`.
-2. **Codex CLI** - basic workflow passed on David's machine; next priority is a small compatibility matrix before team rollout.
-3. **Claude Code CLI** - keep as experimental until `tool_use` schema compatibility is measured and either adapted or documented as unsupported.
-4. **OpenWebUI / Cursor** - useful for general chat or project QA, but less important than CLI coding-agent workflows.
+## 客户端优先级
 
-## Codex CLI Validation Plan
+1. **Cline** - 当前主力编码客户端，和 `qwen-agent` 已经很好用。
+2. **Codex CLI** - 已在 David 机器上通过基础工作流；下一步要做小型兼容性矩阵，再考虑团队推广。
+3. **Claude Code CLI** - 先保持实验性质，直到 `tool_use` schema 兼容性被测清楚并能适配或明确标注不支持。
+4. **OpenWebUI / Cursor** - 适合通用聊天或项目问答，但优先级低于 CLI 编码工作流。
 
-Minimum tests before recommending it to the team:
+## Codex CLI 验证计划
 
-1. Configure Codex CLI with `base_url=http://82.156.69.153:8000/v1`, `wire_api="responses"`, `model=qwen-agent`, and `LABAGENT_API_KEY` exposed as the OpenAI auth token. Passed on David's machine.
-2. Plain chat: ask for a short answer and confirm non-empty content. Passed; response identified the backend as Qwen rather than OpenAI.
-3. Read-only shell task: list the current directory without modifying files. Passed; Codex ran `Get-ChildItem -Force` and summarized the directory.
-4. One-file write task: create `hello_labagent.txt` with a fixed string. Passed; Codex ran `Set-Content`.
-5. Patch task: ask it to generate a tiny diff in a throwaway file or fixture. Passed for single-file Python edit: added type annotations to `add(a, b)` and created an `if __name__ == '__main__'` example.
-6. Tool behavior: check whether it uses native tool calls, plain text patches, or an OpenAI tool/function schema. Partially observed; basic shell tools work.
-7. Error handling: confirm failures are readable when the SSH tunnel or backend model is unavailable. Pending.
-8. Record exact client version, config shape, request/response behavior, and limitations. Pending.
+推荐在正式推荐给团队前完成这些测试：
 
-The result should become a dedicated benchmark or smoke script only after the manual protocol is understood.
+1. 配置 Codex CLI：`base_url=http://82.156.69.153:8000/v1`、`wire_api="responses"`、`model=qwen-agent`，并把 `LABAGENT_API_KEY` 作为 OpenAI auth token。已在 David 机器上通过。
+2. 纯聊天：问一个短问题，确认有非空回答。已通过；返回的是 Qwen-backed answer，而不是 OpenAI。
+3. 只读 shell 任务：列出当前目录，不修改文件。已通过；Codex 调用了 `Get-ChildItem -Force` 并总结目录。
+4. 单文件写入任务：创建 `hello_labagent.txt` 并写入固定字符串。已通过；Codex 调用了 `Set-Content`。
+5. patch 任务：让它在一个临时文件或 fixture 里生成一个很小的 diff。已通过单文件 Python 编辑：给 `add(a, b)` 加了类型标注，并创建了 `if __name__ == '__main__'` 示例。
+6. 工具行为：看它到底用了原生工具调用、纯文本 patch，还是 OpenAI tool/function schema。已观察到基础 shell 工具可用，但还不完整。
+7. 错误处理：确认 SSH 隧道断开或后端模型不可用时，失败信息是否清晰。待测。
+8. 记录客户端版本、配置形态、请求/响应行为和限制。待测。
 
-## Codex CLI Current Result
+这类结果应该先靠人工协议理解，等手工流程稳定后再变成专门的 benchmark 或 smoke script。
 
-Observed on David's machine:
+## Codex CLI 当前结果
+
+David 机器上观察到的配置：
 
 ```text
 model_provider = "LabAgent" or custom provider
@@ -70,46 +72,47 @@ wire_api = "responses"
 requires_openai_auth = true
 ```
 
-Result:
+结果：
 
-- Plain chat reached LabAgent and returned a Qwen-backed answer.
-- Codex warned: `Model metadata for qwen-agent not found`; this is expected for a custom model alias and means Codex falls back to generic metadata.
-- Read-only directory listing worked through `Get-ChildItem -Force`.
-- One-file creation worked through `Set-Content`.
-- One-file Python patch worked: Codex modified `app.py` from a plain `add(a, b)` helper into `def add(a: int, b: int) -> int` plus a small `__main__` usage example.
+- 纯聊天已经能到 LabAgent，并返回 Qwen-backed answer。
+- Codex 提示 `Model metadata for qwen-agent not found`，这是自定义模型别名的正常 warning，表示它会退回通用元数据。
+- 只读目录列表可用。
+- 单文件创建可用。
+- 单文件 Python patch 可用：`app.py` 从简单的 `add(a, b)` 变成了 `def add(a: int, b: int) -> int`，并加了一个小的 `__main__` 示例。
 
-Current status: `Codex CLI + LabAgent + qwen-agent` is suitable for basic self-use and small team experiments, including simple single-file code edits. It is not yet certified for complex multi-file coding tasks, long-context repo work, or failure recovery.
+当前状态：`Codex CLI + LabAgent + qwen-agent` 已经适合基础自用和小规模团队实验，包括简单的单文件编辑。它还没有认证复杂多文件任务、长上下文仓库工作或失败恢复。
 
-## Claude Code CLI Status
+## Claude Code CLI 状态
 
-Current finding:
+当前发现：
 
-- Text requests can reach `qwen-agent` through LiteLLM's Anthropic-compatible `/v1/messages` path.
-- Real Claude Code tool use is not stable yet. The observed failure mode is invalid tool parameters / schema mismatch.
+- 文本请求可以通过 LiteLLM 的 Anthropic-compatible `/v1/messages` 路径到达 `qwen-agent`。
+- 真正的 Claude Code 工具调用还不稳定。已观察到的失败模式是工具参数非法 / schema 不匹配。
 
-Do not advertise Claude Code CLI as a stable team client until a `claude_code_compat_eval` or equivalent manual matrix proves:
+在 `claude_code_compat_eval` 或类似手工矩阵证明下面几点之前，不要把 Claude Code CLI 当成稳定团队客户端：
 
-1. tool calls are emitted in the expected schema,
-2. file edits are usable,
-3. failures are understandable,
-4. a fallback mode is documented.
+1. tool call 的 schema 是对的。
+2. 文件编辑可用。
+3. 失败信息能看懂。
+4. 有明确的 fallback 模式。
 
-## Router Implication
+## Router 含义
 
-For team use, the `labagent-agent` router already hides the first layer of internal model choices:
+对于团队使用，`labagent-agent` router 已经在第一层隐藏了内部模型选择：
 
 ```text
-qwen-think   -> planning / reasoning side channel
-qwen-agent   -> coding and final engineering output
-vision-local -> image and screenshot understanding
-RAG Service  -> project memory and citations
+qwen-agent   -> 编码和最终工程输出
+vision-local -> 图片和截图理解
+RAG Service  -> 项目记忆和引用
 ```
 
-But client compatibility should be tested before building too much router logic. If Codex CLI or Claude Code sends images/tools in a client-specific format, the router must adapt that format explicitly.
+`qwen-think` 目前还只是预留的 reasoning 候选，不在这条 router 的默认执行路径里。
 
-## Security Notes
+但在构建太多 router 逻辑之前，仍然要先测试客户端兼容性。如果 Codex CLI 或 Claude Code 发送图片/工具时使用了客户端特定格式，router 需要显式适配这些格式。
 
-- Never share raw `.env.local`.
-- Give team members scoped API keys when LiteLLM key management supports it.
-- Keep logs scrubbed of `LABAGENT_API_KEY` and `LABAGENT_RAG_API_KEY`.
-- If a team key is pasted into chat or docs, rotate only the affected key and document the rotation.
+## 安全注意事项
+
+- 不要共享原始 `.env.local`。
+- 当 LiteLLM 支持细粒度 key 管理时，给团队成员发范围受限的 API key。
+- 日志里要清理 `LABAGENT_API_KEY` 和 `LABAGENT_RAG_API_KEY`。
+- 如果把团队 key 粘到聊天或文档里，只轮换受影响的那一个 key，并记录轮换。

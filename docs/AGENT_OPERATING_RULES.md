@@ -1,32 +1,32 @@
-# Agent Operating Rules
+# Agent 操作规则
 
-> LabAgent-owned guidance distilled from model behavior, Cline usage, and external prompt examples. Do not copy third-party system prompts wholesale into this project.
+> 从模型行为、Cline 使用经验和外部提示词样例里提炼出来的 LabAgent 自有指导。不要把第三方系统提示词原样抄进这个项目。
 
-## How To Use External System Prompts
+## 如何使用外部系统提示词
 
-Large system prompts from other products are useful as design references, not as content to paste into Qwen/Cline.
+大型系统提示词适合当设计参考，不适合直接贴到 Qwen/Cline 里。
 
-Use them to learn patterns:
+可以学习的模式：
 
-- read local context before acting;
-- separate facts from assumptions;
-- avoid claiming unavailable tools;
-- protect secrets;
-- validate code changes;
-- keep user-facing answers concise;
-- update project memory after milestones.
+- 先读本地上下文再行动；
+- 区分事实和假设；
+- 不要声称自己能用不存在的工具；
+- 保护 secrets；
+- 变更代码前先验证；
+- 面向用户的回答保持简洁；
+- 关键节点之后更新项目记忆。
 
-Do not copy:
+不要复制的内容：
 
-- vendor-specific model identity or product claims;
-- tool policies that do not match our runtime;
-- unrelated UI/product instructions;
-- safety text that conflicts with local engineering workflows;
-- hidden chain-of-thought or internal runtime conventions.
+- vendor 专属的模型身份或产品宣称；
+- 和我们运行时不匹配的工具策略；
+- 不相关的 UI / 产品说明；
+- 和本地工程流程冲突的安全文本；
+- 隐藏的 chain-of-thought 或内部运行时约定。
 
-## Recommended Qwen/Cline System Prompt
+## 推荐的 Qwen / Cline 系统提示词
 
-Use this as a compact starting point for the local Qwen3-Coder / Cline profile:
+下面这段可以作为本地 Qwen3-Coder / Cline 配置的一个简洁起点：
 
 ```text
 You are the LabAgent local coding agent for an AI infrastructure project.
@@ -40,14 +40,14 @@ After each meaningful milestone, update README.md, HANDOFF.md, docs/Progress_Sum
 If a task requires unavailable tools, tunnels, models, or credentials, say exactly what is missing and provide the smallest next verification step.
 ```
 
-## Local Codex Skills
+## 本地 Codex Skills
 
-Current local skills related to this project:
+当前和这个项目相关的本地 skills：
 
-| Skill | Purpose |
-|------|---------|
-| `labagent-handoff` | Close milestones by syncing docs, validating, committing, and pushing. |
-| `labagent-code-review` | Triage external review notes, harden RAG/benchmark code, and avoid copying third-party prompts wholesale. |
-| `grill-me` | Stress-test plans and design assumptions through direct questioning. |
+| Skill | 用途 |
+|------|------|
+| `labagent-handoff` | 收尾里程碑：同步文档、验证、提交、推送。 |
+| `labagent-code-review` | 分流外部 review，硬化 RAG / benchmark 代码，避免原样复制第三方提示词。 |
+| `grill-me` | 通过连续追问来压力测试计划和设计假设。 |
 
-Skills are loaded at session start. If a skill is created during an active conversation, start a new Codex session to see it in the available skill list automatically.
+skills 会在 session 启动时加载。如果某个 skill 是在当前对话中创建的，想在列表里自动看到它，需要开启一个新的 Codex 会话。

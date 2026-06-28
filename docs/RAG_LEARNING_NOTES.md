@@ -1,8 +1,8 @@
 # RAG 学习与实现笔记
 
-> 目标：边做边学，把 LabAgent 的 RAG 从概念、代码、调试、评测到后续升级路径都记录清楚。
+> 目标：边做边学，把 LabAgent 的 RAG 从概念、代码、调试、评测到后续升级路线都记录清楚。
 
-## 1. RAG 到底在干嘛
+## 1. RAG 到底是什么
 
 RAG 全称是 Retrieval-Augmented Generation，中文通常叫“检索增强生成”。
 
@@ -10,17 +10,17 @@ RAG 全称是 Retrieval-Augmented Generation，中文通常叫“检索增强生
 
 ```text
 普通聊天：
-你问问题 -> 大模型凭记忆回答
+你问问题 -> 大模型靠记忆回答
 
 RAG：
-你问问题 -> 系统先查你的资料 -> 把查到的片段交给大模型 -> 大模型基于资料回答
+你问问题 -> 系统先查资料 -> 把查到的片段交给大模型 -> 大模型基于资料回答
 ```
 
 为什么需要 RAG？
 
-大模型本身不知道你的私有项目文档、当前服务器配置、历史模型评测结果和刚刚发生的决策。把这些信息全部复制进每次 prompt 又很长、很慢、很贵，而且容易超过上下文长度。RAG 的作用就是先从资料库里“挑出最相关的几段”，只把这几段塞给模型。
+大模型本身不知道你的私有项目文档、当前服务器配置、历史模型 benchmark 结果和刚刚发生的决策。把这些东西每次都复制进 prompt 里，太长、太慢、太贵，而且很容易超出上下文长度。RAG 的作用就是先从资料库里“挑出最相关的几段”，再把这几段塞给模型。
 
-所以 RAG 不是微调，也不是让模型永久学会你的文档。它更像“考试时允许开卷，但先由系统帮你把最相关的几页翻出来”。
+所以 RAG 不是微调，也不是让模型永久记住你的文档。它更像“考试时允许开卷，但先由系统帮你把最相关的几页翻出来”。
 
 ## 2. 一个最小 RAG 流程
 
@@ -37,7 +37,7 @@ LabAgent 当前的流程是：
    用 embed-local 把每个 chunk 变成一串数字
 
 4. 保存索引
-   data/rag/index.json 里保存 chunk 文本 + 向量 + 来源
+   在 data/rag/index.json 里保存 chunk 文本 + 向量 + 来源
 
 5. 用户提问
    例如：“LabAgent 当前多节点路由是什么状态？”
@@ -58,17 +58,17 @@ LabAgent 当前的流程是：
 RAG = 先找资料，再让模型根据资料回答。
 ```
 
-这里要特别区分三个角色：
+## 3. 这里要区分三个角色
 
 | 角色 | 它做什么 | 它不做什么 |
 |------|----------|------------|
-| LiteLLM | 根据 `model` 名字把请求转发到 5090 或新设备 | 不读文档、不切 chunk、不保存向量索引 |
-| Embedding 模型 | 把文档片段或用户问题变成向量 | 不理解项目架构，也不生成最终回答 |
+| LiteLLM | 根据 `model` 名字把请求转发到 5090 或新设备 | 不读文档，不切 chunk，不保存索引 |
+| Embedding 模型 | 把文档片段或用户问题变成向量 | 不理解项目架构，也不生成最终答案 |
 | RAG Service | 读取 5090 本地文档索引，调用 embedding 检索，再调用 chat 模型回答 | 不替代 LiteLLM，也不是新的大模型 |
 
-所以当前架构里，新设备只 load 了 embedding 模型是合理的。RAG Service 可以跑在 5090，上面有项目文档和索引；它通过云服务器 LiteLLM 的 `embed-local` 路由调用新设备 embedding，再通过 `qwen-agent` 路由或 5090 本机 LM Studio 调用 Qwen-Coder 生成答案。
+所以当前架构里，新设备上的 embedding 模型是合理的。RAG Service 可以跑在 5090，上面有项目文档和索引；它通过云服务器 LiteLLM 的 `embed-local` 路由调用新设备上的 embedding，再通过 `qwen-agent` 路由调用 5090 本机 LM Studio 生成答案。
 
-## 3. 核心概念
+## 4. 核心概念
 
 | 概念 | 白话解释 | 本项目当前对应 |
 |------|----------|----------------|
@@ -79,16 +79,16 @@ RAG = 先找资料，再让模型根据资料回答。
 | Retrieval | 按问题找相似 chunk | cosine similarity + keyword/entity boost |
 | Context | 检索出来塞给模型的证据 | `[S1]`、`[S2]` source blocks |
 | Generation | 模型基于 context 生成答案 | `qwen-agent` / Qwen3-Coder-30B |
-| Citation | 答案里标注来自哪个证据 | `[S1]`、`[S2]` |
-| Reranker | 对初筛结果再排序的模型 | 未接入，后续放新设备 |
+| Citation | 答案里标注证据来自哪里 | `[S1]`、`[S2]` |
+| Reranker | 对初筛结果再排一次序的模型 | 还没接入，后续放新设备 |
 
-## 4. 当前代码结构
+## 5. 当前代码结构
 
 ```text
 services/rag/
 ├── cli.py          # 命令行入口：index / search / ask
 ├── server.py       # RAG Service v1 HTTP API
-├── chunking.py     # Markdown 发现与切块
+├── chunking.py     # Markdown 发现和切块
 ├── client.py       # OpenAI-compatible HTTP client
 ├── index_store.py  # JSON index、cosine similarity、retrieve
 ├── pipeline.py     # search + answer pipeline
@@ -109,20 +109,20 @@ data/rag/index.json
 
 `data/rag/` 是本地运行数据，不进 Git。
 
-默认 discovery 会跳过 raw review 和外部系统提示词文件：
+默认 discovery 会跳过原始 review 和外部系统提示词文件：
 
 ```text
 docs/CODE_REVIEW_ISSUES.md
 docs/claude-fable-5.md
 ```
 
-原因：它们不是 LabAgent 项目事实本身，进入索引会污染 RAG 回答。
+原因很简单：它们不是 LabAgent 自己的事实源，进索引会污染 RAG 回答。
 
-## 5. 当前实现阶段
+## 6. 当前实现阶段
 
 ### RAG v0：命令行闭环
 
-已完成：
+已经完成：
 
 ```text
 文档加载
@@ -147,9 +147,9 @@ POST /v1/rag/ask
 POST /v1/chat/completions
 ```
 
-这个 v1 还不是“最终生产 RAG”。它的目标是让 RAG 可以被 David/Cline/OpenWebUI/脚本远程调试，而不是只能在 5090 命令行里跑。
+这版 v1 还不是“最终生产 RAG”。它的目标是让 David / Cline / OpenWebUI / 脚本可以远程调试 5090 上的 RAG，而不是只在 5090 命令行里跑。
 
-## 6. 如何在 5090 本机调试 RAG
+## 7. 如何在 5090 本机调试 RAG
 
 前提：
 
@@ -160,7 +160,7 @@ POST /v1/chat/completions
 4. 当前仓库在 5090 的 E:\qwen_setup
 ```
 
-如果 5090 本机只 load 了 Qwen-Coder，没有 load embedding，这是正常状态。只要新设备的 embedding 模型和 `:12341` 隧道可用，5090 上的 RAG 仍然可以通过 LiteLLM 调用 `embed-local`。
+如果 5090 本机只 load 了 Qwen-Coder，没有 load embedding 模型，这是正常状态。只要新设备的 embedding 模型和 `:12341` 隧道可用，5090 上的 RAG 仍然可以通过 LiteLLM 调用 `embed-local`。
 
 ### 第一步：设置环境变量
 
@@ -173,9 +173,9 @@ $env:LABAGENT_EMBED_MODEL = "embed-local"
 $env:LABAGENT_MODEL = "qwen-agent"
 ```
 
-这是“统一 LiteLLM 网关模式”：embedding 和 chat 都发到云服务器 LiteLLM，由 LiteLLM 分别转发到新设备和 5090。
+这就是“统一 LiteLLM 网关模式”：embedding 和 chat 都走云上的 LiteLLM，再由它分别转发到新设备和 5090。
 
-也可以显式拆开两个 endpoint：
+也可以显式拆成两个 endpoint：
 
 ```powershell
 $env:LABAGENT_EMBED_BASE_URL = "http://82.156.69.153:8000/v1"
@@ -185,7 +185,7 @@ $env:LABAGENT_EMBED_MODEL = "embed-local"
 $env:LABAGENT_MODEL = "qwen/qwen3-coder-30b"
 ```
 
-这个模式表示：query embedding 走云端 LiteLLM 到新设备；最终回答直接调用 5090 本机 LM Studio。它适合“5090 只 load Qwen-Coder，新设备 load embedding”的状态。
+这个模式的意思是：问题 embedding 走云上的 LiteLLM，到新设备；最终回答直接调用 5090 本机 LM Studio。它适合“5090 只 load Qwen-Coder，新设备 load embedding”的状态。
 
 ### 第二步：重建索引
 
@@ -199,22 +199,21 @@ python -m services.rag.cli index
 Indexed 354 chunks from 21 files into data/rag/index.json using embed-local.
 ```
 
-如果这里失败，通常是：
+如果这里失败，常见原因是：
 
 ```text
 embed-local 隧道没开
 新设备 LM Studio 没 load embedding 模型
-LABAGENT_API_KEY 没设置
-公网 LiteLLM 不通
+LABAGENT_API_KEY 没设置，公网 LiteLLM 不通
 ```
 
-### 第三步：只看检索，不让大模型回答
+### 第三步：先看检索，不让大模型直接回答
 
 ```powershell
 python -m services.rag.cli search "LabAgent 当前有哪些公网模型路由？" --top-k 5
 ```
 
-这一步只做 retrieval。它回答的是：“系统觉得哪些文档片段最相关？”
+这一步只做 retrieval。它回答的是“系统觉得哪些文档片段最相关”。
 
 如果 search 找不到正确文档，说明问题在检索层，不是 Qwen 回答能力的问题。
 
@@ -224,7 +223,7 @@ python -m services.rag.cli search "LabAgent 当前有哪些公网模型路由？
 http://127.0.0.1:8000/v1/embeddings
 ```
 
-这通常表示你没有设置 `LABAGENT_BASE_URL` 或 `LABAGENT_EMBED_BASE_URL`，CLI 正在请求本机默认 8000 端口；但 5090 本机没有 LiteLLM 服务，所以连接被拒绝。当前推荐让 embedding 走云服务器 LiteLLM 的 `embed-local` 路由，或者在 5090 本机也 load 一个 embedding 模型后改成本机 endpoint。
+这通常说明你没有设置 `LABAGENT_BASE_URL` 或 `LABAGENT_EMBED_BASE_URL`，于是 CLI 去请求本机默认 8000 端口，但 5090 上没有 LiteLLM 服务。
 
 ### 第四步：完整问答
 
@@ -232,15 +231,15 @@ http://127.0.0.1:8000/v1/embeddings
 python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？"
 ```
 
-这一步会：
+这一步是：
 
 ```text
 问题 -> embedding -> 检索 top-k -> 拼 context -> qwen-agent 生成答案
 ```
 
-回答里应该出现 `[S1]`、`[S2]` 这种引用。
+回答里应该出现 `[S1]`、`[S2]` 这类引用。
 
-## 7. 如何启动 RAG Service v1
+## 8. 如何启动 RAG Service v1
 
 在 5090 项目目录执行：
 
@@ -254,7 +253,7 @@ $env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
 python -m services.rag.server --host 127.0.0.1 --port 8010
 ```
 
-如果要显式拆分 embedding/chat endpoint：
+如果要显式拆开 embedding/chat endpoint：
 
 ```powershell
 $env:LABAGENT_EMBED_BASE_URL = "http://82.156.69.153:8000/v1"
@@ -267,7 +266,7 @@ $env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
 python -m services.rag.server --host 127.0.0.1 --port 8010
 ```
 
-本机调试：
+本地验证：
 
 ```powershell
 curl.exe http://127.0.0.1:8010/health `
@@ -280,7 +279,7 @@ curl.exe http://127.0.0.1:8010/health `
 curl.exe http://127.0.0.1:8010/v1/rag/search `
   -H "Authorization: Bearer <LABAGENT_RAG_API_KEY>" `
   -H "Content-Type: application/json" `
-  -d '{\"query\":\"LabAgent 当前有哪些公网模型路由？\",\"top_k\":5}'
+  -d '{"query":"LabAgent 当前有哪些公网模型路由？","top_k":5}'
 ```
 
 问答：
@@ -289,7 +288,7 @@ curl.exe http://127.0.0.1:8010/v1/rag/search `
 curl.exe http://127.0.0.1:8010/v1/rag/ask `
   -H "Authorization: Bearer <LABAGENT_RAG_API_KEY>" `
   -H "Content-Type: application/json" `
-  -d '{\"query\":\"LabAgent 当前多节点路由是什么状态？\",\"top_k\":8}'
+  -d '{"query":"LabAgent 当前多节点路由是什么状态？","top_k":8}'
 ```
 
 OpenAI-compatible 兼容入口：
@@ -298,158 +297,59 @@ OpenAI-compatible 兼容入口：
 curl.exe http://127.0.0.1:8010/v1/chat/completions `
   -H "Authorization: Bearer <LABAGENT_RAG_API_KEY>" `
   -H "Content-Type: application/json" `
-  -d '{\"model\":\"labagent-rag\",\"messages\":[{\"role\":\"user\",\"content\":\"LabAgent 当前多节点路由是什么状态？\"}],\"max_tokens\":900}'
+  -d '{"model":"labagent-rag","messages":[{"role":"user","content":"LabAgent 当前多节点路由是什么状态？"}],"max_tokens":900}'
 ```
 
-## 8. David / Cline 远程能不能用 RAG
+## 9. David / Cline 远程能不能用 RAG
 
-可以，但要分清楚“文档在哪里”。
+可以，但要分清“文档在哪里”。
 
-RAG 的文档不需要在 David 主机上。RAG index 在 5090 的 `data/rag/index.json`，RAG Service 也跑在 5090。David/Cline 只是通过 HTTP 问 5090 的 RAG Service。
+RAG 的文档不需要在 David 机器上。RAG index 在 5090 的 `data/rag/index.json`，RAG Service 也跑在 5090。David / Cline 只是通过 HTTP 调 5090 上的 RAG Service。
 
 也就是说：
 
 ```text
-David/Cline
-  -> HTTP 请求
-  -> 云服务器或 SSH 隧道
-  -> 5090 RAG Service
-  -> 5090 本地 data/rag/index.json
-  -> embed-local / qwen-agent
-  -> 带引用答案返回 David
+David / Cline -> HTTP -> 5090 RAG Service -> 本地索引 -> embedding -> chat
 ```
 
-David 不需要有这些 docs 文件。它只需要能访问 RAG Service 的 URL。
+## 10. 路由与侧通道
 
-当前最简单的远程方式是再开一个 SSH 反向隧道，把 5090 的 RAG Service 暴露到云服务器本地端口：
+当前 `labagent-agent` 只是一个 router，不是完整 Agent Runtime。
 
-```powershell
-ssh -N -R 18010:127.0.0.1:8010 -i C:\Users\N\.ssh\id_ed25519 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
-```
+它的职责是：
 
-然后 David 测试：
+- 判断是否需要视觉 side channel。
+- 判断是否需要 RAG side channel。
+- 把 side channel 结果交给 `qwen-agent` 收口。
 
-```powershell
-curl.exe http://82.156.69.153:18010/health `
-  -H "Authorization: Bearer <LABAGENT_RAG_API_KEY>"
-```
+它的下一步，不是直接做“更大的模型”，而是先把 side channel 失败恢复、streaming、图像回放和更聪明的路由做好。
 
-如果安全组没有开放 `18010`，David 访问不到。这时有两个选择：
+## 11. 质量问题
 
-```text
-1. 临时开放云服务器 TCP 18010，只给自己测试用
-2. 后续用 Nginx/Caddy 把 /rag 反代到 127.0.0.1:18010，并加鉴权/HTTPS
-```
+当前已经看到两个质量问题：
 
-云服务器 2GB 内存很小，所以不要把 RAG Service 部署在云服务器上。云服务器只做转发入口。
+1. 检索召回有偏差。比如“有哪些公网模型路由？”这类问题，最应该命中的 README 表格有时没进 top-k。
+2. 回答可能不完整，但不 hallucinate。比如 8060S 状态、`qwen-think` baseline、云入口等内容，有时因为没被召回就不会出现在答案里。
 
-## 9. Cline 里怎么提问
+这说明问题在 retrieval coverage，不是模型“胡说八道”。
 
-如果 Cline 直接配置到普通 `qwen-agent`，它不会自动用 RAG。它只是普通聊天/代码模型。
+## 12. 下一步
 
-要用 RAG，有三种方式：
+RAG v1.x 方向：
 
-### 方式 A：先用 curl 调 RAG，再把结果贴给 Cline
+1. 用 Qdrant 或 Chroma 替换 JSON index。
+2. 在新设备上接入 reranker。
+3. 做 answer faithfulness / citation eval。
+4. 把 `vision-local` 的最小 smoke 固化为正式 VL benchmark。
+5. 继续补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval`、`trace_eval`。
 
-这是最适合学习阶段的方式。你能看见 search 命中了哪些文档，也能理解 RAG 在干嘛。
+## 13. 你可以把它当成什么
 
-### 方式 B：把 Cline 的 Base URL 指向 RAG Service
+最实用的理解是：
 
-配置示例：
+- RAG 负责“找资料”。
+- `qwen-agent` 负责“写最终答案”。
+- `vision-local` 负责“看图”。
+- `labagent-agent` 负责把这些串起来。
 
-```text
-Base URL: http://82.156.69.153:18010/v1
-API Key:  <LABAGENT_RAG_API_KEY>
-Model:    labagent-rag
-```
-
-这样 Cline 问的是“项目文档问答模型”，它会通过 RAG 回答并附 sources。
-
-限制：当前兼容入口只支持非流式 chat，不适合作为你写代码时的主 Cline 模型。它更适合问项目状态、架构、决策、部署步骤。
-
-### 方式 C：后续做 Agent/MCP 工具
-
-未来更理想的方式是：
-
-```text
-Cline / Agent 主模型 = qwen-agent
-工具 = rag_search / rag_ask
-```
-
-模型需要资料时调用 RAG 工具，而不是把整个 Cline 都切到 RAG Service。这会是后续 Agent Runtime / MCP 节点的目标。
-
-## 10. 你可以这样问 RAG
-
-适合 RAG 的问题：
-
-```text
-LabAgent 当前有哪些模型路由？
-5090 和新设备分别承担什么角色？
-云服务器为什么不能跑 RAG / Agent Runtime？
-Qwen3-Coder-30B 为什么被定为 qwen-agent？
-RAG v0 当前完成了什么，没完成什么？
-下一步路线图是什么？
-新设备的 5080 + 4060 Ti 显存应该怎么理解？
-```
-
-不适合当前 RAG 的问题：
-
-```text
-帮我写一个全新的复杂功能
-分析一个不在 docs 里的外部网页
-读取 David 本地没有进索引的项目文件
-根据图片回答问题
-回答实时新闻或模型最新排行
-```
-
-原因：当前 RAG 只索引了这个仓库里的 Markdown 文档。
-
-## 11. 怎么判断 RAG 答得好不好
-
-不要只看答案像不像。要分三层：
-
-```text
-1. Retrieval：找的资料对不对？
-2. Generation：答案有没有忠实使用资料？
-3. Citation：引用是不是真的支持这句话？
-```
-
-调试顺序：
-
-```text
-如果答案错：
-  先跑 search 看 top-k
-  如果 top-k 没找到正确资料 -> chunking / embedding / query expansion / reranker 问题
-  如果 top-k 找到了正确资料但答案错 -> prompt / generation / max_context_chars 问题
-  如果答案对但引用乱 -> citation/formatting 问题
-```
-
-## 12. 当前边界和下一步
-
-当前仍未完成：
-
-```text
-真正的向量数据库：Qdrant / Chroma
-hybrid search：向量 + BM25
-reranker：对 top-k 二次排序
-文档上传 / PDF / 图片 OCR
-多用户权限隔离
-answer faithfulness 自动评测
-MCP / Agent 工具化调用
-```
-
-下一步建议：
-
-```text
-1. 先用 RAG Service v1 跑通 David/Cline 远程问答
-2. 再加 answer eval，验证答案是否忠实引用
-3. 再接 reranker
-4. 最后把 JSON index 换成 Qdrant / Chroma
-```
-
-面试表达重点：
-
-```text
-我不是只调用了一个 embedding API，而是实现了从文档切分、向量索引、检索评测、HTTP RAG Service 到带引用回答的最小 RAG 闭环；
-并且明确区分 retrieval quality、grounded answer quality 和 citation quality，后续通过 reranker、answer eval 和向量数据库继续迭代。
-```
+这不是一个单模型，而是一个分工明确的系统。

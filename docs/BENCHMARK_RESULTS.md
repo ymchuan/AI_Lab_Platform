@@ -1,123 +1,124 @@
-﻿# Benchmark Results
+# Benchmark 结果
 
-> This document records repeatable model, RAG, and Agent benchmark results.
+> 记录可重复的模型、RAG 和 Agent benchmark 结果。
 
-## Current Baseline
+## 当前基线
 
-| Date | Model | Backend | Dataset | Result File | Notes |
-|------|-------|---------|---------|-------------|-------|
-| 2026-06-15 | benchmark harness | local scripts | v2 baseline | pending | Added gateway health, repo map, patch generation, and Cline multi-turn eval scripts |
-| 2026-06-10 | qwen-local | 5090 / LM Studio | model_prompts | `model_latency_20260610_175738.jsonl` | Raw thinking mode |
-| 2026-06-10 | qwen-local | 5090 / LM Studio | agent_tasks | `agent_tasks_20260610_175941.jsonl` | Raw thinking mode |
-| 2026-06-10 | qwen-local | 5090 / LM Studio | rag_oracle | `rag_oracle_20260610_180131.jsonl` | Raw thinking mode |
-| 2026-06-10 | qwen-local | 5090 / LM Studio | model_prompts | `model_latency_20260610_180410.jsonl` | `/no_think` comparison |
-| 2026-06-10 | qwen-local | 5090 / LM Studio | agent_tasks | `agent_tasks_20260610_180618.jsonl` | `/no_think` comparison |
-| 2026-06-10 | qwen-local | 5090 / LM Studio | rag_oracle | `rag_oracle_20260610_180806.jsonl` | `/no_think` comparison |
-| 2026-06-10 | qwen-local | 5090 / LM Studio | model_prompts | `model_latency_20260610_193303.jsonl` | Post LM Studio tuning check |
-| 2026-06-10 | qwen-local | 5090 / LM Studio | agent_tasks | `agent_tasks_20260610_193509.jsonl` | Post LM Studio tuning check |
-| 2026-06-10 | qwen-local | 5090 / LM Studio | rag_oracle | `rag_oracle_20260610_194326.jsonl` | Post LM Studio tuning check |
-| 2026-06-15 | qwen/qwen3.6-27b | LM Studio local direct | model_prompts | `model_latency_20260615_150753.jsonl` | Direct LM Studio validation |
-| 2026-06-15 | qwen/qwen3.6-27b | LM Studio local direct | agent_tasks | `agent_tasks_20260615_151004.jsonl` | Direct LM Studio validation |
-| 2026-06-15 | qwen/qwen3.6-27b | LM Studio local direct | rag_oracle | `rag_oracle_20260615_151004.jsonl` | Direct LM Studio validation |
-| 2026-06-15 | qwen/qwen3.6-27b | 5090 / LM Studio direct | agent gate check | `manual_check_20260615` | Direct LM Studio chat still ends in `finish_reason=length` with empty `content`; not suitable as Agent main model |
-| 2026-06-15 | zai-org/glm-4.7-flash | LM Studio local direct | baseline v2 raw | `model_latency_20260615_200008.jsonl` etc. | Local health OK; patch/repo/Cline tasks failed |
-| 2026-06-15 | zai-org/glm-4.7-flash | LM Studio local direct | baseline v2 `/no_think` | `model_latency_20260615_200656.jsonl` etc. | `/no_think` did not remove reasoning; agent planning improved only |
-| 2026-06-18 | embed-local | LiteLLM public gateway -> new device LM Studio | embedding health | `embedding_health_20260618_180017.jsonl` | Multi-node route v1; 768-dimensional embeddings; tiny retrieval probe 2/3 |
-| 2026-06-18 | embed-local + qwen-agent | LiteLLM public gateway -> local nodes | rag_retrieval / RAG v0 | `rag_retrieval_20260618_215213.jsonl` | 319 chunks / 19 files; retrieval benchmark 3/3; end-to-end ask can answer with `[Sx]` citations |
-| 2026-06-26 | RAG Service v1 | 5090 local HTTP service + public :18010 tunnel | HTTP smoke | manual smoke | Local HTTP endpoints passed; David external `/health` returned `ok=true`; production hardening pending |
-| 2026-06-23 | embed-local + qwen-agent | LiteLLM public gateway -> 5090/new-device nodes | rag_retrieval / RAG v1 baseline | `rag_retrieval_20260624_113757.jsonl` | Rebuilt local index: 354 chunks / 21 files; default retrieval eval top-k 8 passed 3/3; CLI search and ask verified through cloud LiteLLM |
-| 2026-06-26 | vision-local | LiteLLM public gateway -> new device LM Studio | `vision_local_eval.py` | `vision_local_20260626_174104.jsonl` | 2/2 passed: shape/text OCR and screenshot-style routing table |
+| 日期 | 模型 | 后端 | 数据集 | 结果文件 | 备注 |
+|------|------|------|--------|----------|------|
+| 2026-06-15 | benchmark harness | 本地脚本 | v2 baseline | pending | 新增 gateway health、repo map、patch generation 和 Cline multi-turn 评测脚本 |
+| 2026-06-10 | qwen-local | 5090 / LM Studio | model_prompts | `model_latency_20260610_175738.jsonl` | 原始 thinking 模式 |
+| 2026-06-10 | qwen-local | 5090 / LM Studio | agent_tasks | `agent_tasks_20260610_175941.jsonl` | 原始 thinking 模式 |
+| 2026-06-10 | qwen-local | 5090 / LM Studio | rag_oracle | `rag_oracle_20260610_180131.jsonl` | 原始 thinking 模式 |
+| 2026-06-10 | qwen-local | 5090 / LM Studio | model_prompts | `model_latency_20260610_180410.jsonl` | `/no_think` 对比 |
+| 2026-06-10 | qwen-local | 5090 / LM Studio | agent_tasks | `agent_tasks_20260610_180618.jsonl` | `/no_think` 对比 |
+| 2026-06-10 | qwen-local | 5090 / LM Studio | rag_oracle | `rag_oracle_20260610_180806.jsonl` | `/no_think` 对比 |
+| 2026-06-10 | qwen-local | 5090 / LM Studio | model_prompts | `model_latency_20260610_193303.jsonl` | LM Studio 调参后检查 |
+| 2026-06-10 | qwen-local | 5090 / LM Studio | agent_tasks | `agent_tasks_20260610_193509.jsonl` | LM Studio 调参后检查 |
+| 2026-06-10 | qwen-local | 5090 / LM Studio | rag_oracle | `rag_oracle_20260610_194326.jsonl` | LM Studio 调参后检查 |
+| 2026-06-15 | qwen/qwen3.6-27b | LM Studio 本地直连 | model_prompts | `model_latency_20260615_150753.jsonl` | 直连 LM Studio 验证 |
+| 2026-06-15 | qwen/qwen3.6-27b | LM Studio 本地直连 | agent_tasks | `agent_tasks_20260615_151004.jsonl` | 直连 LM Studio 验证 |
+| 2026-06-15 | qwen/qwen3.6-27b | LM Studio 本地直连 | rag_oracle | `rag_oracle_20260615_151004.jsonl` | 直连 LM Studio 验证 |
+| 2026-06-15 | qwen/qwen3.6-27b | 5090 / LM Studio 直连 | agent gate check | `manual_check_20260615` | 直连 chat 仍经常以 `finish_reason=length` 结束且 `content` 为空，不适合作为 Agent 主模型 |
+| 2026-06-15 | zai-org/glm-4.7-flash | LM Studio 本地直连 | baseline v2 raw | `model_latency_20260615_200008.jsonl` 等 | 本地健康检查正常；patch/repo/Cline 任务失败 |
+| 2026-06-15 | zai-org/glm-4.7-flash | LM Studio 本地直连 | baseline v2 `/no_think` | `model_latency_20260615_200656.jsonl` 等 | `/no_think` 没有去掉 reasoning；agent planning 只有局部改善 |
+| 2026-06-18 | embed-local | LiteLLM 公网网关 -> 新设备 LM Studio | embedding health | `embedding_health_20260618_180017.jsonl` | 多节点路由 v1；768 维 embedding；小型检索 probe 2/3 |
+| 2026-06-18 | embed-local + qwen-agent | LiteLLM 公网网关 -> 本地节点 | rag_retrieval / RAG v0 | `rag_retrieval_20260618_215213.jsonl` | 319 chunks / 19 files；检索 benchmark 3/3；端到端 ask 可返回 `[Sx]` 引用 |
+| 2026-06-26 | RAG Service v1 | 5090 本地 HTTP 服务 + 公网 :18010 隧道 | HTTP smoke | manual smoke | 本地 HTTP 端点通过；David 外部 `/health` 返回 `ok=true`；生产硬化待做 |
+| 2026-06-23 | embed-local + qwen-agent | LiteLLM 公网网关 -> 5090 / 新设备节点 | rag_retrieval / RAG v1 baseline | `rag_retrieval_20260624_113757.jsonl` | 本地索引重建为 354 chunks / 21 files；默认 top-k 8 通过 3/3；CLI search / ask 已通过云端 LiteLLM 验证 |
+| 2026-06-26 | vision-local | LiteLLM 公网网关 -> 新设备 LM Studio | `vision_local_eval.py` | `vision_local_20260626_174104.jsonl` | 2/2 通过：形状/文字 OCR 和截图式路由表 |
+| 2026-06-28 | vision-local | LiteLLM 公网网关 -> 新设备 LM Studio | `vision_local_eval.py` | `vision_local_20260628_062604.jsonl` | 2/2 通过：形状/文字 OCR 和截图式路由表，复测确认稳定 |
 
-## 2026-06-10 Baseline Summary
+## 2026-06-10 基线汇总
 
-| Run | Rows OK | Pass Rate | Avg Latency | Avg Content Len | Avg Reasoning Len | Notes |
-|-----|---------|-----------|-------------|-----------------|-------------------|-------|
-| model latency raw | 4/4 | n/a | 27.44s | 138 chars | 5613 chars | Requests succeed, but reasoning dominates output budget |
-| agent tasks raw | 3/3 | 0/3 | 30.82s | 83 chars | 4945 chars | Many runs hit `finish_reason=length`; scoring only checks final `content` |
-| RAG oracle raw | 3/3 | 2/3 | 11.37s | 103 chars | 1647 chars | Model can answer from supplied context when final content is produced |
-| model latency `/no_think` | 4/4 | n/a | 27.93s | 143 chars | 5310 chars | `/no_think` did not materially reduce reasoning output |
-| agent tasks `/no_think` | 3/3 | 0/3 | 30.69s | 0 chars | 4794 chars | `/no_think` did not work reliably through current backend |
-| RAG oracle `/no_think` | 3/3 | 2/3 | 11.68s | 91 chars | 1705 chars | Similar to raw mode |
-| model latency post-tuning | 4/4 | n/a | 27.89s | 0 chars | 5553 chars | Still ended in `finish_reason=length`; no usable final `content` |
-| agent tasks post-tuning | 3/3 | 0/3 | 30.84s | 0 chars | 4958 chars | Still no final `content`; all tasks failed keyword scoring |
-| RAG oracle post-tuning | 3/3 | 2/3 | 11.87s | 101 chars | 1762 chars | Oracle context remains usable; one task missed the `LiteLLM` expected fact |
-| model latency direct LM Studio | 4/4 | n/a | 28.27s | 0 chars | 5612 chars | Direct local run still ends in `finish_reason=length` with empty `content` |
-| agent tasks direct LM Studio | 3/3 | 0/3 | 32.88s | 209 chars | 4571 chars | One tool-choice task produced some content, but overall pass rate is still 0/3 |
-| RAG oracle direct LM Studio | 3/3 | 1/3 | 18.12s | 30 chars | 2546 chars | Only one prompt passed; `rag_project_state` still failed because final `content` stayed empty |
+| 运行 | 行数通过 | 通过率 | 平均延迟 | 平均内容长度 | 平均 reasoning 长度 | 备注 |
+|-----|---------|--------|----------|--------------|-------------------|------|
+| model latency raw | 4/4 | n/a | 27.44s | 138 chars | 5613 chars | 请求成功，但 reasoning 占用了输出预算 |
+| agent tasks raw | 3/3 | 0/3 | 30.82s | 83 chars | 4945 chars | 很多运行到 `finish_reason=length`；评分只看 final `content` |
+| RAG oracle raw | 3/3 | 2/3 | 11.37s | 103 chars | 1647 chars | 给定 context 时，模型能基于资料回答 |
+| model latency `/no_think` | 4/4 | n/a | 27.93s | 143 chars | 5310 chars | `/no_think` 没有明显减少 reasoning 输出 |
+| agent tasks `/no_think` | 3/3 | 0/3 | 30.69s | 0 chars | 4794 chars | `/no_think` 在当前后端不稳定 |
+| RAG oracle `/no_think` | 3/3 | 2/3 | 11.68s | 91 chars | 1705 chars | 和 raw 模式相似 |
+| model latency post-tuning | 4/4 | n/a | 27.89s | 0 chars | 5553 chars | 仍然以 `finish_reason=length` 结束；没有可用 final `content` |
+| agent tasks post-tuning | 3/3 | 0/3 | 30.84s | 0 chars | 4958 chars | 仍然没有 final `content`；全部任务都失败 |
+| RAG oracle post-tuning | 3/3 | 2/3 | 11.87s | 101 chars | 1762 chars | oracle context 仍然可用；有一个任务没命中 `LiteLLM` 事实 |
+| model latency direct LM Studio | 4/4 | n/a | 28.27s | 0 chars | 5612 chars | 本地直连仍以 `finish_reason=length` 结束，`content` 为空 |
+| agent tasks direct LM Studio | 3/3 | 0/3 | 32.88s | 209 chars | 4571 chars | 有一个 tool-choice 任务产出了部分内容，但整体仍是 0/3 |
+| RAG oracle direct LM Studio | 3/3 | 1/3 | 18.12s | 30 chars | 2546 chars | 只有一个 prompt 通过；`rag_project_state` 仍失败，因为 final `content` 为空 |
 
-Interpretation:
+## 解释
 
-1. The cloud LiteLLM gateway can list models, but chat completions require the 5090 SSH reverse tunnel to be manually started.
-2. Direct LM Studio chat on 127.0.0.1 works, but this `qwen/qwen3.6-27b` preset still spends the output budget in `reasoning_content`.
-3. When `max_tokens` is low, `message.content` becomes empty because generation ends in the thinking phase.
-4. `/no_think` does not currently solve this through the LM Studio path.
-5. RAG oracle-context is promising: 2/3 tasks pass even before implementing retrieval.
-6. Verdict: this preset is **not suitable as the Agent main model**; keep it as `qwen-think` candidate and pair a more output-stable instruct/coder model for `qwen-agent`.
+1. 云端 LiteLLM 网关能列出模型，但 chat completions 需要 5090 的 SSH 反向隧道手动开启。
+2. 127.0.0.1 上的 LM Studio 直连是可用的，但这个 `qwen/qwen3.6-27b` preset 仍然会把输出预算花在 `reasoning_content` 上。
+3. `max_tokens` 较低时，`message.content` 会因为模型还在 thinking 阶段就结束而变成空。
+4. `/no_think` 目前并不能通过 LM Studio 路径稳定解决这个问题。
+5. RAG oracle-context 是一个积极信号：即使还没做检索，2/3 也能答对。
+6. 结论：这个 preset **不适合作为 Agent 主模型**；保留为 `qwen-think` 候选，并搭配更稳定输出的 instruct / coder 模型作为 `qwen-agent`。
 
-## Baseline Cleanup Notes
+## 基线清理说明
 
-As of 2026-06-15, the baseline is usable enough to guide the next step, but it is not yet a clean production benchmark:
+截至 2026-06-15，这个基线已经足够指导下一步，但还不是干净的生产 benchmark：
 
-1. `benchmarks/rag_oracle_eval.py` had a mojibake system prompt and has been fixed to normal UTF-8 Chinese.
-2. Several historical result files contain very large `reasoning_content` payloads and should remain local-only evidence under `benchmarks/results/`.
-3. The latest post-tuning run did not fix the key model behavior: general and Agent prompts still spent the whole output budget in reasoning and produced empty final `content`.
-4. Direct LM Studio validation shows this preset is fine for analysis, but not for Agent use, because it repeatedly ends in `finish_reason=length` with empty `content`.
-5. Before selecting a new main model, rerun all three benchmark scripts after each LM Studio preset or model change and compare `content` non-empty rate, `finish_reason`, latency, and pass rate.
-6. Cloud LiteLLM chat completions return HTTP 500 / `Connection error` when the 5090 SSH reverse tunnel is not running; this is an expected disconnected state, not evidence that LM Studio is broken.
-7. Baseline v2 now includes Cline-like tasks: repo understanding, patch generation, and multi-turn workflow reasoning. These should be run before accepting any model as the default Cline / Agent model.
+1. `benchmarks/rag_oracle_eval.py` 以前的 system prompt 有 mojibake，已经修成正常 UTF-8 中文。
+2. 一些历史结果文件包含非常大的 `reasoning_content`，应继续作为本地证据保存到 `benchmarks/results/`。
+3. 最近一轮调参并没有解决关键行为：general 和 Agent prompt 仍然把整个输出预算花在 reasoning 上，导致 final `content` 为空。
+4. 直连 LM Studio 的验证说明，这个 preset 更适合分析，不适合当 Agent，因为它经常以 `finish_reason=length` 结束且 `content` 为空。
+5. 在选择新的主模型之前，每次 LM Studio preset 或模型变化后都应该重跑三类 benchmark，并对比 `content` 非空率、`finish_reason`、延迟和通过率。
+6. 当 5090 的 SSH 反向隧道没开时，云端 LiteLLM chat completions 返回 HTTP 500 / `Connection error` 是预期的断联状态，不代表 LM Studio 坏了。
+7. baseline v2 现在已经包括 Cline-like 任务：repo 理解、patch 生成和多轮工作流推理。接受任何模型作为默认 Cline / Agent 模型之前，这些都应该跑完。
 
-## 2026-06-15 Baseline v2 Upgrade
+## 2026-06-15 baseline v2 升级
 
-New scripts:
-
-```text
-benchmarks/gateway_health_eval.py   -> checks /v1/models and /v1/chat/completions
-benchmarks/repo_map_eval.py         -> asks the model to understand actual project docs
-benchmarks/patch_task_eval.py       -> asks the model to produce small reviewable diffs
-benchmarks/cline_dialogue_eval.py   -> checks multi-turn Cline-like workflow advice
-```
-
-Scoring changes:
-
-- `run_agent_tasks.py` now treats empty `content` and `finish_reason=length` as failures.
-- `model_latency.py` records `content_len`, `reasoning_len`, `content_nonempty`, and `finish_reason_is_length`.
-- Patch tasks check whether the output looks like a unified diff or apply_patch-style patch.
-- 2026-06-16 update: `agent_tasks` and `cline_dialogue` now also record `strict_passed`, `soft_passed`, and `keyword_recall`, because all-or-nothing keyword scoring was too easy to misread as "model has no agent capability".
-
-Why this matters:
-
-- The real workflow is not only chatting with a bare model. The model is used through Cline to read a repo, reason over project state, propose edits, and keep context across turns.
-- A model that is strong in raw reasoning but returns empty final `content` is not acceptable as the default Cline / Agent execution model.
-- Future model selection should compare both quality and agent usability: latency, stable final answer, repo understanding, patch quality, and multi-turn behavior.
-
-Important interpretation:
+新增脚本：
 
 ```text
-0 strict pass on agent_tasks / cline_dialogue does not mean the model is not an LLM or cannot be used through Cline.
-It means the bare model response is not yet safe to promote as the default Agent/Cline execution model.
-Use soft_passed and keyword_recall to inspect partial capability.
+benchmarks/gateway_health_eval.py   -> 检查 /v1/models 和 /v1/chat/completions
+benchmarks/repo_map_eval.py         -> 让模型理解真实项目文档
+benchmarks/patch_task_eval.py       -> 让模型产出小而可审查的 diff
+benchmarks/cline_dialogue_eval.py   -> 检查多轮 Cline-like 工作流建议
 ```
 
-## 2026-06-15 GLM-4.7-Flash Local Check
+评分变化：
 
-Model:
+- `run_agent_tasks.py` 现在把空 `content` 和 `finish_reason=length` 当成失败。
+- `model_latency.py` 记录 `content_len`、`reasoning_len`、`content_nonempty` 和 `finish_reason_is_length`。
+- patch 任务会检查输出是否像 unified diff 或 apply_patch 风格 patch。
+- 2026-06-16 更新：`agent_tasks` 和 `cline_dialogue` 也记录 `strict_passed`、`soft_passed` 和 `keyword_recall`，因为全有全无的关键词评分太容易让人误读成“模型没有 agent 能力”。
+
+为什么这件事重要：
+
+- 真实工作流不只是和一个裸模型聊天。模型会通过 Cline 读仓库、理解项目状态、提出修改，并在多轮里保持上下文。
+- 一个推理能力很强、但 final `content` 为空的模型，不适合作为默认 Cline / Agent 执行模型。
+- 后续模型选择应该同时比较质量和 agent 可用性：延迟、稳定的最终回答、repo 理解、patch 质量和多轮行为。
+
+重要解释：
+
+```text
+agent_tasks / cline_dialogue 的 0 个 strict pass，不代表这个模型不是 LLM，也不代表它不能通过 Cline 使用。
+它只代表裸模型输出还不够安全，不能直接提升为默认 Agent/Cline 执行模型。
+应该结合 soft_passed 和 keyword_recall 看部分能力。
+```
+
+## 2026-06-15 GLM-4.7-Flash 本地检查
+
+模型：
 
 ```text
 LM Studio model id: zai-org/glm-4.7-flash
 Base URL: http://127.0.0.1:1234/v1
 ```
 
-Local health:
+本地健康检查：
 
 ```text
 GET /v1/models              OK
 POST /v1/chat/completions   OK
 ```
 
-Summary:
+汇总：
 
-| Run | Dataset | Pass Rate | Avg Latency | Avg Content Len | Avg Reasoning Len | Length Stops | Empty Content |
-|-----|---------|-----------|-------------|-----------------|-------------------|--------------|---------------|
+| 运行 | 数据集 | 通过率 | 平均延迟 | 平均内容长度 | 平均 reasoning 长度 | Length stops | Empty content |
+|-----|---------|--------|----------|--------------|-------------------|-------------|--------------|
 | raw | model latency | n/a | 34.20s | 956 chars | 2587 chars | 3/4 | 0/4 |
 | raw | agent tasks | 0/4 | 12.18s | 180 chars | 2622 chars | 2/4 | 1/4 |
 | raw | RAG oracle | 1/3 | 26.57s | 75 chars | 1178 chars | 0/3 | 0/3 |
@@ -131,16 +132,16 @@ Summary:
 | `/no_think` | patch tasks | 0/2 | 76.45s | 0 chars | 6628 chars | 2/2 | 2/2 |
 | `/no_think` | Cline dialogue | 0/2 | 71.69s | 1024 chars | 2407 chars | 1/2 | 0/2 |
 
-Interpretation:
+解释：
 
-1. GLM-4.7-Flash can answer through LM Studio and does not have a transport problem.
-2. Output files are valid UTF-8; garbled Chinese in PowerShell output is a terminal display issue, not a model-output issue.
-3. The model still spends a large part of the output budget in `reasoning_content`.
-4. `/no_think` did not reliably disable reasoning and increased latency in this run.
-5. Patch generation is the hard blocker: both patch tasks produced empty final `content` and ended in length stops.
-6. Verdict: keep as a chat/planning comparison model, but do **not** promote it to default Cline / Agent patch model.
+1. GLM-4.7-Flash 能通过 LM Studio 回答，说明它没有传输问题。
+2. 输出文件是有效 UTF-8；PowerShell 里的中文乱码只是终端显示问题，不是模型输出问题。
+3. 这个模型仍然把输出预算的大部分花在 `reasoning_content` 上。
+4. `/no_think` 既没有稳定关闭 reasoning，还在这次运行里增加了延迟。
+5. patch 生成是最硬的阻塞点：两个 patch 任务都没有产出有效 final `content`，并以 length stop 结束。
+6. 结论：保留为聊天 / 规划对照模型，但不要提升为默认 Cline / Agent patch 模型。
 
-## 2026-06-15 GLM-4.7-Flash Re-test (Reloaded)
+## 2026-06-15 GLM-4.7-Flash 重新加载复测
 
 模型重新 load 后在 5090 本机直连 LM Studio 跑全量 baseline v2。
 
@@ -149,8 +150,8 @@ LM Studio model id: zai-org/glm-4.7-flash
 Base URL: http://127.0.0.1:1234/v1
 ```
 
-| Test | Result | Score | Notes |
-|------|--------|-------|-------|
+| 测试 | 结果 | 分数 | 备注 |
+|------|------|------|------|
 | model_latency | OK | 4/4 | 3.4-10.2s，延迟大幅改善 |
 | gateway_health | OK | 2/2 | list_models + chat_completion |
 | agent_tool_choice | FAIL | 0/4 | 工具选择失败 |
@@ -162,19 +163,19 @@ Base URL: http://127.0.0.1:1234/v1
 | rag_resume_value | PASS | 5/5 | 完美通过 |
 | repo_map_current_state | FAIL | 5/6 | 接近通过 |
 | repo_map_benchmark_plan | FAIL | 1/6 | 规划理解弱 |
-| patch_docs_gpu_pool_note | FAIL | 0/5 | 无 diff 生成 |
-| patch_benchmark_readme_cline | FAIL | 0/5 | 无 diff 生成 |
+| patch_docs_gpu_pool_note | FAIL | 0/5 | 没有生成 diff |
+| patch_benchmark_readme_cline | FAIL | 0/5 | 没有生成 diff |
 | cline_dialogue_benchmark_scope | FAIL | 2/6 | 部分通过 |
 | cline_dialogue_model_routing | FAIL | 0/6 | 多轮对话失败 |
 
-vs 上次对比：
+和上一轮对比：
 
 ```text
 改善：延迟从 34-76s 降到 3-62s
 改善：agent_recovery 从 0/4 升到 3/4
 改善：rag_resume_value 从 0/1 升到 5/5
 改善：repo_map_current_state 从 0/1 升到 5/6
-未改善：patch tasks 仍然 0/10，无 diff 生成
+未改善：patch tasks 仍然 0/10，没有 diff 生成
 未改善：agent_tool_choice / agent_planning 仍然 0/4
 ```
 
@@ -199,392 +200,62 @@ qwen/qwen3.6-27b
 text-embedding-nomic-embed-text-v1.5
 ```
 
-待测试：`qwen3-coder-30b`、`qwen3.6-35b-a3b`（P0 候选模型）。其中 `qwen3-coder-30b` 已完成首轮基线测试，结果见下方新增小节。
+待测试：`qwen3-coder-30b`、`qwen3.6-35b-a3b`（P0 候选模型）。其中 `qwen3-coder-30b` 已完成首轮基线测试，结果见下方。
 
-## 2026-06-15 Qwen3-Coder-30B Local Check
+## 2026-06-15 Qwen3-Coder-30B 本地检查
 
-Model:
+模型：
 
 ```text
 LM Studio model id: qwen/qwen3-coder-30b
 Base URL: http://127.0.0.1:1234/v1
 ```
 
-Local health:
+本地健康检查：
 
 ```text
 GET /v1/models              OK
 POST /v1/chat/completions   OK
 ```
 
-Summary:
+汇总：
 
-| Run | Result | Notes |
-|-----|--------|-------|
+| 运行 | 结果 | 备注 |
+|-----|------|------|
 | gateway health | pass | `list_models` 和最小 chat 都可用 |
 | RAG oracle | mixed | 3/3 中 1/3 通过，`rag_resume_value_001` 通过 |
-| patch tasks | mixed | 2/2 都产出有效 diff，但因关键词评分过严暂记为 fail |
+| patch tasks | mixed | 2/2 都产出有效 diff，但因为关键词评分太严格而暂记 fail |
 | repo map | fail | 两条任务都在 180s 超时 |
-| Cline dialogue | fail | 2/2 有内容，但多轮关键字覆盖不足 |
+| Cline dialogue | fail | 2/2 有内容，但多轮关键词覆盖不足 |
 
-Interpretation:
+解释：
 
-1. `qwen3-coder-30b` 不是“空输出”模型，短请求和 RAG/patch 都能返回正常 `content`。
+1. `qwen3-coder-30b` 不是“空输出”模型，短请求和 RAG / patch 都能返回正常 `content`。
 2. 它比当前 `qwen/qwen3.6-27b` 更像一个真正的 coding / agent 候选。
 3. 但它在 repo map 和多轮工作流上仍然偏慢，当前 benchmark 需要支持慢模型的增量落盘与更合理的评分。
 4. patch 任务的英文 diff 已经证明它能生成可用修改，后续应把重点放在 repo 理解、Cline 工作流和稳定性上。
 
-## Dataset Notes
+## 数据集说明
 
-As of 2026-06-18, 8060S is unavailable and no longer appears in new planning tasks. The Agent planning dataset now targets the RTX 5080 + RTX 4060 Ti new device as the next node for Embedding / Reranker / VL / second coding model.
+截至 2026-06-18，8060S 不可用，因此不再出现在新的 planning 任务里。Agent planning 数据集现在把 RTX 5080 + RTX 4060 Ti 新设备当作下一节点，主要承接 Embedding / Reranker / VL / 第二代码模型。
 
-As of 2026-06-18 evening, the new device has been connected as `embed-local` through LiteLLM:
+截至 2026-06-18 晚上，新设备已经通过 LiteLLM 接入为 `embed-local`：
 
 ```text
-Cloud LiteLLM /v1/embeddings -> SSH :12341 -> new device LM Studio
+Cloud LiteLLM /v1/embeddings -> SSH :12341 -> 新设备 LM Studio
 Model id: text-embedding-nomic-embed-text-v1.5-embedding
 Public alias: embed-local
 Observed dimension: 768
 ```
 
-## Metrics To Track
-
-### Model
-
-| Metric | Why It Matters |
-|--------|----------------|
-| first_token_seconds | User-perceived responsiveness |
-| latency_seconds | End-to-end request time |
-| tokens_per_second | Throughput |
-| completion_tokens | Output size |
-| error_rate | Service stability |
-
-### Agent
-
-| Metric | Why It Matters |
-|--------|----------------|
-| task_pass_rate | Whether the model can solve task-like prompts |
-| tool_choice_accuracy | Whether it names the right tool category |
-| recovery_quality | Whether it can recover from common infrastructure errors |
-| repo_map_pass_rate | Whether it can read actual project files and summarize current state |
-| patch_generation_pass_rate | Whether it can produce small reviewable diffs for Cline-like edits |
-| multi_turn_pass_rate | Whether it stays coherent across Cline-style follow-up turns |
-
-### RAG
-
-| Metric | Why It Matters |
-|--------|----------------|
-| oracle_context_pass_rate | Whether the model can use correct context |
-| retrieved_context_pass_rate | Whether retrieval provides enough evidence |
-| citation_quality | Whether answers can be grounded |
-
-## How To Run
-
-```powershell
-$env:LABAGENT_BASE_URL = "http://82.156.69.153:8000/v1"
-$env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
-$env:LABAGENT_MODEL = "qwen-local"
-
-python benchmarks/model_latency.py --stream
-python benchmarks/gateway_health_eval.py
-python benchmarks/run_agent_tasks.py
-python benchmarks/rag_oracle_eval.py
-python benchmarks/repo_map_eval.py
-python benchmarks/patch_task_eval.py
-python benchmarks/cline_dialogue_eval.py
-python benchmarks/embedding_health_eval.py --model embed-local
-
-# Qwen3-style no-thinking comparison
-python benchmarks/model_latency.py --stream --no-think
-python benchmarks/run_agent_tasks.py --no-think
-python benchmarks/rag_oracle_eval.py --no-think
-```
-
-After each run, summarize the generated JSONL files here.
-
-
-## 2026-06-15 Qwen3-Coder-30B Full Baseline
-
-Model:
-
-```text
-LM Studio model id: qwen/qwen3-coder-30b
-Base URL: http://127.0.0.1:1234/v1
-```
-
-Summary:
-
-| Run | Result | Notes |
-|-----|--------|-------|
-| gateway health | pass | `list_models` and minimal chat both work |
-| model latency | pass | `content` non-empty, first token present, no reasoning spillover |
-| RAG oracle | mixed | 1/3 passed; good on resume-value style, weaker on project state / cloud constraint |
-| patch tasks | pass | 2/2 passed with real unified diffs |
-| agent tasks | fail | 0/4 passed; still weak on tool choice / recovery / planning |
-| repo map | fail | 2/2 timed out even with reduced context |
-| Cline dialogue | fail | 0/2 passed; multi-turn coverage still incomplete |
-
-Interpretation:
-
-1. `qwen3-coder-30b` is a real content-producing model on LM Studio, not an empty-output preset.
-2. It is good enough to be the current coding / patch candidate.
-3. It is not yet a stable Agent main model because tool-choice and multi-turn workflow scores are still weak.
-4. For the next iteration, the benchmark should focus on repo understanding, tool routing, and lower-latency long-context handling.
-
-
-## 2026-06-15 Qwen3.6-35B-A3B Local Check
-
-Model:
-
-```text
-LM Studio model id: qwen/qwen3.6-35b-a3b
-Base URL: http://127.0.0.1:1234/v1
-```
-
-Summary:
-
-| Run | Result | Notes |
-|-----|--------|-------|
-| gateway health | pass | `/v1/models` and minimal chat both work |
-| model latency | fail | stream requests finish in `reasoning_content` with empty `content` |
-| RAG oracle | mixed | 1/3 passed with `--no-think` |
-| patch tasks | fail | 0/2, no diff |
-| agent tasks | fail | 0/4 |
-| repo map | not run | skipped in this round |
-| Cline dialogue | fail | 0/2 |
-
-Interpretation:
-
-1. `qwen3.6-35b-a3b` is fast and responsive, but this preset still behaves like a reasoning-heavy model.
-2. It does not currently look like the better Agent execution model compared with `qwen3-coder-30b`.
-3. Its patch and workflow scores are too weak for the default Cline path.
-
-
-## 2026-06-15 Gemma 4 31B Local Check
-
-Model:
-
-```text
-LM Studio model id: google/gemma-4-31b
-Base URL: http://127.0.0.1:1234/v1
-```
-
-Summary:
-
-| Run | Result | Notes |
-|-----|--------|-------|
-| gateway health | pass | `/v1/models` works; minimal chat returns reasoning-heavy length stop |
-| model latency | mixed | 4/4 OK, avg 56.22s; 3/4 length stops; content sometimes non-empty |
-| RAG oracle | mixed | 1/3 passed; all three produced final content |
-| patch tasks | pass | 2/2 passed with real unified diffs |
-| agent tasks | fail | 0/4; tool choice and workflow planning weak |
-| Cline dialogue | fail | 0/2; both length stops and incomplete keyword coverage |
-
-Interpretation:
-
-1. `google/gemma-4-31b` is a useful non-Qwen comparison model because it can produce real diffs.
-2. It is slower than Qwen3.6-35B-A3B and still spends many tokens in reasoning.
-3. It does not beat `qwen/qwen3-coder-30b` as the current coding / patch candidate, but it is worth keeping for cross-family comparison.
-
-
-## 2026-06-16 Agent/Cline Soft-Scoring Re-test
-
-After adding `strict_passed`, `soft_passed`, and `keyword_recall`, the earlier `0/4` result is now easier to interpret.
-
-| Model | Run | Strict | Soft | Avg Keyword Recall | Result File | Interpretation |
-|-------|-----|--------|------|--------------------|-------------|----------------|
-| `qwen/qwen3-coder-30b` | agent_tasks | 2/4 | 4/4 | 0.775 | `agent_tasks_20260616_105607.jsonl` | Has real agent-readiness signal |
-| `qwen/qwen3-coder-30b` | cline_dialogue | 0/2 | 2/2 | 0.500 | `cline_dialogue_20260616_105607.jsonl` | Not strict-pass yet, but useful workflow signal |
-| `google/gemma-4-31b` | agent_tasks | 0/4 | 0/4 | 0.050 | `agent_tasks_20260616_110128.jsonl` | Patch-capable, but weak as agent planner |
-| `google/gemma-4-31b` | cline_dialogue | 0/2 | 0/2 | 0.000 | `cline_dialogue_20260616_110128.jsonl` | Not suitable for Cline dialogue planning |
-
-Updated interpretation:
-
-1. The old `agent_tasks 0/4` did not mean every model had zero agent capability.
-2. `qwen/qwen3-coder-30b` is currently the best local coding / patch / agent-readiness candidate.
-3. `google/gemma-4-31b` remains a useful patch-capable comparison model, but not the Agent/Cline planning leader.
-4. The next benchmark upgrade should apply patches and verify file/test outcomes instead of relying mainly on textual keywords.
-
-
-## 2026-06-16 Qwen3-30B-A3B-2507 + Embedding Check
-
-Model:
-
-```text
-LM Studio chat model id: qwen/qwen3-30b-a3b-2507
-LM Studio embedding model id: text-embedding-nomic-embed-text-v1.5
-Base URL: http://127.0.0.1:1234/v1
-```
-
-Important methodology note:
-
-1. The first parallel run overloaded the local LM Studio backend and produced timeouts on long tasks.
-2. The formal numbers below use sequential runs.
-3. `model_prompts.jsonl` was fixed from mojibake Chinese to valid Chinese before the formal latency run.
-4. `patch_gpu_pool_note` scoring now accepts both "continuous" and "contiguous" as valid wording.
-
-Summary:
-
-| Run | Result | Result File | Notes |
-|-----|--------|-------------|-------|
-| gateway health | pass | `gateway_health_20260616_133527.jsonl` | `/v1/models` and minimal chat both work |
-| model latency | mixed | `model_latency_20260616_135047.jsonl` | 4/4 OK, but long tasks took about 113-116s and 3/4 hit `finish_reason=length` |
-| agent tasks | mixed | `agent_tasks_20260616_135658.jsonl` | strict 3/4, soft 3/4; weak on 502 troubleshooting chain |
-| Cline dialogue | soft pass only | `cline_dialogue_20260616_140222.jsonl` | strict 0/2, soft 2/2, avg keyword recall 0.5 |
-| RAG oracle | mixed | `rag_oracle_20260616_140620.jsonl` | 1/3 strict; one near miss at 4/5 facts |
-| patch tasks | pass | `patch_tasks_20260616_142219.jsonl` | 2/2 unified diff tasks passed |
-| repo map | timeout | `repo_map_20260616_140809.jsonl` | full-context repo map timed out twice at 300s |
-| embedding health | mixed | `embedding_health_20260616_133615.jsonl` | endpoint OK, 768 dimensions, tiny retrieval probe 2/3 |
-
-Interpretation:
-
-1. `qwen/qwen3-30b-a3b-2507` produces normal `content` and has good planning/patch ability, but it is much slower than desired for the default local 80% daily model.
-2. It is weaker than `qwen/qwen3-coder-30b` on the gateway troubleshooting task and full-context repo-map stability.
-3. It may remain useful as a general planning / patch comparison model, but it does not currently displace Qwen3-Coder as the main Cline/Agent candidate.
-4. `text-embedding-nomic-embed-text-v1.5` is usable as an embedding endpoint smoke test, but the 2/3 toy retrieval result means it still needs a real RAG retrieval benchmark with chunking and rerank before becoming the project default.
-
-
-## 2026-06-16 Qwen3.6-35B-A3B Re-test
-
-Model:
-
-```text
-LM Studio model id: qwen/qwen3.6-35b-a3b
-Base URL: http://127.0.0.1:1234/v1
-```
-
-Summary:
-
-| Run | Result | Result File | Notes |
-|-----|--------|-------------|-------|
-| gateway health | mixed | `gateway_health_20260616_142940.jsonl` | `/v1/models` OK; minimal chat ended in `reasoning_content` with `finish_reason=length` |
-| model latency | mixed | `model_latency_20260616_143035.jsonl` | 4/4 HTTP OK, about 41-42s each; 3/4 had empty `content` and large `reasoning_content` |
-| agent tasks | fail | `agent_tasks_20260616_143335.jsonl` | strict 0/4, soft 0/4; all content empty, all length-stopped in reasoning |
-| agent tasks `/no_think` | fail | `agent_tasks_20260616_144506.jsonl` | `/no_think` still produced empty `content` and length-stopped reasoning |
-| Cline dialogue | fail | `cline_dialogue_20260616_143731.jsonl` | strict 0/2, soft 0/2; content empty |
-| RAG oracle | mixed | `rag_oracle_20260616_143938.jsonl` | 1/3 strict; only short factual answers reached final `content` |
-| patch tasks | fail | `patch_tasks_20260616_144108.jsonl` | 0/2; no diff, content empty |
-| repo map | fail | `repo_map_20260616_144349.jsonl` | one HTTP 400 and one length-stopped reasoning-only response |
-
-Interpretation:
-
-1. This model is fast enough to respond, but the current LM Studio preset spends most of the budget in `reasoning_content`.
-2. Because `message.content` is usually empty, it remains unsuitable for Cline, Agent execution, patch generation, and RAG answer generation.
-3. `/no_think` does not fix the current preset, so it should not be promoted unless we find a model template/preset that reliably emits final `content`.
-
-
-## 2026-06-16 Qwen3.6-27B Reload Re-test
-
-Model:
-
-```text
-LM Studio model id: qwen/qwen3.6-27b
-Base URL: http://127.0.0.1:1234/v1
-```
-
-Methodology note:
-
-The first partial run after the user request was deleted from `benchmarks/results/` because the model was reloaded mid-test. The result files below are the clean post-reload run.
-
-Summary:
-
-| Run | Result | Result File | Notes |
-|-----|--------|-------------|-------|
-| gateway health | mixed | `gateway_health_20260616_151841.jsonl` | `/v1/models` OK; minimal chat still ended in reasoning with empty `content` |
-| model latency | fail for final content | `model_latency_20260616_151854.jsonl` | 4/4 HTTP OK, about 15-16s each, but all final `content` empty and length-stopped in reasoning |
-| agent tasks | fail | `agent_tasks_20260616_152026.jsonl` | strict 0/4, soft 0/4; all content empty |
-| agent tasks `/no_think` | fail | `agent_tasks_20260616_152625.jsonl` | `/no_think` still produced empty `content` and length-stopped reasoning |
-| Cline dialogue | fail | `cline_dialogue_20260616_152205.jsonl` | strict 0/2, soft 0/2; content empty |
-| RAG oracle | mixed | `rag_oracle_20260616_152301.jsonl` | 1/3 strict; only the shortest answer reached final `content` |
-| patch tasks | fail | `patch_tasks_20260616_152345.jsonl` | 0/2; no diff, content empty |
-| repo map | fail | `repo_map_20260616_152454.jsonl` | 0/2; content empty |
-
-Interpretation:
-
-1. Reloading the model improved speed significantly compared with the interrupted run, but did not fix the core Agent problem.
-2. The current preset still spends nearly all useful output in `reasoning_content`; `message.content` is usually empty.
-3. Keep this model only as a reasoning/thinking baseline (`qwen-think`), not as the default Cline/Agent/RAG execution model.
-
-
-## 2026-06-18 Multi-node Embedding Route v1
-
-Model:
-
-```text
-LM Studio model id: text-embedding-nomic-embed-text-v1.5-embedding
-Public LiteLLM alias: embed-local
-Route: http://82.156.69.153:8000/v1 -> cloud LiteLLM -> SSH :12341 -> new device LM Studio
-```
-
-Validation:
-
-| Check | Result | Notes |
-|-------|--------|-------|
-| Cloud direct `:12340/v1/models` | pass | 5090 tunnel reachable; model list includes Qwen3-Coder and historical local models |
-| Cloud direct `:12341/v1/models` | pass | New device tunnel reachable; model list includes Nomic embedding ids |
-| Public `/v1/models` | pass | Returns `qwen-local`, `qwen-agent`, `embed-local`; 2026-06-24 docs updated to expect `vision-local` as well |
-| Public `/v1/embeddings` | pass | `embed-local` returns 2 vectors, each 768 dimensions |
-| `embedding_health_eval.py --model embed-local` | mixed | document embeddings OK, 768 dimensions, tiny retrieval probe 2/3 |
-
-Interpretation:
-
-1. LabAgent is no longer a single-node gateway; it now has a working second local node behind the same LiteLLM entrypoint.
-2. The cloud server still performs only lightweight routing and authentication. Model work stays on local machines.
-3. The tiny retrieval probe is intentionally weak and scored 2/3, so this is not yet a full RAG service. The next step is vector store + reranker + answer eval, plus a minimal `vision-local` benchmark for image QA, screenshot understanding, and OCR-ish tasks.
-
-## 2026-06-26 Vision Route Smoke Test
-
-Route:
-
-```text
-Public LiteLLM alias: vision-local
-Model: qwen/qwen3-vl-30b
-Path: 82.156.69.153:8000/v1 -> cloud LiteLLM -> SSH :12341 -> new device LM Studio
-```
-
-Validation:
-
-| Check | Result | Notes |
-|-------|--------|-------|
-| Public `/v1/models` | pass | Returned `qwen-local`, `qwen-agent`, `embed-local`, `vision-local` |
-| Synthetic image OCR / shape read | pass | Generated PNG with `LABAGENT VL TEST 42`, blue square, red circle; model read the text and identified colors/shapes |
-| Screenshot-style dashboard OCR | pass | With compact JSON prompt, model read rows for `qwen-agent`, `embed-local`, `vision-local`, `qwen-think` and the alert text |
-
-Interpretation:
-
-1. `vision-local` is no longer only routed; the public OpenAI-compatible image message path works end to end.
-2. Qwen3-VL-30B is good enough for the planned Agent visual side channel: screenshot description, OCR-ish extraction, and image context summarization.
-3. Formal VL benchmark now forces compact JSON output and scores exact OCR fields. The first manual attempt showed that unconstrained screenshot prompts can waste output budget or omit rows, so structured output is required for the Agent visual side channel.
-
-## 2026-06-18 RAG v0 Retrieval Baseline
-
-Implementation:
-
-```text
-services/rag/
-  Markdown docs -> chunks -> embed-local -> data/rag/index.json -> cosine retrieval -> qwen-agent cited answer
-```
-
-Validation:
-
-| Check | Result | Notes |
-|-------|--------|-------|
-| Index build | pass | 354 chunks from 21 Markdown files after 2026-06-23 doc sync |
-| Embedding backend | pass | `embed-local`, 768-dimensional vectors |
-| `rag_retrieval_eval.py` | pass | 3/3 fixed retrieval tasks passed |
-| `services.rag.cli search` | pass | Can retrieve route/API/architecture evidence |
-| `services.rag.cli ask` | pass with caveat | Can answer with `[Sx]` citations; default ask now uses top-k 8 and about 9000 context chars |
-
-Representative command:
-
-```powershell
-python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？"
-```
-
-Interpretation:
-
-1. The project now has a real RAG baseline instead of only oracle-context prompts.
-2. Retrieval and generation are separate quality gates. `rag_retrieval_eval.py` checks retrieval evidence; it does not prove every generated answer is faithful.
-3. The first end-to-end run exposed a real RAG issue: a too-small context or too-strict system prompt can make the model under-answer even when relevant chunks exist. The pipeline now defaults to 8 chunks and 9000 context characters.
-4. A later rebuild exposed another real RAG issue: heading-like or command-example chunks can outrank evidence chunks. The chunker now filters very short chunks, and the retriever adds lightweight query expansion / hybrid scoring for route, node, model, and status questions.
-5. Next benchmark upgrade should score answer faithfulness, citation accuracy, and entity mapping accuracy, especially `qwen-agent` vs `embed-local` vs node status.
+## 要跟踪的指标
+
+### 模型
+
+| 指标 | 为什么重要 |
+|------|-----------|
+| first_token_seconds | 用户感知的响应速度 |
+| latency_seconds | 端到端请求时间 |
+| tokens_per_second | 吞吐 |
+| completion_tokens | 输出大小 |
+| error_rate | 服务稳定性 |

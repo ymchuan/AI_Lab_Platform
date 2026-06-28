@@ -128,15 +128,33 @@ curl http://82.156.69.153:8000/v1/chat/completions \
 
 当前状态：路由已接入，2026-06-26 最小公网 smoke test 已通过：可读出测试图片中的英文文字/数字、颜色形状，并能读取截图式 dashboard 表格。截图 OCR-ish 场景容易因为回答太长触发 `finish_reason=length`，正式 benchmark 需要约束输出格式和 token 预算。
 
+2026-06-28 已用 `benchmarks/vision_local_eval.py` 复测 `vision-local`，两个固定任务均通过。推荐把它当作最小回归入口，而不是只靠手工聊天判断。
+
+### 建议的回归命令
+
+```powershell
+$env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
+python benchmarks/vision_local_eval.py --base-url http://82.156.69.153:8000/v1 --api-key $env:LABAGENT_API_KEY --model vision-local
+```
+
+### 结果解读
+
+1. `shape_ocr` 通过，说明图片中文字、数字、颜色和基础图形链路正常。
+2. `dashboard_ocr` 通过，说明截图式表格读取和路由状态识别正常。
+3. 如果结果文件中出现 `finish_reason=length`，说明不是纯路由失败，而是输出预算不够，应该先调低输出格式要求或提高 token 预算。
+
 ## LabAgent Router 接口
 
 `labagent-agent` 是一个独立的 OpenAI-compatible 编排层，地址和鉴权方式与其他本地服务一致，但它不是 LiteLLM 的模型别名。
 
 ```text
 Local URL:  http://127.0.0.1:8020
+Remote URL: http://82.156.69.153:18020/v1  # 需 TCP 18020 安全组放行
 Auth:       Authorization: Bearer <LABAGENT_AGENT_API_KEY>
 Model ID:   labagent-agent
 ```
+
+`LABAGENT_AGENT_API_KEY` 是 router 自己的鉴权 key，和 LiteLLM 的 `LABAGENT_API_KEY`、RAG Service 的 `LABAGENT_RAG_API_KEY` 分开管理。不要把三个 key 混用。
 
 已支持接口：
 
@@ -157,6 +175,14 @@ Model ID:   labagent-agent
 - 不执行工具调用
 - 不维护 memory
 - RAG 侧通道依赖可用的 embedding backend
+
+2026-06-29 验证状态：
+
+- 本地 8020：错误 key 返回 401，正确 `LABAGENT_AGENT_API_KEY` 返回 200。
+- direct chat：`route=direct_chat`，最终模型 `qwen-agent`。
+- 项目知识：`route=project_context`，RAG 分支 `rag_ok=true`。
+- 图片输入：`route=image_input`，调用 `vision-local`，能识别测试图中的文字、颜色块和布局。
+- 云端：`0.0.0.0:18020` 已监听，云服务器本机 `127.0.0.1:18020/health` 可用；外部公网访问待腾讯云安全组放行 TCP 18020。
 
 ## RAG Service v1 接口
 

@@ -54,6 +54,14 @@ RAG Service + Agent Runtime + MCP Server + Eval Harness
 
 目标：做出一个真实可用的知识库问答系统。
 
+先把边界讲清楚：
+
+- 一个 workspace 对应一个团队、一个项目，或者一个明确的知识域。
+- 团队成员不直接写 vector DB；他们把文档交给 RAG Service，由服务完成解析、切块、embedding 和索引。
+- 不同 workspace 的文档默认隔离，查询也默认按 workspace 过滤，避免把无关团队的资料混在一起。
+- 第一版可以先用“每个 workspace 一个 `index.json`”的简单方案；后续迁移到 Qdrant 时，优先考虑“单 collection + `workspace_id` payload filter”，只有在强隔离需求很高时才拆更多 collection。
+- 公共平台文档可以单独放一个 shared workspace，和团队私有文档分开。
+
 功能：
 
 - 文档上传：PDF / Markdown / DOCX / PPTX / 图片。
@@ -101,7 +109,7 @@ services/rag/server.py
   -> POST /v1/chat/completions
 ```
 
-它仍使用本地 JSON index，目标是让 David/Cline 能远程调试 RAG。下一版不要一开始做全平台。先把当前项目文档目录升级为 RAG v1.x：
+它仍使用本地 JSON index，目标是让 David/Cline 能远程调试 RAG。下一版不要一开始做全平台，先把当前项目文档目录升级为 **workspace-based RAG v1.x**：
 
 ```text
 docs/ + README.md + HANDOFF.md
@@ -109,9 +117,12 @@ docs/ + README.md + HANDOFF.md
   -> chunk
   -> embedding
   -> vector db
+  -> workspace_id partitioning
   -> rerank
   -> answer with citations
 ```
+
+在这个基础上，再往 **agentic RAG** 走：让检索层具备 query rewrite、iterative retrieval、tool routing、rerank、citation validation 和 faithfulness check，而不是一上来就把它做成完整 Agent Runtime。
 
 ### 3. Agent Runtime
 
@@ -131,7 +142,7 @@ docs/ + README.md + HANDOFF.md
 在这之前，先保留一个轻量 router 层：
 
 - 对外暴露单一模型名 `labagent-agent`。
-- 内部把文本、图片和项目知识拆成 side channel。
+- 内部把文本、图片和项目知识拆成 side channel；其中项目知识走 workspace-scoped RAG。
 - 最后仍由 `qwen-agent` 收口。
 
 这一层的价值是先把团队客户端接入和知识路由做稳，再继续往真正的 planner / executor 走。
@@ -349,7 +360,7 @@ benchmarks/claude_code_compat_eval.py      # 已规划
 
 - [x] RAG v0：Markdown 文档 -> chunk -> embedding -> 本地 JSON index -> 检索 -> 带引用回答。
 - [x] 至少支持当前项目文档问答。
-- [ ] RAG Service v1：向量数据库、reranker、API Server、answer faithfulness / citation eval。
+- [ ] RAG Service v1：workspace 隔离、向量数据库、reranker、API Server、answer faithfulness / citation eval。
 
 ### M5：Agent MVP
 

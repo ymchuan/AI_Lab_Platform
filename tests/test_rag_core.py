@@ -53,6 +53,7 @@ class RagCoreTest(unittest.TestCase):
         self.assertIn("qwen-agent", expanded)
         self.assertIn("embed-local", expanded)
         self.assertIn(":12340", expanded)
+        self.assertIn("qwen3-vl-30b", expanded)
 
     def test_cosine_similarity_and_retrieve_rank_expected_chunk(self) -> None:
         index = {
@@ -147,6 +148,33 @@ class RagCoreTest(unittest.TestCase):
         results = retrieve(index, [1.0, 0.0], top_k=1, query_text="当前多节点路由是什么状态？")
 
         self.assertEqual(results[0]["id"], "route#0")
+
+    def test_retrieve_boosts_vision_related_entities(self) -> None:
+        index = {
+            "version": 1,
+            "chunks": [
+                {
+                    "id": "generic#0",
+                    "source_path": "generic.md",
+                    "title": "Generic",
+                    "ordinal": 0,
+                    "text": "Generic documentation only.",
+                    "embedding": [0.95, 0.05],
+                },
+                {
+                    "id": "vision#0",
+                    "source_path": "docs/API.md",
+                    "title": "Vision",
+                    "ordinal": 0,
+                    "text": "vision-local uses qwen3-vl-30b on the new device via :12341.",
+                    "embedding": [0.93, 0.07],
+                },
+            ],
+        }
+
+        results = retrieve(index, [1.0, 0.0], top_k=1, query_text="vision-local route 图片识别怎么测？")
+
+        self.assertEqual(results[0]["id"], "vision#0")
 
     def test_discover_markdown_files_skips_env_like_paths(self) -> None:
         import tempfile

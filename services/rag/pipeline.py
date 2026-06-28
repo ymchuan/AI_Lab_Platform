@@ -98,9 +98,20 @@ def expand_query(query: str) -> str:
     route_hints = ("route", "routing", "node", "model", "\u8def\u7531", "\u8282\u70b9", "\u6a21\u578b", "\u72b6\u6001")
     if not any(hint in lower_query or hint in query for hint in route_hints):
         return query
+    doc_hints = (
+        "README.md",
+        "HANDOFF.md",
+        "docs/ARCHITECTURE.md",
+        "docs/API.md",
+        "docs/SETUP.md",
+        "docs/MODEL_RESEARCH.md",
+        "docs/Progress_Summary.md",
+        "docs/TEAM_CLIENT_COMPATIBILITY.md",
+    )
     return (
         f"{query}\n"
         "Related LabAgent routing entities: qwen-agent qwen-local qwen-think "
-        "embed-local LiteLLM LM Studio SSH :12340 :12341 5090 5080 4060 "
-        "\u65b0\u8bbe\u5907 \u4e91\u670d\u52a1\u5668 8060S"
+        "qwen3-coder-30b qwen3-vl-30b vision-local embed-local LiteLLM LM Studio "
+        "SSH :12340 :12341 5090 5080 4060 \u65b0\u8bbe\u5907 \u4e91\u670d\u52a1\u5668 8060S\n"
+        "Canonical docs: " + " ".join(doc_hints)
     )

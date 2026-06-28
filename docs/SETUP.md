@@ -175,6 +175,26 @@ Endpoint: /v1/chat/completions
 Message format: OpenAI image_url content block
 ```
 
+### 验证 `vision-local`
+
+先确认 5090 的 `:12341` 反向隧道还在运行，再直接跑最小回归脚本：
+
+```powershell
+$env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
+python benchmarks/vision_local_eval.py --base-url http://82.156.69.153:8000/v1 --api-key $env:LABAGENT_API_KEY --model vision-local
+```
+
+当前脚本会构造两张内存图片：
+
+1. 形状图，检查英文文字、数字、颜色和基础图形。
+2. dashboard 图，检查模型路由表、状态列和 alert 文本。
+
+判定标准：
+
+1. 两个任务都输出 `PASS`。
+2. `finish_reason` 不应是 `length`。
+3. 结果文件会写到 `benchmarks/results/vision_local_*.jsonl`，用于后续回归。
+
 ## 步骤 9：另一台机器验证全链路
 
 公网验证前，先在 5090 上确认 LM Studio Local Server 正在运行，然后开启反向隧道：

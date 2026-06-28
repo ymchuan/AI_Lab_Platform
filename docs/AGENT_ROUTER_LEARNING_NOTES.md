@@ -1,121 +1,163 @@
 # Agent Router 学习笔记
 
-> 这份笔记解释 `labagent-agent` 在做什么，以及它为什么还不是完整的 Agent Runtime。
+> 这份笔记解释 `labagent-agent` 在做什么、为什么要做，以及它和真正 Agent Runtime 的差别。
 
 ## 1. 为什么要有 router
 
-如果所有请求都直接打到一个模型，后面会有三个问题：
+如果所有请求都直接打到一个模型，后面会遇到三个问题：
 
-1. 图片和文本混在一起，模型可能看不到图。
-2. 项目知识和普通聊天混在一起，回答会缺少引用。
-3. 推理、编码、OCR、检索这几件事的最佳模型不一样。
+1. 图片和文本混在一起时，纯代码模型不一定能看图。
+2. 项目知识问答如果不检索文档，回答容易没有引用依据。
+3. 推理、编码、OCR、检索这几类任务的最佳模型不一定是同一个。
 
-router 的作用就是把一个请求拆开，先决定要不要走视觉、要不要查 RAG，最后再交给主模型收口。
+router 的作用是把一个用户请求先拆开判断：
 
-## 2. 这个 router 不是 Agent Runtime
+```text
+有没有图片 -> 需要 vision-local 吗？
+是不是项目知识问题 -> 需要 RAG Service 吗？
+最后由谁组织给用户看的答案 -> qwen-agent
+```
 
-现在的 `services/agent` 只做编排，不做自主执行。
+这样外部客户端仍然只看到一个模型名 `labagent-agent`，但内部可以组合多个本地能力。
 
-它会做的事：
+## 2. 当前 router 不是完整 Agent Runtime
 
-- 识别图片内容块。
+现在的 `services/agent` 只是一个编排层，不做自主执行。
+
+它会做：
+
+- 识别 OpenAI `image_url` / `input_image` 内容块。
 - 识别 LabAgent 项目相关问题。
 - 调用 `vision-local` 或 RAG Service。
-- 把 side channel 的结果交给 `qwen-agent` 生成最终回答。
+- 把 side channel 结果交给 `qwen-agent` 生成最终回答。
 
-它不会做的事：
+它不会做：
 
-- 不会自己规划多步任务。
-- 不会执行 shell、读写文件或 patch。
-- 不会维护长期 memory。
-- 不会自动重试复杂失败。
-- 不支持 streaming。
+- 自己规划多步任务。
+- 执行 shell、读写文件或应用 patch。
+- 维护长期 memory。
+- 自动重试复杂失败。
+- `stream=true` 流式输出。
 
-## 3. 为什么最终出口还是 `qwen-agent`
+所以它更像“路由器 + 汇总器”，不是会自己干活的完整智能体。
 
-`qwen-agent` 当前承担的是“对外工程回答”的角色。
+## 3. 当前模型分工
 
-router 的设计是：
+```text
+labagent-agent
+  -> qwen-agent: 普通文本、代码/工程回答、最终对外输出
+  -> vision-local: 图片问答、截图理解、OCR-ish 文字提取
+  -> RAG Service: 项目文档检索、历史状态、引用证据
+```
 
-- `qwen-think` 用来想。
-- `vision-local` 用来看图。
-- RAG 用来找项目事实。
-- `qwen-agent` 用来把这些输入整理成最终答复。
+`qwen-think` 当前只是未来 brain/reasoning 候选，还没有接进 router 路径。这样做是因为之前 benchmark 里它的最终 `content` 稳定性不如 `qwen-agent`，暂时不适合直接作为团队默认执行入口。
 
-这样做的好处是，客户端始终看到一个稳定的模型名，但内部可以逐步升级 side channel。
+## 4. “brain / eyes / hands” 怎么理解
 
-## 4. `qwen-think` 应该放哪里
+可以先这样理解：
 
-你可以把 `qwen/qwen3.6-27b` 理解成“脑子更大，但不适合直接做默认执行口”的模型。
+- brain: 复杂推理和规划，未来可以接 `qwen-think`。
+- eyes: 识图、读截图、OCR，目前是 `vision-local`。
+- hands: 写代码、改文件、执行工具，目前仍由客户端如 Cline/Codex CLI 负责。
+- voice: 最终回答用户，目前是 `qwen-agent`。
 
-它更适合：
+当前 v0 router 只真正接入了 eyes、RAG 和 voice；brain 与 hands 还没有做成自动闭环。
 
-- 复杂推理分析。
-- 规划。
-- 长链条思考。
+## 5. 图片为什么走 `vision-local`
 
-它不适合现在直接当默认 Agent 主模型的原因是：
+OpenAI-compatible 图片请求通常长这样：
 
-- 之前的 benchmark 显示 final content 不稳定。
-- 有时会把预算花在 reasoning 上，最后输出不够稳定。
-- 对 Cline / Codex / Claude Code 的工作流兼容性还没有证明比 `qwen-agent` 更好。
+```json
+{
+  "role": "user",
+  "content": [
+    {"type": "text", "text": "请描述这张图片"},
+    {"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}}
+  ]
+}
+```
 
-所以当前策略是：
-
-- `qwen-think` 保留为思考侧模型。
-- `qwen-agent` 保留为执行和最终回答模型。
-
-## 5. 图片为什么要走 `vision-local`
-
-图片消息和文字消息不是一回事。
-
-如果请求里有 `image_url`，router 会先把消息送到 `vision-local`，让它提取：
+router 发现 `image_url` 后会先调用 `vision-local`，要求它提取：
 
 - 图片里的文字。
-- UI 状态。
-- 错误提示。
-- 截图里的表格或代码片段。
+- UI 状态和错误提示。
+- 表格、代码片段、文件名。
+- 颜色、形状、布局关系。
 
-然后 router 再把这个摘要交给 `qwen-agent`。
+然后 router 再把这个视觉摘要交给 `qwen-agent`，让它用用户的语言组织最终回答。
 
-这样做比直接让文本模型猜图更稳。
+2026-06-29 本地 smoke 结果：
 
-## 6. RAG 为什么还是单独一层
+```text
+route=image_input
+vision_model=vision-local
+vision_summary=读出 "VISION TEST 42"、blue block、green block、左上/右下布局
+final=qwen-agent 用中文给出简短描述
+```
 
-RAG 不只是“多喂一些文档给模型”。
+这说明“外部看起来一个模型，内部先看图再回答”的基础链路已经跑通。
 
-它做的是：
+## 6. RAG 为什么单独一层
+
+RAG 不只是“多塞一些文档给模型”。它负责：
 
 1. 把项目文档切块。
-2. 把块变成 embedding。
+2. 把 chunk 转成 embedding。
 3. 在索引里找相关片段。
 4. 把片段和来源交给模型。
 
-所以 RAG 的重点是“证据”，不是“聊天”。
+所以 RAG 的重点是证据，而不是聊天。
 
-当前 router 里只要命中 LabAgent / 项目关键词，就会先问 RAG Service。若 RAG 本身失败，router 会把失败原因一起交给 `qwen-agent`，避免假装已经查到资料。
+当前 router 只要命中 LabAgent / 项目关键词，就会先问 RAG Service。如果 RAG 失败，router 会把失败原因交给 `qwen-agent`，避免模型假装已经查到资料。
 
-## 7. 现在这套 router 的边界
+## 7. 运行位置
 
-- 是一个清晰、可测的 v0 编排层。
-- 适合图文问答和项目知识问答。
-- 适合作为团队客户端的统一入口。
-- 还不是完整智能体。
+当前实际运行位置：
 
-下一阶段才是：
+```text
+5090:
+  - LM Studio: qwen-agent
+  - RAG Service: 127.0.0.1:8010
+  - Agent Router: 127.0.0.1:8020
+  - SSH :12340 -> 云端 LiteLLM 回连 5090 LM Studio
+  - SSH :18020 -> 云端公网入口回连 8020
 
-- planner。
-- tool registry。
-- file / shell / patch 工具。
-- memory 和 trace。
-- streaming。
-- 更聪明的 intent 分类器或路由器。
+新设备:
+  - LM Studio: embed-local + vision-local
+  - SSH :12341 -> 云端 LiteLLM 回连新设备 LM Studio
 
-## 8. 当前资源分工
+云服务器:
+  - LiteLLM: 82.156.69.153:8000
+  - SSH 隧道中转
+```
 
-- 5090: `qwen-agent` + `qwen-think` 的主推理节点。
-- 新设备: `embed-local` + `vision-local`。
-- 云服务器: 只做 LiteLLM 和轻量中转。
-- RAG Service: 跑在 5090 本地。
+`embed-local` 当前经 LiteLLM 路由到新设备，不是 5090 的本地 embedding。即使 5090 LM Studio 也加载了 embedding 模型，只要 RAG/agent 配置使用 `http://82.156.69.153:8000/v1` + `embed-local`，实际就走云端 LiteLLM -> 新设备 `:12341`。
 
-这也是为什么“看起来像一个模型”，但实际是多个节点协作。
+## 8. 当前验证状态
+
+2026-06-29 已验证：
+
+- `.env.local` 已补 `LABAGENT_AGENT_API_KEY`，它和 `LABAGENT_API_KEY`、`LABAGENT_RAG_API_KEY` 分离。
+- 本地 `GET http://127.0.0.1:8020/health` 正确 key 返回 200，错误 key 返回 401。
+- direct chat 分支返回 200，route=`direct_chat`。
+- RAG 分支返回 200，route=`project_context`，`rag_ok=true`。
+- 图片分支返回 200，route=`image_input`，能调用 `vision-local` 并由 `qwen-agent` 汇总。
+- 云端已看到 `0.0.0.0:18020` 监听，云服务器本机 `curl 127.0.0.1:18020/health` 通过。
+
+未完成：
+
+- 外部访问 `http://82.156.69.153:18020` 仍 timeout，原因是腾讯云安全组还没放行 TCP 18020。
+
+## 9. 当前边界
+
+- 还不支持 streaming。
+- 还不是 tool-calling agent。
+- RAG 和 vision 都是 side channel，不是可自动循环的 planner。
+- 路由规则还是关键词和内容块判断，后续可以升级为 intent classifier。
+- 公网入口仍靠手动 SSH 隧道，不是生产常驻服务。
+
+下一步更合理的方向：
+
+1. 先把 TCP 18020 安全组放行，完成 Cline 远程图片调用。
+2. 修 RAG v1.x 的检索质量、reranker 和 answer faithfulness。
+3. 再把 router 升级到 streaming、错误恢复、trace 和工具注册表。
