@@ -84,8 +84,6 @@ def route_chat_completion(config: AgentRouterConfig, body: Dict[str, Any]) -> Di
     messages = normalize_messages(body.get("messages"))
     if not messages:
         raise ValueError("messages must contain at least one message")
-    if body.get("stream"):
-        raise ValueError("labagent-agent does not support stream=true yet")
 
     decision = decide_route(messages)
     max_tokens = positive_int(body.get("max_tokens", config.default_max_tokens), "max_tokens")
@@ -190,6 +188,57 @@ def route_chat_completion(config: AgentRouterConfig, body: Dict[str, Any]) -> Di
         "usage": final_response.get("usage") or {},
         "labagent": artifacts,
     }
+
+
+def chat_completion_to_sse_events(response: Dict[str, Any]) -> List[Dict[str, Any]]:
+    choice = (response.get("choices") or [{}])[0]
+    message = choice.get("message") or {}
+    content = message.get("content") or ""
+    finish = choice.get("finish_reason") or "stop"
+    model = response.get("model") or DEFAULT_AGENT_MODEL
+    created = int(response.get("created") or time.time())
+    response_id = str(response.get("id") or f"chatcmpl-labagent-agent-{created}")
+    return [
+        {
+            "id": response_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": model,
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {"role": "assistant"},
+                    "finish_reason": None,
+                }
+            ],
+        },
+        {
+            "id": response_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": model,
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {"content": content},
+                    "finish_reason": None,
+                }
+            ],
+        },
+        {
+            "id": response_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": model,
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {},
+                    "finish_reason": finish,
+                }
+            ],
+        },
+    ]
 
 
 def route_response(config: AgentRouterConfig, body: Dict[str, Any]) -> Dict[str, Any]:

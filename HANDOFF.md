@@ -181,7 +181,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 23. **团队 CLI 客户端兼容性需要单独做矩阵测试** — 团队成员可能更习惯 Codex CLI 或 Claude Code CLI。不要假设“Cline 能用”就代表 Codex/Claude Code 的工具调用和文件编辑也能用。Codex CLI 已通过 David 机器基础 chat/read/write 和单文件 Python patch smoke，下一步测多文件编辑、长上下文和错误处理，再决定是否需要 `labagent-agent` router 或 adapter 层。
 
-24. **`labagent-agent` v0 已完成本地三分支验证，公网 18020 还差安全组** — 2026-06-29 已补 `.env.local` 的 `LABAGENT_AGENT_API_KEY`，它和 LiteLLM 的 `LABAGENT_API_KEY`、RAG 的 `LABAGENT_RAG_API_KEY` 分离。本地 `127.0.0.1:8020` 已验证鉴权、direct chat、RAG project_context、图片 image_input；云端已监听 `0.0.0.0:18020`，云服务器本机回环 `/health` 通过，但外部访问 `82.156.69.153:18020` 仍 timeout，需腾讯云安全组放行 TCP 18020。
+24. **`labagent-agent` v0 已完成本地三分支验证，公网 18020 已通** — 2026-06-29 已补 `.env.local` 的 `LABAGENT_AGENT_API_KEY`，它和 LiteLLM 的 `LABAGENT_API_KEY`、RAG 的 `LABAGENT_RAG_API_KEY` 分离。本地 `127.0.0.1:8020` 已验证鉴权、direct chat、RAG project_context、图片 image_input；腾讯云安全组放行 TCP 18020 后，公网 `/health`、`/v1/models` 和 direct chat 均已验证 200。`stream=true` 现在是 SSE 兼容降级，不是真正 token-by-token streaming。
 
 ## 下一步要做的事
 
@@ -189,7 +189,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 按优先级：
 
-1. 腾讯云安全组放行 TCP 18020，然后从 David/Cline 远程验证 `labagent-agent` 图片请求。
+1. 从 David/Cline 远程验证 `labagent-agent` 图片请求，确认 Cline 默认 streaming 不再 400。
 2. 把 RAG v1.x 迁移到 Qdrant 或 Chroma，保留当前 JSON index 作为 baseline。
 3. 增加 reranker 对照：先在新设备 4060 Ti / 5080 上测试 Qwen3-Reranker 或 BGE reranker。
 4. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。

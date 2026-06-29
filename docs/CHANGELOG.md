@@ -9,7 +9,8 @@
 ### Added
 - 2026-06-29 补齐 `LABAGENT_AGENT_API_KEY`，将 `labagent-agent` 鉴权与 LiteLLM / RAG key 分离；本地 8020 已验证错误 key 返回 401、正确 key 返回 200。
 - 2026-06-29 验证 `labagent-agent` 三条分支：direct chat -> `qwen-agent`、项目知识 -> RAG Service、图片输入 -> `vision-local` -> `qwen-agent` 最终回答。
-- 2026-06-29 启动 `0.0.0.0:18020 -> 127.0.0.1:8020` agent router 反向隧道，云服务器本机回环 `/health` 已通过；外部公网访问待腾讯云安全组放行 TCP 18020。
+- 2026-06-29 启动 `0.0.0.0:18020 -> 127.0.0.1:8020` agent router 反向隧道，云服务器本机回环 `/health` 已通过；当时外部公网访问定位为腾讯云安全组限制。
+- 2026-06-29 腾讯云安全组放行 TCP 18020 后，公网 `labagent-agent` `/health`、`/v1/models` 和 direct chat 已验证 200。
 - 2026-06-28 复测 `vision-local` 最小回归：`benchmarks/vision_local_eval.py` 两个固定任务 2/2 通过，结果文件写入 `benchmarks/results/vision_local_20260628_062604.jsonl`。
 - 新增 `labagent-agent` 轻量 router：`services/agent` 以 OpenAI-compatible 形式组合 `qwen-agent`、`vision-local` 和 RAG Service，支持 `/health`、`/v1/models`、`/v1/chat/completions` 和 `/v1/responses`。
 - 新增 `docs/AGENT_ROUTER_LEARNING_NOTES.md`，专门解释 router、`qwen-think`、`qwen-agent`、`vision-local` 和 RAG side channel 的分工。
@@ -24,7 +25,8 @@
 
 ### Changed
 - 调整 `labagent-agent` 的 vision side-channel prompt 和最终汇总 prompt：要求提取颜色、形状和布局，并明确中文是正常用户语言，图片问题应基于 vision summary 直接回答。
-- 将 `labagent-agent` 记录为独立的编排层，而不是完整 Agent Runtime；它不负责 tool execution、memory 或 streaming。
+- `labagent-agent` 对 `stream=true` 增加 SSE 兼容降级：内部仍按非流式完成路由和回答生成，再返回 OpenAI `chat.completion.chunk` 事件与 `[DONE]`，用于兼容 Cline 默认 streaming。
+- 将 `labagent-agent` 记录为独立的编排层，而不是完整 Agent Runtime；它不负责 tool execution、memory 或真正 token-by-token streaming。
 - 文档补充 `labagent-agent` 的路由边界、失败态回传和当前依赖关系，避免把 router 误认为单模型聊天入口。
 - 将 RAG Service v1 从“可远程调试”更新为“公网 health 已验证”，但仍标记为手动维护的 baseline 服务，而非生产常驻入口。
 - 记录 `LABAGENT_API_KEY` 轮换口径：LiteLLM key 与 `LABAGENT_RAG_API_KEY` 分离，RAG key 未轮换时无需同步改 RAG 服务。

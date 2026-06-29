@@ -13,6 +13,7 @@ from .router import (
     DEFAULT_RAG_BASE_URL,
     DEFAULT_VISION_MODEL,
     AgentRouterConfig,
+    chat_completion_to_sse_events,
     route_chat_completion,
     route_response,
 )
@@ -67,7 +68,11 @@ def create_server(config: AgentRouterConfig, host: str, port: int, service_api_k
             try:
                 body = self._read_json()
                 if self.path == "/v1/chat/completions":
-                    self._send_json(route_chat_completion(config, body))
+                    response = route_chat_completion(config, body)
+                    if body.get("stream"):
+                        self._send_sse(chat_completion_to_sse_events(response))
+                    else:
+                        self._send_json(response)
                     return
                 if self.path == "/v1/responses":
                     self._send_json(route_response(config, body))
@@ -110,6 +115,22 @@ def create_server(config: AgentRouterConfig, host: str, port: int, service_api_k
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
             self.end_headers()
             self.wfile.write(raw)
+
+        def _send_sse(self, events: Sequence[Dict[str, Any]], status: HTTPStatus = HTTPStatus.OK) -> None:
+            self.send_response(int(status))
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.end_headers()
+            for event in events:
+                raw = "data: " + json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n\n"
+                self.wfile.write(raw.encode("utf-8"))
+                self.wfile.flush()
+            self.wfile.write(b"data: [DONE]\n\n")
+            self.wfile.flush()
 
         def log_message(self, format: str, *args: Any) -> None:
             print(f"{self.address_string()} - {format % args}")

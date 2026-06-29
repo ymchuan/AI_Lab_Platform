@@ -222,13 +222,14 @@ labagent-agent
 ✅ 图像输入、项目知识问题和普通文本三类路由均可区分
 ✅ side-channel 失败会回传到最终回答上下文，而不是直接静默失败
 ✅ 2026-06-29 补齐 LABAGENT_AGENT_API_KEY 后，8020 鉴权、direct_chat、project_context 和 image_input 三分支均已重新验证
-⚠️  云端 18020 隧道已监听，外部公网访问还需腾讯云安全组放行 TCP 18020
+✅ 腾讯云安全组放行 TCP 18020 后，公网 `/health`、`/v1/models` 和 direct chat 已验证 200
+✅ 2026-06-29 增加 `stream=true` SSE 兼容降级，避免 Cline 默认 streaming 直接 400
 ```
 
 当前边界：
 
 ```text
-还没有 streaming
+`stream=true` 目前是 SSE 兼容降级，还没有真正 token-by-token streaming
 还没有 tool execution
 还没有 memory / planner loop
 RAG 侧仍依赖可用 embedding backend

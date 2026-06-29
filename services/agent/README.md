@@ -11,7 +11,7 @@ labagent-agent
   -> RAG Service: 请求像 LabAgent / 项目知识问题时检索文档
 ```
 
-它还不是完整 Agent Runtime：不执行工具、不维护 memory、不做 planner loop，也不支持 streaming。它是一个小型 HTTP 编排层，用来把路由行为做成明确、可测的接口。
+它还不是完整 Agent Runtime：不执行工具、不维护 memory、不做 planner loop。它是一个小型 HTTP 编排层，用来把路由行为做成明确、可测的接口。
 
 ## 运行前提
 
@@ -106,7 +106,7 @@ Model:    labagent-agent
 API Key:  <LABAGENT_AGENT_API_KEY>
 ```
 
-2026-06-29 状态：云端 `0.0.0.0:18020` 已监听，云服务器本机 `127.0.0.1:18020/health` 已通过；外部公网访问还需要在腾讯云控制台放行 TCP 18020。
+2026-06-29 状态：云端 `0.0.0.0:18020` 已监听，腾讯云安全组已放行 TCP 18020；公网 `/health`、`/v1/models` 和 direct chat 已验证 200。随后用户升级了 LM Studio 且模型暂未重新 load，所以这轮没有继续做图片或 Cline 活体连通测试。
 
 ## 路由规则
 
@@ -118,7 +118,7 @@ API Key:  <LABAGENT_AGENT_API_KEY>
 
 ## 当前限制
 
-- 不支持 `stream=true`。
+- `stream=true` 目前是 SSE 兼容降级：router 会先完整生成回答，再按 OpenAI `chat.completion.chunk` 格式一次性发出 role/content/finish 三个事件和 `[DONE]`。这能兼容 Cline 等默认开启 streaming 的客户端，但还不是真正 token-by-token streaming。
 - 不执行真实工具调用。
 - 不维护 memory 或 planner loop。
 - RAG 分支依赖正在运行的 RAG Service 和可用 embedding backend。

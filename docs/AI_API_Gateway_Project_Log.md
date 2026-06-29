@@ -1345,6 +1345,7 @@ labagent-agent image_input:
 - `services/agent/router.py` 的 vision side-channel prompt 增加颜色、形状、布局提取要求。
 - 最终汇总 prompt 明确中文是正常用户语言；图片请求命中 vision summary 时应直接回答，不能因为摘要较短就要求用户澄清。
 - `.env.example` 恢复并补充 `LABAGENT_AGENT_*` 占位变量，避免本地私有 `.env.local` 成为唯一配置来源。
+- 发现 Cline 默认请求带 `stream=true` 时会触发 `labagent-agent does not support stream=true yet`，因此在 `services/agent/server.py` 增加 SSE 兼容降级：内部仍按非流式完成路由与回答生成，再返回 OpenAI `chat.completion.chunk` 事件和 `[DONE]`。
 
 ### 公网状态
 
@@ -1354,17 +1355,28 @@ labagent-agent image_input:
 curl 127.0.0.1:18020/health -> ok=true
 ```
 
-外部访问：
+安全组放行前，外部访问：
 
 ```text
 curl http://82.156.69.153:18020/health -> timeout
 ```
 
-排查结果与之前 RAG `18010` 类似：SSH 隧道和云端 sshd `GatewayPorts clientspecified` 正常，宿主 iptables 未按端口拦截。剩余阻塞点是腾讯云安全组尚未放行 TCP 18020。放行后需要从 David/Cline 远程重测。
+排查结果与之前 RAG `18010` 类似：SSH 隧道和云端 sshd `GatewayPorts clientspecified` 正常，宿主 iptables 未按端口拦截。剩余阻塞点是腾讯云安全组尚未放行 TCP 18020。
+
+安全组放行后：
+
+```text
+curl http://82.156.69.153:18020/health -> 200
+GET /v1/models -> 200
+POST /v1/chat/completions direct chat -> 200, route=direct_chat
+```
+
+随后用户升级了 LM Studio，模型暂未重新 load，因此没有继续做 post-upgrade 的图片识别或 Cline 活体连通测试。下一次模型 load 后，应优先用 Cline 远程发送一张图片，确认 `stream=true` 不再 400，且图片请求能命中 `image_input`。
 
 ### 当前边界
 
-- `labagent-agent` 仍不是完整 Agent Runtime，不执行工具、不做 planner、不维护 memory，也不支持 streaming。
+- `labagent-agent` 仍不是完整 Agent Runtime，不执行工具、不做 planner、不维护 memory。
+- `stream=true` 目前只是 SSE 兼容降级，不是真正 token-by-token streaming。
 - 18020 入口仍是手动 SSH 隧道，不是生产常驻服务。
 - PowerShell `curl.exe -d` 直接发送中文 JSON 时可能出现编码问题；真实客户端或 Python UTF-8 请求更可靠。
 

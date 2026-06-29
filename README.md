@@ -60,7 +60,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 2026-06-26 完成 `vision-local` 最小公网 smoke test：通过 LiteLLM `vision-local` 发送内存生成 PNG，Qwen3-VL-30B 成功读出 `LABAGENT VL TEST 42`、蓝色方块和红色圆形；截图式 dashboard 测试能读出 `qwen-agent` / `embed-local` / `vision-local` / `qwen-think` 表格行和底部 alert，但回答过长时会 `finish_reason=length`，后续正式 VL benchmark 需要约束输出格式和 token 预算。
 
-2026-06-26 新增 `labagent-agent` 轻量 router：`services/agent` 将 `qwen-agent`、`vision-local` 和 RAG Service 组合成一个 OpenAI-compatible 模型名。2026-06-29 已补齐独立 `LABAGENT_AGENT_API_KEY`，并验证本地 8020 的鉴权、direct chat、RAG 分支和图片分支均可用；云端 `0.0.0.0:18020` 隧道已监听，但外部公网访问还需要腾讯云安全组放行 TCP 18020。它仍不是完整 Agent Runtime，没有工具执行、memory 或 streaming。
+2026-06-26 新增 `labagent-agent` 轻量 router：`services/agent` 将 `qwen-agent`、`vision-local` 和 RAG Service 组合成一个 OpenAI-compatible 模型名。2026-06-29 已补齐独立 `LABAGENT_AGENT_API_KEY`，并验证本地 8020 的鉴权、direct chat、RAG 分支和图片分支均可用；腾讯云安全组放行 TCP 18020 后，公网 `http://82.156.69.153:18020` 的 `/health`、`/v1/models` 和 direct chat 已验证 200。当前 `stream=true` 已做 SSE 兼容降级，但仍不是真正 token-by-token streaming。它仍不是完整 Agent Runtime，没有工具执行或 memory。
 
 ## 当前状态
 
@@ -73,7 +73,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | Cline | ✅ 已配置 | VS Code 插件接入 |
 | 5080 新设备 | ✅ Embedding / Vision 已接入并完成 VL smoke | LM Studio + `:12341` SSH 隧道 + `embed-local` / `vision-local` 路由；Rerank 待接入 |
 | RAG Service v1 | ✅ 公网 health 已由 David 验证 | `services/rag` 支持 CLI index/search/ask 和 HTTP search/ask；`82.156.69.153:18010` 通过 SSH 反向隧道临时暴露；本地 `data/rag/` 不进 Git |
-| Agent Router v0 | ✅ 本地三分支通过，公网待安全组 | `127.0.0.1:8020` 提供 `labagent-agent`；`18020` 隧道已在云端监听，外部访问需放行 TCP 18020 |
+| Agent Router v0 | ✅ 本地三分支通过，公网 direct chat 通过 | `127.0.0.1:8020` 提供 `labagent-agent`；公网 `18020` 已可访问，`stream=true` 为 SSE 兼容降级 |
 | 8060S | ⛔ 暂不可用 | 当前无法使用，冻结近期接入计划 |
 
 ## 快速开始
@@ -207,7 +207,7 @@ Agent router 公网临时入口：
 ssh -N -R 0.0.0.0:18020:127.0.0.1:8020 -i C:\Users\N\.ssh\id_ed25519 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
 ```
 
-远程客户端配置为 `http://82.156.69.153:18020/v1`、模型 `labagent-agent`、鉴权 `<LABAGENT_AGENT_API_KEY>`。云端已支持 `GatewayPorts clientspecified`，但腾讯云安全组必须额外放行 TCP 18020。
+远程客户端配置为 `http://82.156.69.153:18020/v1`、模型 `labagent-agent`、鉴权 `<LABAGENT_AGENT_API_KEY>`。云端已支持 `GatewayPorts clientspecified`，腾讯云安全组已放行 TCP 18020。
 
 David 远程调试时，可在 5090 额外开启公网 RAG 隧道。云端 sshd 已设置 `GatewayPorts clientspecified`，腾讯云安全组需放行 TCP 18010：
 

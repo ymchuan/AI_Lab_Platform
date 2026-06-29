@@ -149,7 +149,7 @@ python benchmarks/vision_local_eval.py --base-url http://82.156.69.153:8000/v1 -
 
 ```text
 Local URL:  http://127.0.0.1:8020
-Remote URL: http://82.156.69.153:18020/v1  # 需 TCP 18020 安全组放行
+Remote URL: http://82.156.69.153:18020/v1  # TCP 18020 已放行
 Auth:       Authorization: Bearer <LABAGENT_AGENT_API_KEY>
 Model ID:   labagent-agent
 ```
@@ -171,7 +171,7 @@ Model ID:   labagent-agent
 
 当前边界：
 
-- 不支持 `stream=true`
+- `stream=true` 支持 SSE 兼容降级，但不是 token-by-token streaming
 - 不执行工具调用
 - 不维护 memory
 - RAG 侧通道依赖可用的 embedding backend
@@ -182,7 +182,7 @@ Model ID:   labagent-agent
 - direct chat：`route=direct_chat`，最终模型 `qwen-agent`。
 - 项目知识：`route=project_context`，RAG 分支 `rag_ok=true`。
 - 图片输入：`route=image_input`，调用 `vision-local`，能识别测试图中的文字、颜色块和布局。
-- 云端：`0.0.0.0:18020` 已监听，云服务器本机 `127.0.0.1:18020/health` 可用；外部公网访问待腾讯云安全组放行 TCP 18020。
+- 公网入口：腾讯云安全组放行 TCP 18020 后，`http://82.156.69.153:18020/health`、`/v1/models` 和 direct chat 均已验证 200。
 
 ## RAG Service v1 接口
 

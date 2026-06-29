@@ -37,7 +37,7 @@ router 的作用是把一个用户请求先拆开判断：
 - 执行 shell、读写文件或应用 patch。
 - 维护长期 memory。
 - 自动重试复杂失败。
-- `stream=true` 流式输出。
+- 真正 token-by-token streaming；当前只有 SSE 兼容降级。
 
 所以它更像“路由器 + 汇总器”，不是会自己干活的完整智能体。
 
@@ -143,14 +143,17 @@ RAG 不只是“多塞一些文档给模型”。它负责：
 - RAG 分支返回 200，route=`project_context`，`rag_ok=true`。
 - 图片分支返回 200，route=`image_input`，能调用 `vision-local` 并由 `qwen-agent` 汇总。
 - 云端已看到 `0.0.0.0:18020` 监听，云服务器本机 `curl 127.0.0.1:18020/health` 通过。
+- 腾讯云安全组放行 TCP 18020 后，公网 `/health`、`/v1/models` 和 direct chat 已验证 200。
+- Cline 报过 `labagent-agent does not support stream=true yet`，router 已增加 SSE 兼容降级：先完整生成回答，再按 OpenAI chunk 事件返回。
 
 未完成：
 
-- 外部访问 `http://82.156.69.153:18020` 仍 timeout，原因是腾讯云安全组还没放行 TCP 18020。
+- LM Studio 升级后模型暂未重新 load，所以还没有复测 Cline 远程图片请求。
+- 当前 SSE 只是兼容客户端的返回格式，还不是边生成边输出的真流式。
 
 ## 9. 当前边界
 
-- 还不支持 streaming。
+- `stream=true` 已做 SSE 兼容降级，但不是真正 token-by-token streaming。
 - 还不是 tool-calling agent。
 - RAG 和 vision 都是 side channel，不是可自动循环的 planner。
 - 路由规则还是关键词和内容块判断，后续可以升级为 intent classifier。
@@ -158,6 +161,6 @@ RAG 不只是“多塞一些文档给模型”。它负责：
 
 下一步更合理的方向：
 
-1. 先把 TCP 18020 安全组放行，完成 Cline 远程图片调用。
+1. 先从 Cline 远程验证 `labagent-agent` 的普通文本和图片请求。
 2. 修 RAG v1.x 的检索质量、reranker 和 answer faithfulness。
-3. 再把 router 升级到 streaming、错误恢复、trace 和工具注册表。
+3. 再把 router 升级到真正 streaming、错误恢复、trace 和工具注册表。

@@ -4,6 +4,7 @@ import unittest
 
 from services.agent.router import (
     build_final_messages,
+    chat_completion_to_sse_events,
     decide_route,
     last_user_text,
     responses_input_to_messages,
@@ -109,6 +110,25 @@ class AgentRouterTest(unittest.TestCase):
 
         self.assertIn("VISION ERROR", messages[1]["content"])
         self.assertIn("RAG ERROR", messages[1]["content"])
+
+    def test_chat_completion_to_sse_events_wraps_non_stream_response(self) -> None:
+        events = chat_completion_to_sse_events(
+            {
+                "id": "chatcmpl-test",
+                "created": 123,
+                "model": "labagent-agent",
+                "choices": [
+                    {
+                        "message": {"role": "assistant", "content": "ok"},
+                        "finish_reason": "stop",
+                    }
+                ],
+            }
+        )
+
+        self.assertEqual(events[0]["choices"][0]["delta"]["role"], "assistant")
+        self.assertEqual(events[1]["choices"][0]["delta"]["content"], "ok")
+        self.assertEqual(events[2]["choices"][0]["finish_reason"], "stop")
 
 
 if __name__ == "__main__":
