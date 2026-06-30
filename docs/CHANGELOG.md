@@ -26,6 +26,7 @@
 - 新增 `docs/CODEX_CLI_COMPATIBILITY.md`，将 Codex CLI 团队接入提升为当前 P0，记录推荐配置、验收矩阵、通过标准和待测项。
 - 新增 `benchmarks/fixtures/codex_cli_smoke`，作为 Codex CLI 手工验收 fixture，覆盖读项目、创建文件、单文件编辑、多文件编辑、测试执行和失败修复。
 - 默认 RAG discovery 排除 `docs/LabAgent_Platform_V*.md` 外部建议文档，避免把外部 AI 的愿景/建议误当成项目事实源。
+- 记录 David 机器 `Codex CLI + qwen-agent` 的 `codex_cli_smoke` C1-C6 结果：读项目、创建文件、单文件 docstring、多文件实现+测试同步修改、添加函数+测试、失败修复均通过。
 - 记录 David 机器 Codex CLI 基础 workflow smoke：`qwen-agent` plain chat、目录读取和一文件写入均通过。
 - 记录 David 机器 Codex CLI 单文件 Python patch smoke：成功为 `app.py` 添加类型标注和 `__main__` 示例。
 
@@ -41,6 +42,7 @@
 - 将 Codex CLI 兼容性提升为下一步团队使用优先验证项；Claude Code CLI 继续标记为工具调用 schema 不稳定的实验链路。
 - 将 Codex CLI 状态从“待验证”更新为“基础 workflow 可用，复杂 patch/multi-file/错误恢复待测”。
 - 将 Codex CLI 状态进一步更新为“基础 workflow + simple single-file code edit 可用，多文件/长上下文/错误恢复待测”。
+- 将 Codex CLI 状态更新为“小型开发 workflow smoke 通过”：C1-C6 已覆盖多文件编辑、测试执行和失败修复；长上下文、后端异常和 `labagent-agent` 后端仍待测。
 
 ## [0.4.5] - 2026-06-25
 

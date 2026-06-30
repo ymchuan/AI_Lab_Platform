@@ -24,6 +24,8 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-06-26 Codex CLI 单文件 patch smoke 继续通过：David 在 `F:\goai\labagent_codex_test` 里让 Codex 修改 `app.py`，模型成功把 `def add(a, b)` 改成 `def add(a: int, b: int) -> int`，并新增 `if __name__ == '__main__': print(add(2, 3))` 示例。当前可把 Codex CLI 标为“基础 chat/read/write + simple single-file code edit 可用”，但 multi-file patch、长上下文 repo task、错误恢复仍未认证。
 
+2026-06-30 Codex CLI `codex_cli_smoke` C1-C6 已在 David 机器通过：读项目、创建文件、单文件 docstring 编辑、多文件实现+测试同步修改、添加 `mean_value` 函数和测试、以及故意破坏 `format_total` 后根据失败测试修复实现。测试过程中暴露的小问题是 Codex 会先尝试 PowerShell 不支持的 `&&`、会尝试未安装的 `pytest`、直接运行 `python tests/test_app.py` 会遇到导入路径问题；但它能回退到 `python -m unittest ...` 完成验证。当前可把 `Codex CLI + qwen-agent` 标为“小型开发 workflow smoke 通过”，长上下文、后端异常和 `labagent-agent` 后端仍待测。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
@@ -179,7 +181,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 22. **Claude Code 本地 Qwen 后端是实验链路，不是当前主通道** — LiteLLM `/v1/messages` 可以把 Claude Code 文本请求转到 `qwen-agent`，但 Qwen-Coder 对 Claude Code 内置工具 schema 不稳定，可能报 `Invalid tool parameters`。Cline 仍是当前可靠的本地 Agent 客户端；Claude Code 兼容性后续作为单独 benchmark 和适配任务。
 
-23. **团队 CLI 客户端兼容性需要单独做矩阵测试** — 团队成员可能更习惯 Codex CLI 或 Claude Code CLI。不要假设“Cline 能用”就代表 Codex/Claude Code 的工具调用和文件编辑也能用。Codex CLI 已通过 David 机器基础 chat/read/write 和单文件 Python patch smoke，下一步测多文件编辑、长上下文和错误处理，再决定是否需要 `labagent-agent` router 或 adapter 层。
+23. **团队 CLI 客户端兼容性需要单独做矩阵测试** — 团队成员可能更习惯 Codex CLI 或 Claude Code CLI。不要假设“Cline 能用”就代表 Codex/Claude Code 的工具调用和文件编辑也能用。Codex CLI 已通过 David 机器基础 chat/read/write、单文件 Python patch，以及 `codex_cli_smoke` C1-C6；下一步测长上下文、后端异常错误体验和 `labagent-agent` 后端，再决定是否需要 adapter 层。
 
 24. **`labagent-agent` v0 已完成本地三分支验证，公网 18020 已通** — 2026-06-29 已补 `.env.local` 的 `LABAGENT_AGENT_API_KEY`，它和 LiteLLM 的 `LABAGENT_API_KEY`、RAG 的 `LABAGENT_RAG_API_KEY` 分离。本地 `127.0.0.1:8020` 已验证鉴权、direct chat、RAG project_context、图片 image_input；腾讯云安全组放行 TCP 18020 后，公网 `/health`、`/v1/models` 和 direct chat 均已验证 200。`stream=true` 现在是 SSE 兼容降级，不是真正 token-by-token streaming。
 
@@ -193,7 +195,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 按优先级：
 
-1. 扩展 Codex CLI 团队客户端验证：用 `benchmarks/fixtures/codex_cli_smoke` 跑 C0-C8，覆盖多文件编辑、测试执行、失败修复、长上下文、后端断链/模型未 load/key 错误时的错误处理。
+1. 扩展 Codex CLI 团队客户端验证：C1-C6 已通过，下一步跑 C7 长上下文、C8 后端断链/模型未 load/key 错误时的错误处理。
 2. 用 `labagent-agent` 公网入口跑 Codex C0-C3，对比 router 是否适合做统一入口；默认团队后端仍保持 `qwen-agent` 直连 LiteLLM。
 3. 从 David/Cline 远程验证 `labagent-agent` 图片请求，确认 Cline 默认 streaming 不再 400，并检查返回里的 `labagent.brain_*` / `vision_*` 字段。
 4. 把 RAG v1.x 迁移到 Qdrant 或 Chroma，保留当前 JSON index 作为 baseline。

@@ -25,6 +25,7 @@
 | 2026-06-18 | embed-local | LiteLLM 公网网关 -> 新设备 LM Studio | embedding health | `embedding_health_20260618_180017.jsonl` | 多节点路由 v1；768 维 embedding；小型检索 probe 2/3 |
 | 2026-06-18 | embed-local + qwen-agent | LiteLLM 公网网关 -> 本地节点 | rag_retrieval / RAG v0 | `rag_retrieval_20260618_215213.jsonl` | 319 chunks / 19 files；检索 benchmark 3/3；端到端 ask 可返回 `[Sx]` 引用 |
 | 2026-06-26 | RAG Service v1 | 5090 本地 HTTP 服务 + 公网 :18010 隧道 | HTTP smoke | manual smoke | 本地 HTTP 端点通过；David 外部 `/health` 返回 `ok=true`；生产硬化待做 |
+| 2026-06-30 | Codex CLI + qwen-agent | David 机器 -> LiteLLM 公网网关 -> 5090 LM Studio | `codex_cli_smoke` C1-C6 | manual smoke | 读项目、创建文件、单文件编辑、多文件编辑、添加函数+测试、失败修复均通过；长上下文/异常错误体验/`labagent-agent` 后端待测 |
 | 2026-06-23 | embed-local + qwen-agent | LiteLLM 公网网关 -> 5090 / 新设备节点 | rag_retrieval / RAG v1 baseline | `rag_retrieval_20260624_113757.jsonl` | 本地索引重建为 354 chunks / 21 files；默认 top-k 8 通过 3/3；CLI search / ask 已通过云端 LiteLLM 验证 |
 | 2026-06-26 | vision-local | LiteLLM 公网网关 -> 新设备 LM Studio | `vision_local_eval.py` | `vision_local_20260626_174104.jsonl` | 2/2 通过：形状/文字 OCR 和截图式路由表 |
 | 2026-06-28 | vision-local | LiteLLM 公网网关 -> 新设备 LM Studio | `vision_local_eval.py` | `vision_local_20260628_062604.jsonl` | 2/2 通过：形状/文字 OCR 和截图式路由表，复测确认稳定 |
