@@ -145,6 +145,100 @@ wire_api: responses
 3. 然后用 `labagent-agent` 跑 C0-C3，判断 router 是否适合做统一入口。
 4. 最后再考虑 Codex 专用 adapter、metadata、streaming 或 responses 细节优化。
 
+## C7-C9 执行顺序
+
+每个正常编辑任务都建议先重置一份干净 fixture：
+
+```powershell
+$Repo = "F:\CodexTest\AI_Lab_Platform"
+$Run = "F:\CodexTest\codex_cli_smoke_run"
+
+cd F:\CodexTest
+if (Test-Path $Run) { Remove-Item -Recurse -Force $Run }
+Copy-Item -Recurse "$Repo\benchmarks\fixtures\codex_cli_smoke" $Run
+cd $Run
+python -m unittest discover -s tests -p "test_*.py"
+codex
+```
+
+### C7：长一点的上下文任务
+
+在 `qwen-agent` 默认后端下粘贴：
+
+```text
+Read README.md, TASKS.md, app.py, and tests/test_app.py. Then add a describe_fixture() -> str helper in app.py, add unit tests for it, run the tests, and keep your final answer concise.
+```
+
+通过后记录：
+
+- 是否读了 README / TASKS / app / tests。
+- 是否同时改了 `app.py` 和 `tests/test_app.py`。
+- 是否保留原有 `add` / `format_total` 测试。
+- `python -m unittest discover -s tests -p "test_*.py"` 是否通过。
+
+### C8：错误体验
+
+C8 不需要 fixture 干净目录，它测试的是后端失败时 Codex 的报错是否清楚。
+
+先测 wrong key：
+
+1. 把 David 的 Codex LabAgent key 临时改成明显错误值。
+2. 启动 Codex，粘贴：
+
+```text
+Reply with exactly pong.
+```
+
+3. 记录错误是否像 auth / unauthorized / invalid key。
+4. 立刻恢复正确 key。
+
+再测模型或隧道不可用：
+
+1. 只在安全时间窗口短暂停掉 5090 `:12340` 隧道，或者卸载 `qwen-agent`。
+2. 启动 Codex，粘贴：
+
+```text
+Reply with exactly pong.
+```
+
+3. 记录错误是否能看出 backend / route / model unavailable。
+4. 立刻恢复隧道或重新 load 模型。
+
+### C9：`labagent-agent` 后端
+
+把 Codex provider 临时切到：
+
+```text
+Base URL: http://82.156.69.153:18020/v1
+Model: labagent-agent
+Key: <LABAGENT_AGENT_API_KEY>
+wire_api: responses
+```
+
+只跑 C0-C3：
+
+```text
+Reply with exactly pong.
+```
+
+```text
+Read this project and tell me what each file does. Do not edit files.
+```
+
+```text
+Create notes.md with one sentence explaining this fixture.
+```
+
+```text
+Add clear docstrings to add and format_total in app.py, then run the tests.
+```
+
+判断标准：
+
+- 如果 C0-C3 稳定，`labagent-agent` 可以继续作为 Codex 实验入口。
+- 如果失败，记录失败类型，不要把它设为团队默认后端。
+- 团队默认后端仍是 `qwen-agent` 直连 LiteLLM。
+
 ## 目前不做什么
 
 - 不把 `labagent-agent` 强行设为 Codex 默认后端。
