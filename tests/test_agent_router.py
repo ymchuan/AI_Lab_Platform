@@ -84,6 +84,8 @@ class AgentRouterTest(unittest.TestCase):
     def test_build_final_messages_includes_side_channel_outputs(self) -> None:
         messages = build_final_messages(
             original_user_text="What is the current route?",
+            brain_summary="Use vision facts before final answer.",
+            brain_error=None,
             vision_summary="The screenshot shows an error.",
             vision_error=None,
             rag_answer="qwen-agent is on 5090 [S1].",
@@ -93,6 +95,7 @@ class AgentRouterTest(unittest.TestCase):
         )
 
         self.assertEqual(messages[0]["role"], "system")
+        self.assertIn("BRAIN SUMMARY", messages[1]["content"])
         self.assertIn("VISION SUMMARY", messages[1]["content"])
         self.assertIn("RAG ANSWER", messages[1]["content"])
         self.assertIn("README.md", messages[1]["content"])
@@ -100,6 +103,8 @@ class AgentRouterTest(unittest.TestCase):
     def test_build_final_messages_includes_side_channel_failures(self) -> None:
         messages = build_final_messages(
             original_user_text="Check this screenshot and project state.",
+            brain_summary="",
+            brain_error="brain returned empty content",
             vision_summary="",
             vision_error="vision endpoint unavailable",
             rag_answer="",
@@ -108,6 +113,7 @@ class AgentRouterTest(unittest.TestCase):
             route_reason="image_input+project_context",
         )
 
+        self.assertIn("BRAIN ERROR", messages[1]["content"])
         self.assertIn("VISION ERROR", messages[1]["content"])
         self.assertIn("RAG ERROR", messages[1]["content"])
 

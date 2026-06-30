@@ -60,7 +60,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 2026-06-26 完成 `vision-local` 最小公网 smoke test：通过 LiteLLM `vision-local` 发送内存生成 PNG，Qwen3-VL-30B 成功读出 `LABAGENT VL TEST 42`、蓝色方块和红色圆形；截图式 dashboard 测试能读出 `qwen-agent` / `embed-local` / `vision-local` / `qwen-think` 表格行和底部 alert，但回答过长时会 `finish_reason=length`，后续正式 VL benchmark 需要约束输出格式和 token 预算。
 
-2026-06-26 新增 `labagent-agent` 轻量 router：`services/agent` 将 `qwen-agent`、`vision-local` 和 RAG Service 组合成一个 OpenAI-compatible 模型名。2026-06-29 已补齐独立 `LABAGENT_AGENT_API_KEY`，并验证本地 8020 的鉴权、direct chat、RAG 分支和图片分支均可用；腾讯云安全组放行 TCP 18020 后，公网 `http://82.156.69.153:18020` 的 `/health`、`/v1/models` 和 direct chat 已验证 200。当前 `stream=true` 已做 SSE 兼容降级，但仍不是真正 token-by-token streaming。它仍不是完整 Agent Runtime，没有工具执行或 memory。
+2026-06-26 新增 `labagent-agent` 轻量 router：`services/agent` 将 `qwen-agent`、`vision-local` 和 RAG Service 组合成一个 OpenAI-compatible 模型名。2026-06-29 已补齐独立 `LABAGENT_AGENT_API_KEY`，并验证本地 8020 的鉴权、direct chat、RAG 分支和图片分支均可用；腾讯云安全组放行 TCP 18020 后，公网 `http://82.156.69.153:18020` 的 `/health`、`/v1/models` 和 direct chat 已验证 200。当前 `stream=true` 已做 SSE 兼容降级，但仍不是真正 token-by-token streaming。`qwen3.6-27b-uncensored@?` 已作为可选 experimental brain/eyes side channel 接入配置，默认只在图片请求时尝试，失败会 fallback 到 `qwen-agent`。它仍不是完整 Agent Runtime，没有工具执行或 memory。
 
 ## 当前状态
 
@@ -73,7 +73,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | Cline | ✅ 已配置 | VS Code 插件接入 |
 | 5080 新设备 | ✅ Embedding / Vision 已接入并完成 VL smoke | LM Studio + `:12341` SSH 隧道 + `embed-local` / `vision-local` 路由；Rerank 待接入 |
 | RAG Service v1 | ✅ 公网 health 已由 David 验证 | `services/rag` 支持 CLI index/search/ask 和 HTTP search/ask；`82.156.69.153:18010` 通过 SSH 反向隧道临时暴露；本地 `data/rag/` 不进 Git |
-| Agent Router v0 | ✅ 本地三分支通过，公网 direct chat 通过 | `127.0.0.1:8020` 提供 `labagent-agent`；公网 `18020` 已可访问，`stream=true` 为 SSE 兼容降级 |
+| Agent Router v0 | ✅ 本地三分支通过，公网 direct chat 通过 | `127.0.0.1:8020` 提供 `labagent-agent`；公网 `18020` 已可访问，`stream=true` 为 SSE 兼容降级；可选 experimental brain side channel |
 | 8060S | ⛔ 暂不可用 | 当前无法使用，冻结近期接入计划 |
 
 ## 快速开始
@@ -106,6 +106,7 @@ Model:    qwen-local
 
 ### 快速上手
 - [交接文档](HANDOFF.md) — **新成员/新 AI 读这个就能上手**
+- [给外部 AI 的项目简报](docs/PROJECT_BRIEF_FOR_AI_REVIEW.md) — **发给 Gemini / 其他 AI 做评审时优先用这个**
 
 ### 核心文档
 - [部署指南](docs/SETUP.md) — 从零部署完整教程

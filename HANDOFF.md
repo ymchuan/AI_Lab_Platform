@@ -183,20 +183,22 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 24. **`labagent-agent` v0 已完成本地三分支验证，公网 18020 已通** — 2026-06-29 已补 `.env.local` 的 `LABAGENT_AGENT_API_KEY`，它和 LiteLLM 的 `LABAGENT_API_KEY`、RAG 的 `LABAGENT_RAG_API_KEY` 分离。本地 `127.0.0.1:8020` 已验证鉴权、direct chat、RAG project_context、图片 image_input；腾讯云安全组放行 TCP 18020 后，公网 `/health`、`/v1/models` 和 direct chat 均已验证 200。`stream=true` 现在是 SSE 兼容降级，不是真正 token-by-token streaming。
 
+25. **`qwen3.6-27b-uncensored@?` 已作为 experimental brain/eyes side channel 接入代码，但不替换主路由** — 2026-06-29 5090 直连测试：极短回答通过，简单代码通过，图片 OCR/形状识别可读出 `VISION 73`、蓝色矩形、红色圆形；但中文解释 500 tokens 时 `content` 为空，1500 tokens 约 240s 超时。Router 新增 `LABAGENT_AGENT_BRAIN_MODEL` / `LABAGENT_AGENT_BRAIN_BASE_URL`，默认只在图片请求时尝试 brain，失败/超时/空 content 只记录 side-channel error，最终仍由 `qwen-agent` 输出。
+
 ## 下一步要做的事
 
 **当前阶段：RAG Service v1 已完成公网验证，`labagent-agent` 轻量 router 已完成本地三分支验证，下一步转向 RAG v1.x + Vision/团队客户端质量评测**。模型选型已经暂定 5090 的 `qwen-agent` 为 Qwen3-Coder-30B；新设备已承担 `embed-local` 和 `vision-local`。现在重点从“能否部署模型”转向“能否构建真实 RAG/Agent/VL 工程闭环”。
 
 按优先级：
 
-1. 从 David/Cline 远程验证 `labagent-agent` 图片请求，确认 Cline 默认 streaming 不再 400。
+1. 从 David/Cline 远程验证 `labagent-agent` 图片请求，确认 Cline 默认 streaming 不再 400，并检查返回里的 `labagent.brain_*` / `vision_*` 字段。
 2. 把 RAG v1.x 迁移到 Qdrant 或 Chroma，保留当前 JSON index 作为 baseline。
 3. 增加 reranker 对照：先在新设备 4060 Ti / 5080 上测试 Qwen3-Reranker 或 BGE reranker。
 4. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。
 5. `vision-local` 最小 VL benchmark 已固化为 `benchmarks/vision_local_eval.py`，后续继续扩展真实截图、表单和多图输入。
 6. 以 `qwen/qwen3-coder-30b` 继续补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval`、`claude_code_compat_eval` 和 `trace_eval`。
 7. 扩展 Codex CLI 团队客户端验证：多文件编辑、长上下文、后端断链/模型未 load/key 错误时的错误处理。
-8. 在新设备上继续接入第二代码模型，优先保持 LM Studio + SSH 隧道的简单路线，后续再评估 llama.cpp / vLLM / SGLang。
+8. 在新设备上继续接入第二代码模型，优先保持 LM Studio + SSH 隧道的简单路线；实际 load 中等 coder 后再新增 `coder-small-local` 路由，不要直接把 5090 的 `qwen-agent` 切走。
 9. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。
 10. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
 11. 构建 MCP Server / Skills / Eval Harness / LoRA-QLoRA 和量化实验。
@@ -275,6 +277,7 @@ python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？
 | `DOCUMENTATION_SYNC.md` | 关键节点后的文档同步契约，规定哪些文件要一起更新。 |
 | `MODEL_RESEARCH.md` | 5090 / 新设备的模型选型研究和节点分工建议。 |
 | `NETWORK.md` | 云服务器、安全组、SSH 隧道和网络拓扑说明。 |
+| `PROJECT_BRIEF_FOR_AI_REVIEW.md` | 给 Gemini / Claude / ChatGPT 等外部 AI reviewer 的单文件项目简报，汇总背景、架构、进度、问题和评审问题。 |
 | `Progress_Summary.md` | 给别人看的进展汇报和阶段总结。 |
 | `RAG_LEARNING_NOTES.md` | RAG 的概念、实现、调试和升级路径说明。 |
 | `SETUP.md` | 从零部署 LabAgent 平台的步骤文档。 |

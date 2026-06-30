@@ -2,6 +2,15 @@
 
 > 给其他人看的成果总结，展示当前进度、完成情况和下一步计划。
 
+## 阅读入口说明
+
+这个仓库里有几个“看起来都像总览”的文档，分工如下：
+
+- `docs/PROJECT_BRIEF_FOR_AI_REVIEW.md`：给 Gemini / Claude / ChatGPT 等外部 AI reviewer 的单文件项目简报。它会集中说明背景、架构、当前进度、主要问题和希望对方评审的问题。
+- `docs/Progress_Summary.md`：给人看的阶段性成果汇报，偏展示“我们已经做到哪里、下一步做什么”。
+- `HANDOFF.md`：给接手项目的新 AI / 新成员看的操作交接文档，偏当前状态、启动方式、注意事项和下一步优先级。
+- `README.md`：项目入口和文档索引，适合第一次打开仓库时先读。
+
 ## 一、项目目标
 
 建设一个私有 AI 基础设施平台：
@@ -210,6 +219,7 @@ LiteLLM 只负责模型路由，不负责读取文档或执行 RAG
 ```text
 labagent-agent
   -> qwen-agent
+  -> optional qwen3.6 experimental brain/eyes
   -> vision-local
   -> RAG Service
 ```
@@ -224,6 +234,7 @@ labagent-agent
 ✅ 2026-06-29 补齐 LABAGENT_AGENT_API_KEY 后，8020 鉴权、direct_chat、project_context 和 image_input 三分支均已重新验证
 ✅ 腾讯云安全组放行 TCP 18020 后，公网 `/health`、`/v1/models` 和 direct chat 已验证 200
 ✅ 2026-06-29 增加 `stream=true` SSE 兼容降级，避免 Cline 默认 streaming 直接 400
+✅ 2026-06-29 增加可选 `qwen3.6-27b-uncensored@?` brain/eyes side channel，默认只在图片请求时尝试，失败自动 fallback
 ```
 
 当前边界：
@@ -233,6 +244,7 @@ labagent-agent
 还没有 tool execution
 还没有 memory / planner loop
 RAG 侧仍依赖可用 embedding backend
+experimental brain 仍不稳定，不能替换 qwen-agent / vision-local
 这仍然只是编排层，不是完整 Agent Runtime
 ```
 

@@ -12,6 +12,8 @@ DEFAULT_AGENT_MODEL = "labagent-agent"
 DEFAULT_CHAT_MODEL = "qwen-agent"
 DEFAULT_VISION_MODEL = "vision-local"
 DEFAULT_RAG_BASE_URL = "http://127.0.0.1:8010"
+DEFAULT_BRAIN_TIMEOUT = 45
+DEFAULT_BRAIN_MAX_TOKENS = 220
 
 
 PROJECT_KEYWORDS = (
@@ -50,11 +52,17 @@ class AgentRouterConfig:
     api_key: str | None
     chat_model: str = DEFAULT_CHAT_MODEL
     vision_model: str = DEFAULT_VISION_MODEL
+    brain_model: str | None = None
+    brain_base_url: str | None = None
+    brain_api_key: str | None = None
     agent_model: str = DEFAULT_AGENT_MODEL
     rag_base_url: str = DEFAULT_RAG_BASE_URL
     rag_api_key: str | None = None
     timeout: int = 180
     default_max_tokens: int = 900
+    brain_timeout: int = DEFAULT_BRAIN_TIMEOUT
+    brain_max_tokens: int = DEFAULT_BRAIN_MAX_TOKENS
+    brain_on_text: bool = False
 
 
 @dataclass(frozen=True)
@@ -106,7 +114,43 @@ def route_chat_completion(config: AgentRouterConfig, body: Dict[str, Any]) -> Di
     else:
         user_text = last_user_text(messages)
         vision_summary = ""
+        brain_summary = ""
         rag_answer = ""
+
+        if config.brain_model and (decision.use_vision or config.brain_on_text):
+            brain_messages = prepend_system_message(
+                messages,
+                (
+                    "You are LabAgent's experimental brain/eyes side channel. Return only a compact "
+                    "final note for another model to use. Do not reveal chain-of-thought. If an image "
+                    "is present, identify visible text, UI/code symbols, colors, shapes, and layout "
+                    "as exactly as possible. If this is a coding/project task, give a short plan and "
+                    "delegate actual implementation to qwen-agent. Keep the answer under 120 words."
+                ),
+            )
+            try:
+                brain_response = post_chat_completion(
+                    config.brain_base_url or config.base_url,
+                    config.brain_api_key if config.brain_api_key is not None else config.api_key,
+                    config.brain_model,
+                    brain_messages,
+                    max_tokens=config.brain_max_tokens,
+                    temperature=0.1,
+                    timeout=config.brain_timeout,
+                )
+                brain_summary = response_text(brain_response).strip()
+                artifacts["brain_model"] = config.brain_model
+                artifacts["brain_finish_reason"] = finish_reason(brain_response)
+                if brain_summary:
+                    artifacts["brain_ok"] = True
+                    artifacts["brain_summary"] = brain_summary
+                else:
+                    artifacts["brain_ok"] = False
+                    artifacts["brain_error"] = "empty content"
+            except RuntimeError as exc:
+                artifacts["brain_ok"] = False
+                artifacts["brain_model"] = config.brain_model
+                artifacts["brain_error"] = str(exc)
 
         if decision.use_vision:
             vision_messages = prepend_system_message(
@@ -154,6 +198,8 @@ def route_chat_completion(config: AgentRouterConfig, body: Dict[str, Any]) -> Di
 
         final_messages = build_final_messages(
             original_user_text=user_text or all_text(messages),
+            brain_summary=brain_summary,
+            brain_error=artifacts.get("brain_error"),
             vision_summary=vision_summary,
             vision_error=artifacts.get("vision_error"),
             rag_answer=rag_answer,
@@ -287,6 +333,8 @@ def build_final_messages(
     rag_error: str | None,
     rag_sources: Sequence[Dict[str, Any]],
     route_reason: str,
+    brain_summary: str = "",
+    brain_error: str | None = None,
 ) -> List[Dict[str, str]]:
     parts = [
         "USER REQUEST:",
@@ -294,6 +342,10 @@ def build_final_messages(
         "",
         f"ROUTE: {route_reason}",
     ]
+    if brain_summary:
+        parts.extend(["", "BRAIN SUMMARY:", brain_summary.strip()])
+    if brain_error:
+        parts.extend(["", "BRAIN ERROR:", brain_error.strip()])
     if vision_summary:
         parts.extend(["", "VISION SUMMARY:", vision_summary.strip()])
     if vision_error:
@@ -315,7 +367,7 @@ def build_final_messages(
             "role": "system",
             "content": (
                 "You are labagent-agent. You are a router-composed assistant. Use the provided "
-                "vision summary and RAG answer when present. Keep the final answer practical, "
+                "brain summary, vision summary, and RAG answer when present. Keep the final answer practical, "
                 "truthful, and concise. The user may write Chinese; treat Chinese as normal user "
                 "language, not garbled text, and answer in the user's language unless they ask "
                 "otherwise. If the route includes image_input and the vision summary has relevant "

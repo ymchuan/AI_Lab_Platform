@@ -46,22 +46,23 @@ router 的作用是把一个用户请求先拆开判断：
 ```text
 labagent-agent
   -> qwen-agent: 普通文本、代码/工程回答、最终对外输出
+  -> qwen3.6 experimental brain: 可选 brain/eyes 摘要，只作为 side channel
   -> vision-local: 图片问答、截图理解、OCR-ish 文字提取
   -> RAG Service: 项目文档检索、历史状态、引用证据
 ```
 
-`qwen-think` 当前只是未来 brain/reasoning 候选，还没有接进 router 路径。这样做是因为之前 benchmark 里它的最终 `content` 稳定性不如 `qwen-agent`，暂时不适合直接作为团队默认执行入口。
+`qwen3.6-27b-uncensored@?` 已作为 experimental brain/eyes 候选接入配置项，但默认不替代 `qwen-agent`。这样做是因为它能看图，但长文本 final `content` 不稳定，容易把预算耗在 `reasoning_content`。
 
 ## 4. “brain / eyes / hands” 怎么理解
 
 可以先这样理解：
 
-- brain: 复杂推理和规划，未来可以接 `qwen-think`。
-- eyes: 识图、读截图、OCR，目前是 `vision-local`。
+- brain: 复杂推理和规划，可实验接 `qwen3.6-27b-uncensored@?`，但必须有 timeout 和 fallback。
+- eyes: 识图、读截图、OCR，目前稳定入口仍是 `vision-local`；experimental brain 可以补充看图摘要。
 - hands: 写代码、改文件、执行工具，目前仍由客户端如 Cline/Codex CLI 负责。
 - voice: 最终回答用户，目前是 `qwen-agent`。
 
-当前 v0 router 只真正接入了 eyes、RAG 和 voice；brain 与 hands 还没有做成自动闭环。
+当前 v0 router 已支持可选 brain side channel，但还不是自动闭环 planner；hands 仍由 Cline/Codex CLI 负责。
 
 ## 5. 图片为什么走 `vision-local`
 
@@ -96,6 +97,8 @@ final=qwen-agent 用中文给出简短描述
 ```
 
 这说明“外部看起来一个模型，内部先看图再回答”的基础链路已经跑通。
+
+代码截图识别质量要单独评测。图片里的代码容易被 VL 模型 OCR 错函数名、变量名或缩进；如果任务是“分析代码”，更可靠的方式仍是让 Codex/Cline 读取真实文件文本，而不是只看截图。截图更适合 UI 状态、报错信息、表格和视觉布局。
 
 ## 6. RAG 为什么单独一层
 

@@ -13,6 +13,9 @@
 - 2026-06-29 腾讯云安全组放行 TCP 18020 后，公网 `labagent-agent` `/health`、`/v1/models` 和 direct chat 已验证 200。
 - 2026-06-28 复测 `vision-local` 最小回归：`benchmarks/vision_local_eval.py` 两个固定任务 2/2 通过，结果文件写入 `benchmarks/results/vision_local_20260628_062604.jsonl`。
 - 新增 `labagent-agent` 轻量 router：`services/agent` 以 OpenAI-compatible 形式组合 `qwen-agent`、`vision-local` 和 RAG Service，支持 `/health`、`/v1/models`、`/v1/chat/completions` 和 `/v1/responses`。
+- 新增 `labagent-agent` experimental brain/eyes side channel：可通过 `LABAGENT_AGENT_BRAIN_MODEL=qwen3.6-27b-uncensored@?` 启用，默认只在图片请求时尝试，失败/超时/空 content 会 fallback 到 `qwen-agent`。
+- 新增 `docs/PROJECT_BRIEF_FOR_AI_REVIEW.md`，作为发给 Gemini / 其他 AI reviewer 的单文件项目简报，汇总背景、架构、进度、问题和下一步评审问题。
+- 在 `docs/Progress_Summary.md` 和 `HANDOFF.md` 中补充文档入口分工，明确 README、HANDOFF、Progress Summary 和 AI review brief 各自用途。
 - 新增 `docs/AGENT_ROUTER_LEARNING_NOTES.md`，专门解释 router、`qwen-think`、`qwen-agent`、`vision-local` 和 RAG side channel 的分工。
 - 完成 RAG Service v1 端到端公网验证：索引重建为 364 chunks / 22 files，本地 `/health`、`/v1/rag/search`、`/v1/rag/ask` 和 `/v1/chat/completions` 均通过。
 - 通过 `ssh -N -R 0.0.0.0:18010:127.0.0.1:8010` 将 5090 RAG Service 暴露到云服务器公网 `82.156.69.153:18010`，David 外部机器 `/health` 验证返回 `ok=true`。
@@ -26,6 +29,7 @@
 ### Changed
 - 调整 `labagent-agent` 的 vision side-channel prompt 和最终汇总 prompt：要求提取颜色、形状和布局，并明确中文是正常用户语言，图片问题应基于 vision summary 直接回答。
 - `labagent-agent` 对 `stream=true` 增加 SSE 兼容降级：内部仍按非流式完成路由和回答生成，再返回 OpenAI `chat.completion.chunk` 事件与 `[DONE]`，用于兼容 Cline 默认 streaming。
+- 将 `qwen3.6-27b-uncensored@?` 记录为实验 brain/eyes 候选：能识图，但 final `content` 不稳定、延迟高，不替换 `qwen-agent` / `vision-local` 主链路。
 - 将 `labagent-agent` 记录为独立的编排层，而不是完整 Agent Runtime；它不负责 tool execution、memory 或真正 token-by-token streaming。
 - 文档补充 `labagent-agent` 的路由边界、失败态回传和当前依赖关系，避免把 router 误认为单模型聊天入口。
 - 将 RAG Service v1 从“可远程调试”更新为“公网 health 已验证”，但仍标记为手动维护的 baseline 服务，而非生产常驻入口。

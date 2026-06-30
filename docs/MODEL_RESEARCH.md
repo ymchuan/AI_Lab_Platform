@@ -38,6 +38,7 @@
 |--------|------|------|---------|---------|
 | P0 (已测) | 当前 `qwen/qwen3.6-27b` GGUF Q6_K | 当前基线 / qwen-think 候选 | reload 后速度改善，但 final `content` 仍经常为空 | 适合作为 reasoning baseline，不适合作为默认 Agent/Cline/RAG 执行模型 |
 | P0 (已定) | `qwen/qwen3-coder-30b` | Cline / coding agent 主模型 | 5090 LM Studio 默认 load；后续再测 SGLang/vLLM | 已能稳定返回 `content`，patch 2/2，soft-scoring 后 agent-readiness 信号最好 |
+| P0 (已测) | `qwen3.6-27b-uncensored@?` | experimental brain/eyes | 5090 LM Studio 直连；可通过 `LABAGENT_AGENT_BRAIN_MODEL` 作为 side channel | 能识图和完成极短回答，但长文本 `content` 不稳定、延迟高；不替换 `qwen-agent` 或 `vision-local` |
 | P0 | Qwen3.6-35B-A3B 量化版 | 通用 + coding + agent 对照 | 5090 上跑 4bit/5bit；记录显存和上下文长度 | 35B-A3B 级别适合 32GB VRAM 做主力模型候选 |
 | P0 (已测) | `qwen/qwen3.6-35b-a3b` | 通用 / reasoning 对照 | 2026-06-16 复测仍是 reasoning-only 失败模式，`/no_think` 无效 | 不提升为默认 Agent 执行模型 |
 | P0 (已测) | `qwen/qwen3-30b-a3b-2507` | 通用 / planning / patch 对照 | 可保留为对照模型；不作为当前默认 Cline 主模型 | agent_tasks strict 3/4、patch 2/2，但长任务约 110s+，repo map full-context 超时 |
@@ -49,6 +50,18 @@
 
 第一轮推荐默认结论：  
 **当前阶段结论：`qwen/qwen3-coder-30b` 定为 5090 默认 `qwen-agent`；`qwen/qwen3.6-27b` 和 `qwen/qwen3.6-35b-a3b` 继续作为 reasoning 对照，不进入默认 Cline/Agent 执行路径。**
+
+**`qwen3.6-27b-uncensored@?` 快速测试结论（2026-06-29）**：
+
+| 任务 | 结果 | 备注 |
+|------|------|------|
+| 英文极短回答 `brain-ok` | 通过，约 28s | `content=brain-ok`，同时产生约 518 chars `reasoning_content` |
+| 中文 RAG 解释，500 tokens | 失败 | `finish_reason=length`，`content` 为空，`reasoning_content` 约 1787 chars |
+| 中文 RAG 解释，1500 tokens | 失败 | 约 240s 超时 |
+| 简单 Python `add(a,b)` | 通过，约 48s | 能产出代码，但延迟明显高于主力 coder |
+| 图片 OCR/形状识别 | 通过，约 38s | 识别 `VISION 73`、蓝色矩形和红色圆形 |
+
+结论：它可以作为“多模态 brain/eyes 实验模型”保留，并通过 `labagent-agent` 的 brain side channel 接入；但不建议替换当前 `qwen-agent` 或 `vision-local`。主要原因是 final `message.content` 不稳定、延迟高、容易把输出预算花在 reasoning 上。代码截图识别也不能替代读取真实源文件。
 
 ### 新设备：第二推理 / RAG 检索 / 对照实验
 

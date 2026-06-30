@@ -8,6 +8,7 @@
 labagent-agent
   -> qwen-agent: 普通聊天、代码/工程回答、最终输出
   -> vision-local: 请求包含 image_url / input_image 时看图
+  -> optional brain: 请求包含图片时，可让 qwen3.6 experimental 先给 brain/eyes 摘要
   -> RAG Service: 请求像 LabAgent / 项目知识问题时检索文档
 ```
 
@@ -18,6 +19,7 @@ labagent-agent
 需要先保证这些服务可用：
 
 - 5090 LM Studio 正在运行 `qwen-agent` 后端。
+- 如果启用 experimental brain，5090 LM Studio 还需要 load `qwen3.6-27b-uncensored@?`。
 - 5090 到云服务器的 `:12340` 反向隧道已开启。
 - 新设备到云服务器的 `:12341` 反向隧道已开启，承载 `embed-local` / `vision-local`。
 - 需要项目知识分支时，5090 本地 RAG Service 在 `127.0.0.1:8010` 运行。
@@ -46,6 +48,18 @@ Get-Content .env.local | ForEach-Object {
 }
 python -m services.agent.server --host 127.0.0.1 --port 8020
 ```
+
+可选启用 experimental brain/eyes side channel：
+
+```powershell
+$env:LABAGENT_AGENT_BRAIN_MODEL = "qwen3.6-27b-uncensored@?"
+$env:LABAGENT_AGENT_BRAIN_BASE_URL = "http://127.0.0.1:1234/v1"
+$env:LABAGENT_AGENT_BRAIN_TIMEOUT = "45"
+$env:LABAGENT_AGENT_BRAIN_MAX_TOKENS = "220"
+python -m services.agent.server --host 127.0.0.1 --port 8020
+```
+
+默认只在图片请求时调用 brain，不会影响普通文本 / Codex 编码请求。除非明确要实验文本 planning，不要设置 `LABAGENT_AGENT_BRAIN_ON_TEXT=true`。
 
 ## 本地验证
 
@@ -111,10 +125,11 @@ API Key:  <LABAGENT_AGENT_API_KEY>
 ## 路由规则
 
 - 任意 OpenAI `image_url` 或 Responses API `input_image` 内容块 -> `vision-local`。
+- 如果配置了 `LABAGENT_AGENT_BRAIN_MODEL`，图片请求会先额外调用 experimental brain/eyes，失败或空 content 只记录到 `labagent.brain_error`，不阻断最终回答。
 - 命中 LabAgent / qwen-agent / embed-local / vision-local / RAG / LiteLLM / 5090 / 5080 / 12340 / 项目 / 架构 / 路由 / 模型 / 节点 / 文档 等关键词 -> RAG Service。
 - 其他请求 -> 直接 `qwen-agent`。
 
-当 vision 或 RAG 分支运行后，router 会把 side channel 输出交给 `qwen-agent` 生成最终回答。
+当 brain / vision / RAG 分支运行后，router 会把 side channel 输出交给 `qwen-agent` 生成最终回答。
 
 ## 当前限制
 
@@ -122,5 +137,6 @@ API Key:  <LABAGENT_AGENT_API_KEY>
 - 不执行真实工具调用。
 - 不维护 memory 或 planner loop。
 - RAG 分支依赖正在运行的 RAG Service 和可用 embedding backend。
+- experimental brain 仍不稳定：`qwen3.6-27b-uncensored@?` 能识图，但长文本容易把预算耗在 `reasoning_content` 或超时，所以只能作为 side channel，不能替代 `qwen-agent`。
 - 当前 keyword router 很简单，后续应升级为 intent classifier 或 planner。
 - side-channel 失败会被暴露到最终 prompt，但还没有自动恢复策略。

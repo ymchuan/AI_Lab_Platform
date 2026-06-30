@@ -9,6 +9,8 @@ from typing import Any, Dict, Sequence
 
 from .router import (
     DEFAULT_AGENT_MODEL,
+    DEFAULT_BRAIN_MAX_TOKENS,
+    DEFAULT_BRAIN_TIMEOUT,
     DEFAULT_CHAT_MODEL,
     DEFAULT_RAG_BASE_URL,
     DEFAULT_VISION_MODEL,
@@ -41,6 +43,8 @@ def create_server(config: AgentRouterConfig, host: str, port: int, service_api_k
                         "agent_model": config.agent_model,
                         "chat_model": config.chat_model,
                         "vision_model": config.vision_model,
+                        "brain_model": config.brain_model,
+                        "brain_enabled_for_text": config.brain_on_text,
                         "rag_base_url": config.rag_base_url,
                     }
                 )
@@ -146,11 +150,29 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--api-key", default=os.environ.get("LABAGENT_API_KEY"))
     parser.add_argument("--chat-model", default=os.environ.get("LABAGENT_AGENT_CHAT_MODEL", DEFAULT_CHAT_MODEL))
     parser.add_argument("--vision-model", default=os.environ.get("LABAGENT_AGENT_VISION_MODEL", DEFAULT_VISION_MODEL))
+    parser.add_argument("--brain-model", default=os.environ.get("LABAGENT_AGENT_BRAIN_MODEL"))
+    parser.add_argument("--brain-base-url", default=os.environ.get("LABAGENT_AGENT_BRAIN_BASE_URL"))
+    parser.add_argument("--brain-api-key", default=os.environ.get("LABAGENT_AGENT_BRAIN_API_KEY"))
     parser.add_argument("--agent-model", default=os.environ.get("LABAGENT_AGENT_MODEL", DEFAULT_AGENT_MODEL))
     parser.add_argument("--rag-base-url", default=os.environ.get("LABAGENT_RAG_BASE_URL", DEFAULT_RAG_BASE_URL))
     parser.add_argument("--rag-api-key", default=os.environ.get("LABAGENT_RAG_API_KEY"))
     parser.add_argument("--service-api-key", default=os.environ.get("LABAGENT_AGENT_API_KEY"))
     parser.add_argument("--timeout", type=int, default=int(os.environ.get("LABAGENT_AGENT_TIMEOUT", "180")))
+    parser.add_argument(
+        "--brain-timeout",
+        type=int,
+        default=int(os.environ.get("LABAGENT_AGENT_BRAIN_TIMEOUT", str(DEFAULT_BRAIN_TIMEOUT))),
+    )
+    parser.add_argument(
+        "--brain-max-tokens",
+        type=int,
+        default=int(os.environ.get("LABAGENT_AGENT_BRAIN_MAX_TOKENS", str(DEFAULT_BRAIN_MAX_TOKENS))),
+    )
+    parser.add_argument(
+        "--brain-on-text",
+        action="store_true",
+        default=os.environ.get("LABAGENT_AGENT_BRAIN_ON_TEXT", "").lower() in {"1", "true", "yes", "on"},
+    )
     parser.add_argument(
         "--default-max-tokens",
         type=int,
@@ -165,11 +187,17 @@ def config_from_args(args: argparse.Namespace) -> AgentRouterConfig:
         api_key=args.api_key,
         chat_model=args.chat_model,
         vision_model=args.vision_model,
+        brain_model=args.brain_model,
+        brain_base_url=args.brain_base_url,
+        brain_api_key=args.brain_api_key,
         agent_model=args.agent_model,
         rag_base_url=args.rag_base_url,
         rag_api_key=args.rag_api_key,
         timeout=args.timeout,
         default_max_tokens=args.default_max_tokens,
+        brain_timeout=args.brain_timeout,
+        brain_max_tokens=args.brain_max_tokens,
+        brain_on_text=args.brain_on_text,
     )
 
 
@@ -181,6 +209,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"Agent model: {config.agent_model}")
     print(f"Chat model: {config.chat_model}")
     print(f"Vision model: {config.vision_model}")
+    print(f"Brain model: {config.brain_model or '(disabled)'}")
     print(f"RAG base URL: {config.rag_base_url}")
     try:
         server.serve_forever()
