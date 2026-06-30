@@ -11,6 +11,9 @@ EXCLUDED_SOURCE_PATHS = {
     "docs/CODE_REVIEW_ISSUES.md",
     "docs/claude-fable-5.md",
 }
+EXCLUDED_SOURCE_PREFIXES = (
+    "docs/LabAgent_Platform_V",
+)
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 MIN_CHUNK_CHARS = 120
 
@@ -133,6 +136,7 @@ def _is_unsafe_source(relative_path: str) -> bool:
     parts = set(relative_path.split("/"))
     return (
         relative_path in EXCLUDED_SOURCE_PATHS
+        or any(relative_path.startswith(prefix) for prefix in EXCLUDED_SOURCE_PREFIXES)
         or relative_path.startswith(".")
         or ".git" in parts
         or "__pycache__" in parts

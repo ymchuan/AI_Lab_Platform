@@ -19,6 +19,10 @@ The goal is not a single leaderboard score. The goal is to make every model or w
 - `embedding_health_eval.py` - embedding endpoint health and tiny retrieval probe
 - `vision_local_eval.py` - `vision-local` image OCR / screenshot understanding smoke test
 
+Manual fixtures:
+
+- `fixtures/codex_cli_smoke` - tiny project for manually validating Codex CLI against `qwen-agent` / `labagent-agent`. See `docs/CODEX_CLI_COMPATIBILITY.md`.
+
 ## Configuration
 
 Use environment variables so secrets do not enter the repo:
@@ -111,6 +115,16 @@ python benchmarks/vision_local_eval.py --model vision-local
 ```
 
 This generates small PNG images in memory, sends them through the public OpenAI-compatible `vision-local` route, and checks whether Qwen3-VL can read text, shapes, and a screenshot-style routing table.
+
+### 11. Codex CLI Manual Smoke
+
+```powershell
+Copy-Item -Recurse benchmarks\fixtures\codex_cli_smoke F:\goai\codex_cli_smoke_run
+cd F:\goai\codex_cli_smoke_run
+python -m unittest discover -s tests -p "test_*.py"
+```
+
+Then run one task at a time from `TASKS.md` through Codex CLI. This fixture is intentionally manual because the goal is to observe actual Codex tool/file behavior, not only raw model output.
 
 ## What This Baseline Checks
 

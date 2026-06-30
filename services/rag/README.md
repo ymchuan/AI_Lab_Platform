@@ -55,6 +55,7 @@ Excluded from default discovery:
 ```text
 docs/CODE_REVIEW_ISSUES.md
 docs/claude-fable-5.md
+docs/LabAgent_Platform_V*.md
 ```
 
 Default output:

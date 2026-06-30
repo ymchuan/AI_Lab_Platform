@@ -114,9 +114,10 @@ data/rag/index.json
 ```text
 docs/CODE_REVIEW_ISSUES.md
 docs/claude-fable-5.md
+docs/LabAgent_Platform_V*.md
 ```
 
-原因很简单：它们不是 LabAgent 自己的事实源，进索引会污染 RAG 回答。
+原因很简单：它们不是 LabAgent 自己的事实源，进索引会污染 RAG 回答。外部 AI 给出的建议可以人工阅读和分流，但不能直接进入默认项目事实库。
 
 ## 6. 当前实现阶段
 

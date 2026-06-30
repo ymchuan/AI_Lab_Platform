@@ -188,6 +188,7 @@ class RagCoreTest(unittest.TestCase):
             (docs / "A.md").write_text("doc", encoding="utf-8")
             (docs / "CODE_REVIEW_ISSUES.md").write_text("raw review", encoding="utf-8")
             (docs / "claude-fable-5.md").write_text("raw prompt", encoding="utf-8")
+            (docs / "LabAgent_Platform_V4_最新进度与下一步.md").write_text("external advice", encoding="utf-8")
 
             files = discover_markdown_files(tmp_path, ["*.md", "docs/*.md"])
             relatives = [path.relative_to(tmp_path).as_posix() for path in files]
@@ -197,6 +198,7 @@ class RagCoreTest(unittest.TestCase):
         self.assertNotIn(".env.md", relatives)
         self.assertNotIn("docs/CODE_REVIEW_ISSUES.md", relatives)
         self.assertNotIn("docs/claude-fable-5.md", relatives)
+        self.assertNotIn("docs/LabAgent_Platform_V4_最新进度与下一步.md", relatives)
 
     def test_rag_server_health_and_auth(self) -> None:
         import tempfile

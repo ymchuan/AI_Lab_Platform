@@ -320,6 +320,8 @@ index path: data/rag/index.json
 
 目标：团队成员能稳定用 Codex CLI 接 LabAgent 本地模型开发。
 
+当前已新增 `docs/CODEX_CLI_COMPATIBILITY.md` 和 `benchmarks/fixtures/codex_cli_smoke`，用于固定手工验收矩阵。
+
 建议测试矩阵：
 
 - plain chat
@@ -451,7 +453,7 @@ Model: qwen-agent
 | `docs/API.md` | API 和调用方式 |
 | `docs/MODEL_RESEARCH.md` | 模型选择和测试结论 |
 | `docs/TEAM_CLIENT_COMPATIBILITY.md` | Codex / Claude Code / Cline 团队接入计划 |
+| `docs/CODEX_CLI_COMPATIBILITY.md` | Codex CLI 接入 LabAgent 的配置、验收矩阵和 smoke fixture |
 | `docs/AGENT_ROUTER_LEARNING_NOTES.md` | Agent Router / brain / eyes / RAG 分工 |
 | `services/agent/README.md` | `labagent-agent` 运行和验证 |
 | `docs/RAG_LEARNING_NOTES.md` | RAG 实现和学习笔记 |
-

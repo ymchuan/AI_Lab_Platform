@@ -122,6 +122,7 @@ Model:    qwen-local
 - [Benchmark 设计](docs/BENCHMARK_DESIGN.md) — Agent / Coding / RAG 评测分层与解释规则
 - [Claude Code 兼容性](docs/CLAUDE_CODE_COMPATIBILITY.md) — Claude Code 通过 LiteLLM 接本地模型的可用边界与后续评测计划
 - [团队客户端兼容性](docs/TEAM_CLIENT_COMPATIBILITY.md) — Codex CLI / Claude Code CLI / Cline 等团队接入路径和验证计划
+- [Codex CLI 兼容性验证](docs/CODEX_CLI_COMPATIBILITY.md) — 当前 P0，团队成员用 Codex CLI 接 LabAgent 后端的配置、验收矩阵和 smoke fixture
 - [文档同步规则](docs/DOCUMENTATION_SYNC.md) — 每个关键节点后的复盘与文档更新契约
 - [Code Review 分流记录](docs/CODE_REVIEW_TRIAGE.md) — 外部 AI review 的采纳、后置和拒绝决策
 - [Agent 操作规则](docs/AGENT_OPERATING_RULES.md) — Qwen/Cline 系统提示词建议与本地 skills 说明
@@ -170,6 +171,8 @@ python benchmarks/vision_local_eval.py --model vision-local
 ```
 
 结果默认写入 `benchmarks/results/`，该目录已加入 `.gitignore`。
+
+Codex CLI 团队接入当前使用手工验收矩阵，fixture 位于 `benchmarks/fixtures/codex_cli_smoke`。详见 [docs/CODEX_CLI_COMPATIBILITY.md](docs/CODEX_CLI_COMPATIBILITY.md)。
 
 RAG v0 常用命令：
 

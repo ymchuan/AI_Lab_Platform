@@ -23,6 +23,9 @@
 - 完成 `vision-local` 最小公网 smoke test：Qwen3-VL-30B 成功识别测试图片文字、颜色形状和截图式路由表，确认 OpenAI image message 路径端到端可用。
 - 新增 `benchmarks/vision_local_eval.py`，把手工 VL smoke 固化为可重复回归测试，覆盖合成图片 OCR/形状识别和截图式表格读取。
 - 新增 `docs/TEAM_CLIENT_COMPATIBILITY.md`，记录团队成员通过 Codex CLI / Claude Code CLI / Cline 接入 LabAgent 网关的兼容性目标、风险和验证矩阵。
+- 新增 `docs/CODEX_CLI_COMPATIBILITY.md`，将 Codex CLI 团队接入提升为当前 P0，记录推荐配置、验收矩阵、通过标准和待测项。
+- 新增 `benchmarks/fixtures/codex_cli_smoke`，作为 Codex CLI 手工验收 fixture，覆盖读项目、创建文件、单文件编辑、多文件编辑、测试执行和失败修复。
+- 默认 RAG discovery 排除 `docs/LabAgent_Platform_V*.md` 外部建议文档，避免把外部 AI 的愿景/建议误当成项目事实源。
 - 记录 David 机器 Codex CLI 基础 workflow smoke：`qwen-agent` plain chat、目录读取和一文件写入均通过。
 - 记录 David 机器 Codex CLI 单文件 Python patch smoke：成功为 `app.py` 添加类型标注和 `__main__` 示例。
 
