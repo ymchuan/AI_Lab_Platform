@@ -34,6 +34,7 @@
 ### Changed
 - 调整 `labagent-agent` 的 vision side-channel prompt 和最终汇总 prompt：要求提取颜色、形状和布局，并明确中文是正常用户语言，图片问题应基于 vision summary 直接回答。
 - `labagent-agent` 对 `stream=true` 增加 SSE 兼容降级：内部仍按非流式完成路由和回答生成，再返回 OpenAI `chat.completion.chunk` 事件与 `[DONE]`，用于兼容 Cline 默认 streaming。
+- `labagent-agent` 补齐 `/v1/responses stream=true` 的 Responses API SSE 兼容事件，确保 Codex CLI 能收到 `response.completed`，避免 `stream disconnected before completion`。
 - 将 `qwen3.6-27b-uncensored@?` 记录为实验 brain/eyes 候选：能识图，但 final `content` 不稳定、延迟高，不替换 `qwen-agent` / `vision-local` 主链路。
 - 将 `labagent-agent` 记录为独立的编排层，而不是完整 Agent Runtime；它不负责 tool execution、memory 或真正 token-by-token streaming。
 - 文档补充 `labagent-agent` 的路由边界、失败态回传和当前依赖关系，避免把 router 误认为单模型聊天入口。

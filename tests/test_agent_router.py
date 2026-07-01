@@ -7,6 +7,7 @@ from services.agent.router import (
     chat_completion_to_sse_events,
     decide_route,
     last_user_text,
+    response_to_sse_events,
     responses_input_to_messages,
 )
 
@@ -135,6 +136,43 @@ class AgentRouterTest(unittest.TestCase):
         self.assertEqual(events[0]["choices"][0]["delta"]["role"], "assistant")
         self.assertEqual(events[1]["choices"][0]["delta"]["content"], "ok")
         self.assertEqual(events[2]["choices"][0]["finish_reason"], "stop")
+
+    def test_response_to_sse_events_emits_response_completed(self) -> None:
+        events = response_to_sse_events(
+            {
+                "id": "resp-test",
+                "object": "response",
+                "created_at": 123,
+                "completed_at": 123,
+                "status": "completed",
+                "model": "labagent-agent",
+                "output": [
+                    {
+                        "id": "msg-test",
+                        "type": "message",
+                        "role": "assistant",
+                        "status": "completed",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": "pong",
+                                "annotations": [],
+                            }
+                        ],
+                    }
+                ],
+                "usage": {
+                    "input_tokens": 1,
+                    "output_tokens": 1,
+                    "total_tokens": 2,
+                },
+            }
+        )
+
+        event_types = [event["type"] for event in events]
+        self.assertIn("response.output_text.delta", event_types)
+        self.assertEqual(events[-1]["type"], "response.completed")
+        self.assertEqual(events[-1]["response"]["status"], "completed")
 
 
 if __name__ == "__main__":

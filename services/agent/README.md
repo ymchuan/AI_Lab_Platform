@@ -122,6 +122,8 @@ API Key:  <LABAGENT_AGENT_API_KEY>
 
 2026-06-29 状态：云端 `0.0.0.0:18020` 已监听，腾讯云安全组已放行 TCP 18020；公网 `/health`、`/v1/models` 和 direct chat 已验证 200。随后用户升级了 LM Studio 且模型暂未重新 load，所以这轮没有继续做图片或 Cline 活体连通测试。
 
+2026-07-01 状态：David 机器验证公网 `/health` 和 `/v1/chat/completions` 均可达，但 Codex CLI 使用 `wire_api="responses"` 接入 `labagent-agent` 时出现 `stream disconnected before completion: stream closed before response.completed`。根因不是 SSH 隧道或模型链路，而是 `/v1/responses stream=true` 旧实现只返回普通 JSON，没有按 Responses API SSE 流式事件发送 `response.completed`。当前代码已补 Responses streaming 兼容降级：内部仍先完整生成回答，再发 `response.created`、`response.output_text.delta`、`response.completed` 等 SSE 事件。需要重启 `services.agent.server` 后再复测 Codex C9。
+
 ## 路由规则
 
 - 任意 OpenAI `image_url` 或 Responses API `input_image` 内容块 -> `vision-local`。
@@ -133,7 +135,8 @@ API Key:  <LABAGENT_AGENT_API_KEY>
 
 ## 当前限制
 
-- `stream=true` 目前是 SSE 兼容降级：router 会先完整生成回答，再按 OpenAI `chat.completion.chunk` 格式一次性发出 role/content/finish 三个事件和 `[DONE]`。这能兼容 Cline 等默认开启 streaming 的客户端，但还不是真正 token-by-token streaming。
+- `stream=true` 目前是 SSE 兼容降级：router 会先完整生成回答，再一次性发出兼容事件。`/v1/chat/completions` 返回 OpenAI `chat.completion.chunk` 事件和 `[DONE]`；`/v1/responses` 返回 Responses API 风格的 `response.created`、`response.output_text.delta` 和 `response.completed` 等事件，用于兼容 Codex CLI `wire_api="responses"`。
+- 这仍不是真正 token-by-token streaming，首包延迟仍等于后端完整生成时间。
 - 不执行真实工具调用。
 - 不维护 memory 或 planner loop。
 - RAG 分支依赖正在运行的 RAG Service 和可用 embedding backend。

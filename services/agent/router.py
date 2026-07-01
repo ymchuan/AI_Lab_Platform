@@ -298,10 +298,12 @@ def route_response(config: AgentRouterConfig, body: Dict[str, Any]) -> Dict[str,
     chat_response = route_chat_completion(config, chat_body)
     content = chat_response["choices"][0]["message"]["content"]
     created = int(time.time())
+    usage = chat_usage_to_response_usage(chat_response.get("usage") or {})
     return {
         "id": f"resp_labagent_agent_{created}",
         "object": "response",
         "created_at": created,
+        "completed_at": created,
         "status": "completed",
         "model": body.get("model") or config.agent_model,
         "output": [
@@ -319,9 +321,142 @@ def route_response(config: AgentRouterConfig, body: Dict[str, Any]) -> Dict[str,
                 ],
             }
         ],
-        "usage": chat_response.get("usage") or {},
+        "usage": usage,
         "error": None,
         "labagent": chat_response.get("labagent") or {},
+    }
+
+
+def response_to_sse_events(response: Dict[str, Any]) -> List[Dict[str, Any]]:
+    response_id = str(response.get("id") or f"resp_labagent_agent_{int(time.time())}")
+    created = int(response.get("created_at") or time.time())
+    model = str(response.get("model") or DEFAULT_AGENT_MODEL)
+    output = response.get("output") or []
+    item = dict(output[0]) if output and isinstance(output[0], dict) else {}
+    item_id = str(item.get("id") or f"msg_labagent_agent_{created}")
+    text = response_output_text(response)
+
+    in_progress_response = dict(response)
+    in_progress_response.update(
+        {
+            "id": response_id,
+            "object": "response",
+            "created_at": created,
+            "completed_at": None,
+            "status": "in_progress",
+            "model": model,
+            "output": [],
+        }
+    )
+
+    content_part = {"type": "output_text", "text": text, "annotations": []}
+    output_item = {
+        "id": item_id,
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [content_part],
+    }
+    completed_response = dict(response)
+    completed_response.update(
+        {
+            "id": response_id,
+            "object": "response",
+            "created_at": created,
+            "completed_at": int(response.get("completed_at") or time.time()),
+            "status": "completed",
+            "model": model,
+            "output": [output_item],
+        }
+    )
+
+    return [
+        {
+            "type": "response.created",
+            "response": in_progress_response,
+            "sequence_number": 1,
+        },
+        {
+            "type": "response.in_progress",
+            "response": in_progress_response,
+            "sequence_number": 2,
+        },
+        {
+            "type": "response.output_item.added",
+            "output_index": 0,
+            "item": {**output_item, "status": "in_progress", "content": []},
+            "sequence_number": 3,
+        },
+        {
+            "type": "response.content_part.added",
+            "item_id": item_id,
+            "output_index": 0,
+            "content_index": 0,
+            "part": {"type": "output_text", "text": "", "annotations": []},
+            "sequence_number": 4,
+        },
+        {
+            "type": "response.output_text.delta",
+            "item_id": item_id,
+            "output_index": 0,
+            "content_index": 0,
+            "delta": text,
+            "sequence_number": 5,
+        },
+        {
+            "type": "response.output_text.done",
+            "item_id": item_id,
+            "output_index": 0,
+            "content_index": 0,
+            "text": text,
+            "sequence_number": 6,
+        },
+        {
+            "type": "response.content_part.done",
+            "item_id": item_id,
+            "output_index": 0,
+            "content_index": 0,
+            "part": content_part,
+            "sequence_number": 7,
+        },
+        {
+            "type": "response.output_item.done",
+            "output_index": 0,
+            "item": output_item,
+            "sequence_number": 8,
+        },
+        {
+            "type": "response.completed",
+            "response": completed_response,
+            "sequence_number": 9,
+        },
+    ]
+
+
+def response_output_text(response: Dict[str, Any]) -> str:
+    output = response.get("output") or []
+    for item in output:
+        if not isinstance(item, dict):
+            continue
+        for content_item in item.get("content") or []:
+            if not isinstance(content_item, dict):
+                continue
+            text = content_item.get("text")
+            if isinstance(text, str):
+                return text
+    return ""
+
+
+def chat_usage_to_response_usage(usage: Dict[str, Any]) -> Dict[str, Any]:
+    if {"input_tokens", "output_tokens", "total_tokens"}.issubset(usage):
+        return usage
+    input_tokens = int(usage.get("prompt_tokens") or 0)
+    output_tokens = int(usage.get("completion_tokens") or 0)
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "output_tokens_details": {"reasoning_tokens": 0},
+        "total_tokens": int(usage.get("total_tokens") or input_tokens + output_tokens),
     }
 
 

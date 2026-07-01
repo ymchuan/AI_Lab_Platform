@@ -26,6 +26,8 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-06-30 Codex CLI `codex_cli_smoke` C1-C6 已在 David 机器通过：读项目、创建文件、单文件 docstring 编辑、多文件实现+测试同步修改、添加 `mean_value` 函数和测试、以及故意破坏 `format_total` 后根据失败测试修复实现。测试过程中暴露的小问题是 Codex 会先尝试 PowerShell 不支持的 `&&`、会尝试未安装的 `pytest`、直接运行 `python tests/test_app.py` 会遇到导入路径问题；但它能回退到 `python -m unittest ...` 完成验证。当前可把 `Codex CLI + qwen-agent` 标为“小型开发 workflow smoke 通过”，长上下文、后端异常和 `labagent-agent` 后端仍待测。
 
+2026-07-01 `labagent-agent` 的 Codex C9 首轮定位：David 机器直接调用公网 `/health` 和 `/v1/chat/completions` 成功，说明 key、18020 隧道、router 和 `qwen-agent` 链路可用；Codex CLI 使用 `wire_api="responses"` 时失败为 `stream disconnected before completion: stream closed before response.completed`。根因是 `/v1/responses stream=true` 旧实现没有发送 Responses API SSE 的 `response.completed` 事件。当前代码已补 `response.created` / `response.output_text.delta` / `response.completed` 等 SSE 兼容降级事件，需重启 5090 上的 `services.agent.server` 后再复测 C9。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
@@ -183,7 +185,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 23. **团队 CLI 客户端兼容性需要单独做矩阵测试** — 团队成员可能更习惯 Codex CLI 或 Claude Code CLI。不要假设“Cline 能用”就代表 Codex/Claude Code 的工具调用和文件编辑也能用。Codex CLI 已通过 David 机器基础 chat/read/write、单文件 Python patch，以及 `codex_cli_smoke` C1-C6；下一步测长上下文、后端异常错误体验和 `labagent-agent` 后端，再决定是否需要 adapter 层。
 
-24. **`labagent-agent` v0 已完成本地三分支验证，公网 18020 已通** — 2026-06-29 已补 `.env.local` 的 `LABAGENT_AGENT_API_KEY`，它和 LiteLLM 的 `LABAGENT_API_KEY`、RAG 的 `LABAGENT_RAG_API_KEY` 分离。本地 `127.0.0.1:8020` 已验证鉴权、direct chat、RAG project_context、图片 image_input；腾讯云安全组放行 TCP 18020 后，公网 `/health`、`/v1/models` 和 direct chat 均已验证 200。`stream=true` 现在是 SSE 兼容降级，不是真正 token-by-token streaming。
+24. **`labagent-agent` v0 已完成本地三分支验证，公网 18020 已通** — 2026-06-29 已补 `.env.local` 的 `LABAGENT_AGENT_API_KEY`，它和 LiteLLM 的 `LABAGENT_API_KEY`、RAG 的 `LABAGENT_RAG_API_KEY` 分离。本地 `127.0.0.1:8020` 已验证鉴权、direct chat、RAG project_context、图片 image_input；腾讯云安全组放行 TCP 18020 后，公网 `/health`、`/v1/models` 和 direct chat 均已验证 200。2026-07-01 已补 `/v1/responses stream=true` 的 Responses SSE 兼容事件，解决 Codex CLI 等待 `response.completed` 的协议问题；仍需重启服务并复测 C9。`stream=true` 仍不是真正 token-by-token streaming。
 
 25. **`qwen3.6-27b-uncensored@?` 已作为 experimental brain/eyes side channel 接入代码，但不替换主路由** — 2026-06-29 5090 直连测试：极短回答通过，简单代码通过，图片 OCR/形状识别可读出 `VISION 73`、蓝色矩形、红色圆形；但中文解释 500 tokens 时 `content` 为空，1500 tokens 约 240s 超时。Router 新增 `LABAGENT_AGENT_BRAIN_MODEL` / `LABAGENT_AGENT_BRAIN_BASE_URL`，默认只在图片请求时尝试 brain，失败/超时/空 content 只记录 side-channel error，最终仍由 `qwen-agent` 输出。
 
@@ -196,7 +198,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 按优先级：
 
 1. 扩展 Codex CLI 团队客户端验证：C1-C6 已通过，下一步跑 C7 长上下文、C8 后端断链/模型未 load/key 错误时的错误处理。
-2. 用 `labagent-agent` 公网入口跑 Codex C0-C3，对比 router 是否适合做统一入口；默认团队后端仍保持 `qwen-agent` 直连 LiteLLM。
+2. 重启 5090 上的 `services.agent.server`，用 `labagent-agent` 公网入口复测 Codex C9 C0-C3，对比 router 是否适合做统一入口；默认团队后端仍保持 `qwen-agent` 直连 LiteLLM。
 3. 从 David/Cline 远程验证 `labagent-agent` 图片请求，确认 Cline 默认 streaming 不再 400，并检查返回里的 `labagent.brain_*` / `vision_*` 字段。
 4. 把 RAG v1.x 迁移到 Qdrant 或 Chroma，保留当前 JSON index 作为 baseline。
 5. 增加 reranker 对照：先在新设备 4060 Ti / 5080 上测试 Qwen3-Reranker 或 BGE reranker。
@@ -207,7 +209,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 10. 8060S 当前不可用，相关 OCR / Whisper / 文档解析计划后移。
 11. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
 12. 构建 MCP Server / Skills / Eval Harness / LoRA-QLoRA 和量化实验。
-13. 把 `labagent-agent` 从编排层继续往前推：先补 streaming、错误恢复和图像回放，再进入真正的 planner/tool registry。
+13. 把 `labagent-agent` 从编排层继续往前推：先验证 Responses streaming 兼容、错误恢复和图像回放，再进入真正的 planner/tool registry。
 
 ## 当前 Benchmark 命令
 

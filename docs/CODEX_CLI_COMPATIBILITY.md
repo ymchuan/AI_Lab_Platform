@@ -239,6 +239,14 @@ Add clear docstrings to add and format_total in app.py, then run the tests.
 - 如果失败，记录失败类型，不要把它设为团队默认后端。
 - 团队默认后端仍是 `qwen-agent` 直连 LiteLLM。
 
+2026-07-01 首轮 C9 观察：
+
+- David 机器直接调用公网 `/health` 返回 `ok=true`。
+- David 机器直接调用公网 `/v1/chat/completions` 可返回 `labagent.route=direct_chat`、`final_model=qwen-agent`。
+- Codex CLI 接入 `labagent-agent` 时失败：`stream disconnected before completion: stream closed before response.completed`。
+- 判断：链路和模型可用，失败点在 Codex 使用的 `/v1/responses stream=true` 协议兼容层。旧 router 没有发送 Responses API SSE 的 `response.completed` 事件。
+- 当前代码已补 `/v1/responses stream=true` 的 SSE 降级事件；重启 5090 上的 `services.agent.server` 后再复测 C9。
+
 ## 目前不做什么
 
 - 不把 `labagent-agent` 强行设为 Codex 默认后端。

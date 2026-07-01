@@ -16,6 +16,7 @@ from .router import (
     DEFAULT_VISION_MODEL,
     AgentRouterConfig,
     chat_completion_to_sse_events,
+    response_to_sse_events,
     route_chat_completion,
     route_response,
 )
@@ -79,7 +80,11 @@ def create_server(config: AgentRouterConfig, host: str, port: int, service_api_k
                         self._send_json(response)
                     return
                 if self.path == "/v1/responses":
-                    self._send_json(route_response(config, body))
+                    response = route_response(config, body)
+                    if body.get("stream"):
+                        self._send_sse(response_to_sse_events(response), include_done=False)
+                    else:
+                        self._send_json(response)
                     return
                 self._send_json({"ok": False, "error": f"unknown route: {self.path}"}, HTTPStatus.NOT_FOUND)
             except ValueError as exc:
@@ -120,7 +125,12 @@ def create_server(config: AgentRouterConfig, host: str, port: int, service_api_k
             self.end_headers()
             self.wfile.write(raw)
 
-        def _send_sse(self, events: Sequence[Dict[str, Any]], status: HTTPStatus = HTTPStatus.OK) -> None:
+        def _send_sse(
+            self,
+            events: Sequence[Dict[str, Any]],
+            status: HTTPStatus = HTTPStatus.OK,
+            include_done: bool = True,
+        ) -> None:
             self.send_response(int(status))
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")
             self.send_header("Cache-Control", "no-cache")
@@ -130,11 +140,16 @@ def create_server(config: AgentRouterConfig, host: str, port: int, service_api_k
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
             self.end_headers()
             for event in events:
-                raw = "data: " + json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n\n"
+                event_type = event.get("type")
+                raw = ""
+                if isinstance(event_type, str):
+                    raw += f"event: {event_type}\n"
+                raw += "data: " + json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n\n"
                 self.wfile.write(raw.encode("utf-8"))
                 self.wfile.flush()
-            self.wfile.write(b"data: [DONE]\n\n")
-            self.wfile.flush()
+            if include_done:
+                self.wfile.write(b"data: [DONE]\n\n")
+                self.wfile.flush()
 
         def log_message(self, format: str, *args: Any) -> None:
             print(f"{self.address_string()} - {format % args}")
