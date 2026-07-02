@@ -28,6 +28,8 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-01 `labagent-agent` 的 Codex C9 首轮定位：David 机器直接调用公网 `/health` 和 `/v1/chat/completions` 成功，说明 key、18020 隧道、router 和 `qwen-agent` 链路可用；Codex CLI 使用 `wire_api="responses"` 时失败为 `stream disconnected before completion: stream closed before response.completed`。根因是 `/v1/responses stream=true` 旧实现没有发送 Responses API SSE 的 `response.completed` 事件。当前代码已补 `response.created` / `response.output_text.delta` / `response.completed` 等 SSE 兼容降级事件，需重启 5090 上的 `services.agent.server` 后再复测 C9。
 
+2026-07-02 Codex C9 复测：`labagent-agent` 文本链路已能在 Codex 中正常回答，公网 `/v1/responses stream=true` 已返回 `text/event-stream` 且包含 `response.completed`，说明 7 月 1 日的 Responses streaming 兼容修复在线上生效。随后测试图片输入失败，排查确认云服务器只有 `:12340` 和 `:18020`，没有新设备 `:12341`；云端 `curl http://127.0.0.1:12341/v1/models` 连接失败，`embed-local` embeddings 返回 500。结论：图片失败不是 Codex 或 `labagent-agent` 协议问题，而是新设备到云端的 `:12341` 反向隧道未运行，导致 `vision-local` / `embed-local` 同时不可用。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
@@ -189,6 +191,8 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 25. **`qwen3.6-27b-uncensored@?` 已作为 experimental brain/eyes side channel 接入代码，但不替换主路由** — 2026-06-29 5090 直连测试：极短回答通过，简单代码通过，图片 OCR/形状识别可读出 `VISION 73`、蓝色矩形、红色圆形；但中文解释 500 tokens 时 `content` 为空，1500 tokens 约 240s 超时。Router 新增 `LABAGENT_AGENT_BRAIN_MODEL` / `LABAGENT_AGENT_BRAIN_BASE_URL`，默认只在图片请求时尝试 brain，失败/超时/空 content 只记录 side-channel error，最终仍由 `qwen-agent` 输出。
 
+26. **Codex C9 文本链路已通过，图片链路依赖新设备 `:12341`** — 2026-07-02 确认 `labagent-agent` 作为 Codex 后端可完成文本请求，Responses streaming 已含 `response.completed`。图片输入失败时，优先检查新设备 LM Studio 和 `ssh -N -R 12341:127.0.0.1:1234 ...`，不要先怀疑 Codex 或 18020。`vision-local` 和 `embed-local` 共用新设备 `:12341`，该隧道断开时两者会一起失败。
+
 ## 下一步要做的事
 
 **当前阶段：RAG Service v1 已完成公网验证，`labagent-agent` 轻量 router 已完成本地三分支验证，下一步转向 RAG v1.x + Vision/团队客户端质量评测**。模型选型已经暂定 5090 的 `qwen-agent` 为 Qwen3-Coder-30B；新设备已承担 `embed-local` 和 `vision-local`。现在重点从“能否部署模型”转向“能否构建真实 RAG/Agent/VL 工程闭环”。
@@ -198,8 +202,8 @@ TCP 3000 — OpenWebUI（需要时开放）
 按优先级：
 
 1. 扩展 Codex CLI 团队客户端验证：C1-C6 已通过，下一步跑 C7 长上下文、C8 后端断链/模型未 load/key 错误时的错误处理。
-2. 重启 5090 上的 `services.agent.server`，用 `labagent-agent` 公网入口复测 Codex C9 C0-C3，对比 router 是否适合做统一入口；默认团队后端仍保持 `qwen-agent` 直连 LiteLLM。
-3. 从 David/Cline 远程验证 `labagent-agent` 图片请求，确认 Cline 默认 streaming 不再 400，并检查返回里的 `labagent.brain_*` / `vision_*` 字段。
+2. 用 `labagent-agent` 公网入口继续跑 Codex C9 C1-C3，对比 router 是否适合做统一入口；默认团队后端仍保持 `qwen-agent` 直连 LiteLLM。
+3. 先在新设备恢复 LM Studio 和 `:12341` 反向隧道，再从 David/Cline 远程验证 `labagent-agent` 图片请求，并检查返回里的 `labagent.brain_*` / `vision_*` 字段。
 4. 把 RAG v1.x 迁移到 Qdrant 或 Chroma，保留当前 JSON index 作为 baseline。
 5. 增加 reranker 对照：先在新设备 4060 Ti / 5080 上测试 Qwen3-Reranker 或 BGE reranker。
 6. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。

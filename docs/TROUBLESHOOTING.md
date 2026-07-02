@@ -239,3 +239,47 @@ Invoke-RestMethod `
   -Body $body
 ```
 
+## 问题 11：Codex / labagent-agent 文本可用，但图片识别失败
+
+**症状**：
+
+- Codex 通过 `labagent-agent` 能正常回答文本问题。
+- `/v1/responses stream=true` 已返回 `response.completed`。
+- 发送图片后，最终回答提示 `vision-local` 或 `embed-local` 连接错误。
+- LiteLLM `/v1/models` 仍能看到 `vision-local`，但真正图片请求失败。
+
+**判断**：
+
+这通常不是 Codex 协议问题，也不是 `labagent-agent` 的 18020 公网入口问题，而是新设备到云服务器的 `:12341` 反向隧道没有运行。`vision-local` 和 `embed-local` 都挂在新设备 LM Studio 后面，所以 `:12341` 断开时两者会一起失败。
+
+**排查**：
+
+```bash
+# 云服务器上检查
+ss -ltnp | grep :12341
+curl -sS -m 5 http://127.0.0.1:12341/v1/models
+```
+
+如果 `ss` 看不到 `:12341`，或者 `curl` 显示无法连接，就说明新设备隧道没开。
+
+**恢复**：
+
+在新设备 PowerShell 中确认 LM Studio 已启动，并 load 了 embedding / vision 模型，然后重新开启：
+
+```powershell
+ssh -N -R 12341:127.0.0.1:1234 `
+  -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 `
+  ubuntu@82.156.69.153
+```
+
+恢复后再从 5090 或云服务器验证：
+
+```powershell
+curl.exe http://82.156.69.153:8000/v1/embeddings `
+  -H "Authorization: Bearer <LABAGENT_API_KEY>" `
+  -H "Content-Type: application/json" `
+  --data-raw '{ "model": "embed-local", "input": "hello" }'
+```
+
+如果 embedding 恢复，`vision-local` 图片请求才有继续测试的意义。
+

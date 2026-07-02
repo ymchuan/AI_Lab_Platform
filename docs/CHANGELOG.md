@@ -11,6 +11,7 @@
 - 2026-06-29 验证 `labagent-agent` 三条分支：direct chat -> `qwen-agent`、项目知识 -> RAG Service、图片输入 -> `vision-local` -> `qwen-agent` 最终回答。
 - 2026-06-29 启动 `0.0.0.0:18020 -> 127.0.0.1:8020` agent router 反向隧道，云服务器本机回环 `/health` 已通过；当时外部公网访问定位为腾讯云安全组限制。
 - 2026-06-29 腾讯云安全组放行 TCP 18020 后，公网 `labagent-agent` `/health`、`/v1/models` 和 direct chat 已验证 200。
+- 2026-07-02 复测 Codex C9：`labagent-agent` 文本链路和 `/v1/responses stream=true` 已通过；图片链路失败定位为新设备 `:12341` 反向隧道未运行，导致 `vision-local` / `embed-local` 同时不可用。
 - 2026-06-28 复测 `vision-local` 最小回归：`benchmarks/vision_local_eval.py` 两个固定任务 2/2 通过，结果文件写入 `benchmarks/results/vision_local_20260628_062604.jsonl`。
 - 新增 `labagent-agent` 轻量 router：`services/agent` 以 OpenAI-compatible 形式组合 `qwen-agent`、`vision-local` 和 RAG Service，支持 `/health`、`/v1/models`、`/v1/chat/completions` 和 `/v1/responses`。
 - 新增 `labagent-agent` experimental brain/eyes side channel：可通过 `LABAGENT_AGENT_BRAIN_MODEL=qwen3.6-27b-uncensored@?` 启用，默认只在图片请求时尝试，失败/超时/空 content 会 fallback 到 `qwen-agent`。
