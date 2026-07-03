@@ -327,6 +327,37 @@ def route_response(config: AgentRouterConfig, body: Dict[str, Any]) -> Dict[str,
     }
 
 
+def should_passthrough_response(config: AgentRouterConfig, body: Dict[str, Any]) -> bool:
+    """Return True when Codex Responses requests should stay as native Responses.
+
+    Codex CLI sends tool definitions through the Responses API. If the router
+    converts those requests into chat completions, Codex loses shell/file tool
+    calls and the model can only explain commands instead of executing them.
+    Keep tool-bearing text requests on the proven qwen-agent path; only route
+    image or explicit project-context requests through the side-channel composer.
+    """
+    messages = responses_input_to_messages(body.get("input"))
+    if any(message_has_image(message) for message in messages):
+        return False
+    if response_has_tools(body):
+        return True
+    decision = decide_route(messages)
+    if config.brain_on_text:
+        return False
+    return not decision.use_vision and not decision.use_rag
+
+
+def response_passthrough_payload(config: AgentRouterConfig, body: Dict[str, Any]) -> Dict[str, Any]:
+    payload = dict(body)
+    payload["model"] = config.chat_model
+    return payload
+
+
+def response_has_tools(body: Dict[str, Any]) -> bool:
+    tools = body.get("tools")
+    return isinstance(tools, list) and len(tools) > 0
+
+
 def response_to_sse_events(response: Dict[str, Any]) -> List[Dict[str, Any]]:
     response_id = str(response.get("id") or f"resp_labagent_agent_{int(time.time())}")
     created = int(response.get("created_at") or time.time())

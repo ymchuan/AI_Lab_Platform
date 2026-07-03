@@ -18,6 +18,7 @@
 - 明确当前架构不建议把团队主力 coding worker 从 5090 迁移到 8060S；5090 继续承载 `qwen-agent`，新设备继续承载 `embed-local` / `vision-local`。
 - 重写 `docs/PROJECT_BRIEF_FOR_AI_REVIEW.md`，修复乱码并更新为可发给 Gemini / 其他 AI reviewer 的当前项目简报。
 - 将 Vision/C9 状态从“图片链路依赖 `:12341` 待恢复”更新为“链路已通，下一步做图片质量 benchmark”。
+- `labagent-agent` 的 `/v1/responses` 对 Codex tools 请求增加透传：当请求包含 `tools` 且没有图片时，直接代理到上游 `qwen-agent`，保留 Codex shell/file 工具调用协议；图片请求仍走 router/vision side channel。
 
 ## [0.4.6] - 2026-06-26
 

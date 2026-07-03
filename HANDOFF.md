@@ -30,6 +30,8 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-02 Codex C9 复测：`labagent-agent` 文本链路已能在 Codex 中正常回答，公网 `/v1/responses stream=true` 已返回 `text/event-stream` 且包含 `response.completed`，说明 7 月 1 日的 Responses streaming 兼容修复在线上生效。首次图片输入失败时，排查确认云服务器只有 `:12340` 和 `:18020`，没有新设备 `:12341`；云端 `curl http://127.0.0.1:12341/v1/models` 连接失败，`embed-local` embeddings 返回 500。结论：图片失败不是 Codex 或 `labagent-agent` 协议问题，而是新设备到云端的 `:12341` 反向隧道未运行，导致 `vision-local` / `embed-local` 同时不可用。2026-07-03 恢复新设备 LM Studio 和 `:12341` 后，远程图片识别测试已成功，后续重点转向输出质量 benchmark，而不是链路连通性。
 
+2026-07-03 C9 继续定位：`labagent-agent` 能回答 Codex 文本问题，但不会像 `qwen-agent` 直连那样调用 PowerShell / 文件工具，只会建议用户运行 `Get-ChildItem`。根因是旧 `/v1/responses` 实现把 Codex Responses 请求转成普通 chat completion，丢掉了 `tools` 字段。当前代码已改为：Responses 请求包含 Codex `tools` 且不含图片时，直接透传到上游 `qwen-agent` `/v1/responses`，保留 Codex 工具调用协议；图片请求仍走 `vision-local` router。需重启 `services.agent.server` 后复测 C9 C1/C2/C3，判断是否真正调用工具。
+
 2026-07-03 8060S 回归后的架构判断：不要立即把团队主力 `qwen-agent` / Qwen3-Coder-30B 从 5090 移到 8060S，也不要为了“brain/eyes”一次性替换现有 `vision-local`。5090 仍是最稳的 CUDA 主代码节点；新设备继续承载 embedding / vision；8060S 先作为新增候选节点接入 `:12342`，按 `brain-local`、`doc-local`、`rerank-local`、轻量模型服务逐项 benchmark。只有当 8060S 在 model latency、Codex CLI smoke、patch/repo task 和稳定性上通过同一套门槛，才考虑承接 `coder-small-local` 或更高优先级路由。
 
 ## 设备清单
@@ -191,7 +193,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 23. **团队 CLI 客户端兼容性需要单独做矩阵测试** — 团队成员可能更习惯 Codex CLI 或 Claude Code CLI。不要假设“Cline 能用”就代表 Codex/Claude Code 的工具调用和文件编辑也能用。Codex CLI 已通过 David 机器基础 chat/read/write、单文件 Python patch，以及 `codex_cli_smoke` C1-C6；下一步测长上下文、后端异常错误体验和 `labagent-agent` 后端，再决定是否需要 adapter 层。
 
-24. **`labagent-agent` v0 已完成本地三分支验证，公网 18020 已通** — 2026-06-29 已补 `.env.local` 的 `LABAGENT_AGENT_API_KEY`，它和 LiteLLM 的 `LABAGENT_API_KEY`、RAG 的 `LABAGENT_RAG_API_KEY` 分离。本地 `127.0.0.1:8020` 已验证鉴权、direct chat、RAG project_context、图片 image_input；腾讯云安全组放行 TCP 18020 后，公网 `/health`、`/v1/models` 和 direct chat 均已验证 200。2026-07-01 已补 `/v1/responses stream=true` 的 Responses SSE 兼容事件，解决 Codex CLI 等待 `response.completed` 的协议问题；仍需重启服务并复测 C9。`stream=true` 仍不是真正 token-by-token streaming。
+24. **`labagent-agent` v0 已完成本地三分支验证，公网 18020 已通** — 2026-06-29 已补 `.env.local` 的 `LABAGENT_AGENT_API_KEY`，它和 LiteLLM 的 `LABAGENT_API_KEY`、RAG 的 `LABAGENT_RAG_API_KEY` 分离。本地 `127.0.0.1:8020` 已验证鉴权、direct chat、RAG project_context、图片 image_input；腾讯云安全组放行 TCP 18020 后，公网 `/health`、`/v1/models` 和 direct chat 均已验证 200。2026-07-01 已补 `/v1/responses stream=true` 的 Responses SSE 兼容事件，解决 Codex CLI 等待 `response.completed` 的协议问题；2026-07-03 又补 Codex `tools` 请求透传，避免 router 把工具协议降级成普通聊天。需重启服务后复测 C9 工具调用。router 自己仍不是 Agent Runtime，不执行 shell/file 工具。
 
 25. **`qwen3.6-27b-uncensored@?` 已作为 experimental brain/eyes side channel 接入代码，但不替换主路由** — 2026-06-29 5090 直连测试：极短回答通过，简单代码通过，图片 OCR/形状识别可读出 `VISION 73`、蓝色矩形、红色圆形；但中文解释 500 tokens 时 `content` 为空，1500 tokens 约 240s 超时。Router 新增 `LABAGENT_AGENT_BRAIN_MODEL` / `LABAGENT_AGENT_BRAIN_BASE_URL`，默认只在图片请求时尝试 brain，失败/超时/空 content 只记录 side-channel error，最终仍由 `qwen-agent` 输出。
 
@@ -207,18 +209,19 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 按优先级：
 
-1. 扩展 Codex CLI 团队客户端验证：C1-C6 已通过，C9 文本和图片链路已打通；下一步跑 C7 长上下文、C8 后端断链/模型未 load/key 错误时的错误处理。
-2. 保持团队默认后端为 LiteLLM `qwen-agent`；`labagent-agent` 继续作为统一入口候选，重点测 Responses streaming、图片回放、错误恢复和兼容性。
-3. 把 8060S 接入为候选节点：本机 LM Studio -> 云端 `:12342` -> LiteLLM alias -> latency / Codex smoke / patch/repo task。通过前不要迁移 `qwen-agent`。
-4. 把 RAG v1.x 迁移到 Qdrant 或 Chroma，保留当前 JSON index 作为 baseline。
-5. 增加 reranker 对照：先在新设备 4060 Ti / 5080 上测试 Qwen3-Reranker 或 BGE reranker；8060S 可作为第二候选。
-6. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。
-7. `vision-local` 最小 VL benchmark 已固化为 `benchmarks/vision_local_eval.py`，后续继续扩展真实截图、代码截图、表单和多图输入。
-8. 以 `qwen/qwen3-coder-30b` 继续补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval`、`claude_code_compat_eval` 和 `trace_eval`。
-9. 在新设备或 8060S 上继续接入第二代码模型，优先保持 LM Studio + SSH 隧道的简单路线；实际 load 中等 coder 后再新增 `coder-small-local` 路由。
-10. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
-11. 构建 MCP Server / Skills / Eval Harness / LoRA-QLoRA 和量化实验。
-12. 把 `labagent-agent` 从编排层继续往前推：先验证 Responses streaming 兼容、错误恢复和图像回放，再进入真正的 planner/tool registry。
+1. 先重启 5090 上的 `services.agent.server`，复测 `labagent-agent` C9 C1/C2/C3，确认 Responses tools 透传后 Codex 是否实际调用 PowerShell / 文件工具。
+2. 扩展 Codex CLI 团队客户端验证：C1-C6 已通过，C9 文本和图片链路已打通；下一步跑 C7 长上下文、C8 后端断链/模型未 load/key 错误时的错误处理。
+3. 保持团队默认后端为 LiteLLM `qwen-agent`；`labagent-agent` 继续作为统一入口候选，重点测 Responses tools 透传、图片回放、错误恢复和兼容性。
+4. 把 8060S 接入为候选节点：本机 LM Studio -> 云端 `:12342` -> LiteLLM alias -> latency / Codex smoke / patch/repo task。通过前不要迁移 `qwen-agent`。
+5. 把 RAG v1.x 迁移到 Qdrant 或 Chroma，保留当前 JSON index 作为 baseline。
+6. 增加 reranker 对照：先在新设备 4060 Ti / 5080 上测试 Qwen3-Reranker 或 BGE reranker；8060S 可作为第二候选。
+7. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。
+8. `vision-local` 最小 VL benchmark 已固化为 `benchmarks/vision_local_eval.py`，后续继续扩展真实截图、代码截图、表单和多图输入。
+9. 以 `qwen/qwen3-coder-30b` 继续补 `tool_call_eval`、`patch_apply_eval`、`repo_task_eval`、`claude_code_compat_eval` 和 `trace_eval`。
+10. 在新设备或 8060S 上继续接入第二代码模型，优先保持 LM Studio + SSH 隧道的简单路线；实际 load 中等 coder 后再新增 `coder-small-local` 路由。
+11. 本地部署 OpenWebUI / RAG Service / Agent Runtime，云服务器只做轻量入口。
+12. 构建 MCP Server / Skills / Eval Harness / LoRA-QLoRA 和量化实验。
+13. 把 `labagent-agent` 从编排层继续往前推：先验证 Responses streaming / tools 透传、错误恢复和图像回放，再进入真正的 planner/tool registry。
 
 ## 当前 Benchmark 命令
 

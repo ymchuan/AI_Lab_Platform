@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import urllib.error
+import urllib.request
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, Sequence
@@ -16,9 +18,12 @@ from .router import (
     DEFAULT_VISION_MODEL,
     AgentRouterConfig,
     chat_completion_to_sse_events,
+    request_headers,
+    response_passthrough_payload,
     response_to_sse_events,
     route_chat_completion,
     route_response,
+    should_passthrough_response,
 )
 
 
@@ -80,6 +85,9 @@ def create_server(config: AgentRouterConfig, host: str, port: int, service_api_k
                         self._send_json(response)
                     return
                 if self.path == "/v1/responses":
+                    if should_passthrough_response(config, body):
+                        self._proxy_upstream_response(body)
+                        return
                     response = route_response(config, body)
                     if body.get("stream"):
                         self._send_sse(response_to_sse_events(response), include_done=False)
@@ -150,6 +158,51 @@ def create_server(config: AgentRouterConfig, host: str, port: int, service_api_k
             if include_done:
                 self.wfile.write(b"data: [DONE]\n\n")
                 self.wfile.flush()
+
+        def _proxy_upstream_response(self, body: Dict[str, Any]) -> None:
+            payload = response_passthrough_payload(config, body)
+            raw_payload = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            request = urllib.request.Request(
+                f"{config.base_url.rstrip('/')}/responses",
+                data=raw_payload,
+                method="POST",
+                headers=request_headers(config.api_key),
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=config.timeout) as upstream:
+                    content_type = upstream.headers.get("Content-Type") or "application/json; charset=utf-8"
+                    self.send_response(upstream.status)
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Cache-Control", "no-cache")
+                    self.send_header("Connection", "close")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+                    self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                    self.end_headers()
+                    if "text/event-stream" in content_type.lower():
+                        while True:
+                            line = upstream.readline()
+                            if not line:
+                                break
+                            self.wfile.write(line)
+                            self.wfile.flush()
+                    else:
+                        self.wfile.write(upstream.read())
+                        self.wfile.flush()
+            except urllib.error.HTTPError as exc:
+                raw_error = exc.read()
+                content_type = exc.headers.get("Content-Type") or "application/json; charset=utf-8"
+                self.send_response(exc.code)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(raw_error)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+                self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                self.end_headers()
+                self.wfile.write(raw_error)
+                self.wfile.flush()
+            except (urllib.error.URLError, TimeoutError) as exc:
+                raise RuntimeError(f"/responses passthrough: {type(exc).__name__}: {exc}") from exc
 
         def log_message(self, format: str, *args: Any) -> None:
             print(f"{self.address_string()} - {format % args}")

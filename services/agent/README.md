@@ -124,9 +124,12 @@ API Key:  <LABAGENT_AGENT_API_KEY>
 
 2026-07-01 状态：David 机器验证公网 `/health` 和 `/v1/chat/completions` 均可达，但 Codex CLI 使用 `wire_api="responses"` 接入 `labagent-agent` 时出现 `stream disconnected before completion: stream closed before response.completed`。根因不是 SSH 隧道或模型链路，而是 `/v1/responses stream=true` 旧实现只返回普通 JSON，没有按 Responses API SSE 流式事件发送 `response.completed`。当前代码已补 Responses streaming 兼容降级：内部仍先完整生成回答，再发 `response.created`、`response.output_text.delta`、`response.completed` 等 SSE 事件。需要重启 `services.agent.server` 后再复测 Codex C9。
 
+2026-07-03 状态：C9 继续暴露第二个问题：`labagent-agent` 能回答文本，但 Codex 没有调用 PowerShell / 文件工具，而是只给用户建议命令。根因是旧 `/v1/responses` 实现把 Codex 的 Responses 请求转成普通 chat completion，丢掉了 `tools` 协议字段。当前代码已改为：Responses 请求包含 `tools` 且不含图片时，直接透传到上游 `qwen-agent` 的 `/v1/responses`，保留 Codex 的工具调用协议；图片请求仍走 `vision-local` side channel。需要重启 `services.agent.server` 后复测 C9 的 C1/C2/C3。
+
 ## 路由规则
 
 - 任意 OpenAI `image_url` 或 Responses API `input_image` 内容块 -> `vision-local`。
+- Responses API 请求如果包含 Codex `tools` 且没有图片 -> 直接透传到上游 `qwen-agent`，保留 Codex shell/file 工具调用能力。
 - 如果配置了 `LABAGENT_AGENT_BRAIN_MODEL`，图片请求会先额外调用 experimental brain/eyes，失败或空 content 只记录到 `labagent.brain_error`，不阻断最终回答。
 - 命中 LabAgent / qwen-agent / embed-local / vision-local / RAG / LiteLLM / 5090 / 5080 / 12340 / 项目 / 架构 / 路由 / 模型 / 节点 / 文档 等关键词 -> RAG Service。
 - 其他请求 -> 直接 `qwen-agent`。
@@ -135,9 +138,9 @@ API Key:  <LABAGENT_AGENT_API_KEY>
 
 ## 当前限制
 
-- `stream=true` 目前是 SSE 兼容降级：router 会先完整生成回答，再一次性发出兼容事件。`/v1/chat/completions` 返回 OpenAI `chat.completion.chunk` 事件和 `[DONE]`；`/v1/responses` 返回 Responses API 风格的 `response.created`、`response.output_text.delta` 和 `response.completed` 等事件，用于兼容 Codex CLI `wire_api="responses"`。
+- `stream=true` 目前分两种情况：router 自己编排的 chat / image / RAG 请求仍是 SSE 兼容降级；Codex Responses 请求带 `tools` 时会透传上游 `qwen-agent` 的 native Responses 流。
 - 这仍不是真正 token-by-token streaming，首包延迟仍等于后端完整生成时间。
-- 不执行真实工具调用。
+- router 自己不执行 shell / file 工具；Codex 工具调用由 Codex CLI 通过透传后的 Responses 协议执行。
 - 不维护 memory 或 planner loop。
 - RAG 分支依赖正在运行的 RAG Service 和可用 embedding backend。
 - experimental brain 仍不稳定：`qwen3.6-27b-uncensored@?` 能识图，但长文本容易把预算耗在 `reasoning_content` 或超时，所以只能作为 side channel，不能替代 `qwen-agent`。
