@@ -60,6 +60,16 @@ coder-small-local -> 8060S 或新设备候选 / 中小代码模型，通过 smok
 5. `patch_task_eval.py` 和 `repo_map_eval.py`：证明它不是只会聊天。
 6. 30-60 分钟稳定性：连续请求不掉线、不空内容、不明显 OOM。
 
+当前已有一键 smoke 脚本：
+
+```powershell
+# 在 8060S 机器上运行，前提是 LM Studio 已 load 目标模型并开启 Local Server
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\run_8060s_brain_smoke.ps1 -TimeoutSec 600 -MaxTokens 512
+```
+
+脚本位置：`benchmarks/run_8060s_brain_smoke.ps1`。它会生成 `8060s_smoke_results/8060s_smoke_<timestamp>/`，包含 Markdown 汇总、JSON 报告和 raw responses。第一轮重点看 `content_length` 是否非空、`reasoning_length` 是否过长、`finish_reason` 是否为 `length`、中文 300-500 字稳定性和可选图片识别是否通过。
+
 ## 推荐模型组合
 
 ### 5090：主 Agent / 代码 / 通用推理

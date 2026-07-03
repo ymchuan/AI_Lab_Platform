@@ -7,6 +7,7 @@ secrets/
 __pycache__/
 *.pyc
 benchmarks/results/
+8060s_smoke_results/
 data/rag/
 
 # Local raw AI review/prompt references. Keep summarized, project-owned docs tracked instead.

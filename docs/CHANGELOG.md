@@ -10,6 +10,7 @@
 - 记录 8060S 恢复为候选节点后的架构判断：先接 `:12342`、LiteLLM alias 和 benchmark，不直接替换 5090 `qwen-agent`。
 - 在模型调研文档中补充 8060S 推荐角色：`brain-local`、`doc-local`、`rerank-local`、轻量服务或后续 `coder-small-local` 候选。
 - 补充 8060S 提升门槛：本机 LM Studio smoke、云端 `:12342`、model latency、Codex smoke、patch/repo eval 和稳定性测试。
+- 新增 `benchmarks/run_8060s_brain_smoke.ps1`，可在 8060S 上一键测试本地 LM Studio 模型的 `content` 稳定性、延迟、代码理解、架构建议和可选图片识别，并生成 Markdown/JSON 结果。
 - 记录 `labagent-agent` 图片链路在恢复新设备 `:12341` 后已由远程客户端验证成功。
 
 ### Changed

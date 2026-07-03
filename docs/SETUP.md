@@ -225,6 +225,15 @@ curl http://127.0.0.1:12342/v1/models
 
 通过后再临时给 LiteLLM 增加 `brain-local` / `doc-local` / `rerank-local` alias，并跑 `model_latency.py`、Codex smoke 和 patch/repo eval。未通过前，团队成员仍使用 `qwen-agent`。
 
+如果 8060S 上暂时没有完整仓库，可以只复制 `benchmarks/run_8060s_brain_smoke.ps1` 到该机器任意目录，运行：
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\run_8060s_brain_smoke.ps1 -TimeoutSec 600 -MaxTokens 512
+```
+
+若 LM Studio 自动选择了错误模型，先看脚本输出或 `raw\t00_models.json`，再用 `-Model "<模型 id>"` 指定。脚本会生成 `8060s_smoke_results` 目录，把整份结果发回即可判断是否适合当 `brain-local`。
+
 ## 步骤 9：另一台机器验证全链路
 
 公网验证前，先在 5090 上确认 LM Studio Local Server 正在运行，然后开启反向隧道：

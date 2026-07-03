@@ -18,6 +18,7 @@ The goal is not a single leaderboard score. The goal is to make every model or w
 - `cline_dialogue_eval.py` - multi-turn workflow reasoning
 - `embedding_health_eval.py` - embedding endpoint health and tiny retrieval probe
 - `vision_local_eval.py` - `vision-local` image OCR / screenshot understanding smoke test
+- `run_8060s_brain_smoke.ps1` - one-file PowerShell smoke for a recovered 8060S LM Studio node
 
 Manual fixtures:
 
@@ -125,6 +126,41 @@ python -m unittest discover -s tests -p "test_*.py"
 ```
 
 Then run one task at a time from `TASKS.md` through Codex CLI. This fixture is intentionally manual because the goal is to observe actual Codex tool/file behavior, not only raw model output.
+
+### 12. 8060S Brain Candidate Smoke
+
+Run this on the 8060S machine after LM Studio has loaded the target model and Local Server is ON:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\run_8060s_brain_smoke.ps1
+```
+
+If LM Studio returns multiple models or the auto-selected model is wrong, pass the exact model id from `/v1/models`:
+
+```powershell
+.\run_8060s_brain_smoke.ps1 -Model "qwen/qwen3.6-35b-a3b-q8_0"
+```
+
+For a very slow Q8 model, increase timeout:
+
+```powershell
+.\run_8060s_brain_smoke.ps1 -TimeoutSec 600 -MaxTokens 512
+```
+
+If the model is text-only or the image request fails in LM Studio, skip the vision case:
+
+```powershell
+.\run_8060s_brain_smoke.ps1 -SkipVision
+```
+
+The script writes a timestamped folder under `8060s_smoke_results/` with:
+
+- `8060s_smoke_report.md`
+- `8060s_smoke_report.json`
+- `raw/*.json`
+
+Send the result folder back for review. Do not commit raw result files.
 
 ## What This Baseline Checks
 
