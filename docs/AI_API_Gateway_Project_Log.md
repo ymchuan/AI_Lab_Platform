@@ -2,7 +2,7 @@
 
 > 当前目标：把 5090 与新设备上的本地模型能力通过云服务器暴露成 OpenAI-compatible API，让其他机器、插件和程序可以像调用 OpenAI 一样调用本地模型。
 
-## 当前状态校准（2026-06-18）
+## 当前状态校准（2026-07-03）
 
 本文件保留早期部署和排障过程中的历史记录，其中部分模型列表、测试 key 和临时配置来自当时环境，不代表当前状态。
 
@@ -10,8 +10,8 @@
 
 - 云服务器：Ubuntu 24.04，2 核 2GB，短期无法升级。
 - 当前已接入节点：5090 主机已接入 LM Studio，并完成多模型 benchmark；`qwen/qwen3-coder-30b` 已定为 `qwen-agent` 默认模型，`qwen/qwen3.6-27b` 降为 `qwen-think` reasoning baseline。
-- 新设备：RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，已通过 `:12341` SSH 反向隧道接入 `embed-local`，当前承载 `text-embedding-nomic-embed-text-v1.5-embedding`；后续计划作为第二模型 / VL / reranker 节点。
-- 8060S：当前无法使用，冻结近期接入计划；文中早期把 8060S 作为辅助节点的内容仅代表历史规划。
+- 新设备：RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，已通过 `:12341` SSH 反向隧道接入 `embed-local` 和 `vision-local`，当前承载 `text-embedding-nomic-embed-text-v1.5-embedding` 与 `qwen/qwen3-vl-30b`。
+- 8060S：已恢复为候选节点，内网 IP 记录为 `172.16.14.142`；尚未接入 LiteLLM / `:12342` / benchmark。文中早期把 8060S 作为辅助节点的内容可重新纳入候选，但必须重新验证。
 - 真实 API Key 已从文档中脱敏，统一使用 `<LABAGENT_API_KEY>` 占位符。
 
 ## 1. 项目背景
@@ -48,7 +48,7 @@ Model: qwen-local 或其他模型名
 - LiteLLM 多模型统一入口
 - vLLM 高性能推理服务
 - 多节点模型调度
-- 新设备或后续新增节点承载 Whisper、OCR、Embedding、VL 等任务；当前新设备已先承载 `embed-local`
+- 新设备或 8060S 候选节点承载 Whisper、OCR、Embedding、VL、Reranker 等任务；当前新设备已先承载 `embed-local` 和 `vision-local`
 - OpenWebUI / Cline / Roo Code / Continue / Cursor 等前端接入
 - 面向简历展示的 AI Infra / Agent Platform 项目
 
@@ -85,20 +85,21 @@ google/gemma-4-31b
 text-embedding-nomic-embed-text-v1.5
 ```
 
-### 2.2 节点 B：8060S 辅助节点（历史规划，当前冻结）
+### 2.2 节点 B：8060S 辅助节点（已恢复，候选）
 
 已知信息：
 
 - AMD Ryzen AI MAX+ 395 / Radeon 8060S
 - 实际为 32GB 统一内存版本
 - 内网 IP：172.16.14.142
-- 当前状态：无法使用，冻结近期接入计划
-- 历史规划中曾考虑后续承担：
+- 当前状态：已恢复为候选节点，但未接入 `:12342`、LiteLLM alias 或 benchmark
+- 候选承担：
   - Whisper
   - MinerU
   - OCR
-  - Embedding
-  - Qwen2.5-VL / 多模态任务
+  - Reranker
+  - `brain-local` reasoning side channel
+  - 中小代码模型或轻量服务
 
 ### 2.3 节点 C：腾讯云 Ubuntu 云服务器
 

@@ -33,8 +33,9 @@ Authorization: Bearer <LABAGENT_API_KEY>
 | 模型 ID | 类型 | 计划位置 | 状态 | 说明 |
 |---------|------|----------|------|------|
 | `qwen-think` | Chat | 5090 / LM Studio | ⏳ 待正式路由 | `qwen/qwen3.6-27b` reasoning baseline。因 final `content` 经常为空，不作为默认执行模型 |
-| `rerank-local` | Rerank | 新设备 | ⏳ 待部署 | RAG 检索重排 |
-| `whisper-local` | Audio | - | ⛔ 暂不部署 | 8060S 当前不可用，语音识别计划后移 |
+| `brain-local` | Chat | 8060S 候选 | 🧪 待接入 | reasoning side channel 候选，未通过 benchmark 前不进默认路由 |
+| `rerank-local` | Rerank | 新设备或 8060S 候选 | ⏳ 待部署 | RAG 检索重排 |
+| `doc-local` / `whisper-local` | Audio / Document | 8060S 候选 | 🧪 待接入 | 文档解析、OCR、语音识别候选能力，需先完成 `:12342` 和 benchmark |
 
 ## 接口列表
 

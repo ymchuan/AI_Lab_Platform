@@ -1,7 +1,7 @@
 # Windows WSL2 / CUDA 配置指南
 
 > 适用对象：5090 主机、新设备（RTX 5080 16GB + RTX 4060 Ti 16GB）。
-> 8060S 当前无法使用，暂不纳入近期 WSL2 / CUDA 配置计划。  
+> 8060S 已恢复为候选节点，但当前仍不纳入 CUDA 路线；后续如测试 WSL2 / ROCm / Vulkan / llama.cpp，需要单独记录 8060S 的本机环境和 benchmark。
 > 目标：为 vLLM / SGLang / llama.cpp / RAG / Agent Runtime 准备 Linux 开发环境。
 
 ## 什么时候需要 WSL2

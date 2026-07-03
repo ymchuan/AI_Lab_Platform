@@ -8,7 +8,7 @@
 |------|------|------|
 | 5090 (RTX 5090 32GB) | 主力推理 | ✅ 已配置 LM Studio；Qwen3-Coder-30B 已定为 `qwen-agent` 默认模型 |
 | 新设备 (RTX 5080 16GB + RTX 4060 Ti 16GB) | Embedding / Vision / 第二推理 / Rerank | ✅ `embed-local` / `vision-local` 已接入；Rerank 待配置 |
-| 8060S (AMD 395 / 31.6GB) | 暂不规划 | ⛔ 当前无法使用，冻结接入 |
+| 8060S (AMD Ryzen AI Max+ 395 / Radeon 8060S / 31.6GB) | 候选 brain / 文档处理 / rerank / 轻量服务 | 🧪 已恢复，未接入路由，待 benchmark |
 | 云服务器 (Ubuntu 24.04, 2核 2GB) | 轻量 API 网关 / 隧道中转 | ✅ 已配置，短期无法升级 |
 
 ## 步骤 1：本地模型部署（每台 GPU 主机）
@@ -60,7 +60,12 @@ ssh -N -R 12340:127.0.0.1:1234 -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no 
 ssh -N -R 12341:127.0.0.1:1234 -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
 ```
 
-8060S 当前无法使用，不再配置 `:12342` 隧道。
+8060S 已恢复为候选节点，建议预留 `:12342`。未完成 benchmark 前不要把它加入团队默认 `qwen-agent` 路由。
+
+```bash
+# 8060S（候选端口 12342，待验证）
+ssh -N -R 12342:127.0.0.1:1234 -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+```
 
 ## 步骤 4：云服务器 LiteLLM
 
@@ -95,6 +100,12 @@ model_list:
       model: openai/qwen/qwen3-vl-30b
       api_base: http://127.0.0.1:12341/v1
       api_key: lm-studio
+  # 8060S 候选路由。只有在 8060S 本机模型、:12342 隧道和 benchmark 通过后才启用。
+  # - model_name: brain-local
+  #   litellm_params:
+  #     model: openai/<8060S_MODEL_ID>
+  #     api_base: http://127.0.0.1:12342/v1
+  #     api_key: lm-studio
 general_settings:
   master_key: <LABAGENT_API_KEY>
 EOF
@@ -177,7 +188,7 @@ Message format: OpenAI image_url content block
 
 ### 验证 `vision-local`
 
-先确认 5090 的 `:12341` 反向隧道还在运行，再直接跑最小回归脚本：
+先确认新设备的 `:12341` 反向隧道还在运行，再直接跑最小回归脚本：
 
 ```powershell
 $env:LABAGENT_API_KEY = "<LABAGENT_API_KEY>"
@@ -194,6 +205,25 @@ python benchmarks/vision_local_eval.py --base-url http://82.156.69.153:8000/v1 -
 1. 两个任务都输出 `PASS`。
 2. `finish_reason` 不应是 `length`。
 3. 结果文件会写到 `benchmarks/results/vision_local_*.jsonl`，用于后续回归。
+
+### 验证 8060S 候选节点
+
+8060S 不直接替换 5090 的 `qwen-agent`。验证顺序：
+
+```powershell
+# 8060S 本机
+curl.exe http://127.0.0.1:1234/v1/models
+
+# 8060S 本机开启候选隧道
+ssh -N -R 12342:127.0.0.1:1234 -i C:\Users\N\.ssh\id_ed25519 `
+  -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 `
+  ubuntu@82.156.69.153
+
+# 云服务器验证
+curl http://127.0.0.1:12342/v1/models
+```
+
+通过后再临时给 LiteLLM 增加 `brain-local` / `doc-local` / `rerank-local` alias，并跑 `model_latency.py`、Codex smoke 和 patch/repo eval。未通过前，团队成员仍使用 `qwen-agent`。
 
 ## 步骤 9：另一台机器验证全链路
 

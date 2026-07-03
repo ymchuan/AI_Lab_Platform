@@ -336,7 +336,7 @@ benchmarks/claude_code_compat_eval.py      # 已规划
 
 - 文档统一为 Ubuntu 24.04。
 - 明确云服务器 2GB 不升级。
-- 明确 5090 已接入主推理链路；2026-06-18 新设备已接入 `embed-local` embedding 路由；8060S 暂未接入。
+- 明确 5090 已接入主推理链路；2026-06-18 新设备已接入 `embed-local` embedding 路由；2026-07-03 8060S 已恢复为候选节点，但暂未接入 `:12342` 或 LiteLLM alias。
 - 完成多模型 benchmark 后，将 `qwen/qwen3-coder-30b` 定为 5090 `qwen-agent` 默认模型，将 `qwen/qwen3.6-27b` 降为 `qwen-think` reasoning baseline。
 - API Key 脱敏。
 
@@ -353,7 +353,7 @@ benchmarks/claude_code_compat_eval.py      # 已规划
 
 - 新设备 `embed-local` 已接入。
 - 后续继续接入 `rerank-local` / `vision-local` / `coder-small-local`。
-- 8060S 当前无法使用，`whisper-local` / OCR / 文档解析服务后移到新设备或后续节点。
+- 8060S 已恢复为候选节点，`whisper-local` / OCR / 文档解析 / rerank 可重新纳入候选，但必须先完成 `:12342` 路由和 benchmark；未通过前仍由新设备或 5090 空闲时段承担。
 - LiteLLM 多节点基础路由已完成；`vision-local` 已接入，完整 RAG / Reranker / 第二推理路由待补。
 
 ### M4：RAG MVP

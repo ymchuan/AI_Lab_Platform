@@ -4,6 +4,20 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.7] - 2026-07-03
+
+### Added
+- 记录 8060S 恢复为候选节点后的架构判断：先接 `:12342`、LiteLLM alias 和 benchmark，不直接替换 5090 `qwen-agent`。
+- 在模型调研文档中补充 8060S 推荐角色：`brain-local`、`doc-local`、`rerank-local`、轻量服务或后续 `coder-small-local` 候选。
+- 补充 8060S 提升门槛：本机 LM Studio smoke、云端 `:12342`、model latency、Codex smoke、patch/repo eval 和稳定性测试。
+- 记录 `labagent-agent` 图片链路在恢复新设备 `:12341` 后已由远程客户端验证成功。
+
+### Changed
+- 将 README、HANDOFF、Progress Summary、Architecture、Network、Setup 的 8060S 口径从“不可用/冻结”更新为“已恢复、候选节点、未接入路由、待 benchmark”。
+- 明确当前架构不建议把团队主力 coding worker 从 5090 迁移到 8060S；5090 继续承载 `qwen-agent`，新设备继续承载 `embed-local` / `vision-local`。
+- 重写 `docs/PROJECT_BRIEF_FOR_AI_REVIEW.md`，修复乱码并更新为可发给 Gemini / 其他 AI reviewer 的当前项目简报。
+- 将 Vision/C9 状态从“图片链路依赖 `:12341` 待恢复”更新为“链路已通，下一步做图片质量 benchmark”。
+
 ## [0.4.6] - 2026-06-26
 
 ### Added
