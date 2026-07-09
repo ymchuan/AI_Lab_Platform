@@ -4,6 +4,20 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.8] - 2026-07-09
+
+### Added
+- 新增 `scripts/start_5090_services.ps1`，统一 5090 上的手动启动入口：`qwen-tunnel`、`rag`、`rag-tunnel`、`agent`、`agent-tunnel` 和 `status`。
+- 在 README 和部署指南中补充 5090 服务启动脚本用法，避免每次手动复制多段 PowerShell / SSH 命令。
+
+### Fixed
+- 定位并修复 `labagent-agent` 在 David / Cline 侧报“目标计算机积极拒绝”的启动问题：旧启动方式未正确加载 `.env.local` 时，Agent Router 会回落到本机不存在的 `127.0.0.1:8000/v1`，导致 chat 502 / connection refused。
+- `agent` action 现在显式传入 `--base-url $env:LABAGENT_BASE_URL`、`--api-key`、`--rag-api-key` 和 `--service-api-key`，降低环境变量未继承导致的误路由风险。
+
+### Verified
+- 2026-07-09 复测 `http://82.156.69.153:18020/v1/chat/completions`，`labagent-agent` direct chat 返回 `pong`，路由为 `direct_chat -> qwen-agent`。
+- 复测 `scripts/start_5090_services.ps1 -Action status`，可同时列出 5090 本机 `:1234/:8010/:8020` 和云端 `:8000/:12340/:12341/:18020` 监听状态。
+
 ## [0.4.7] - 2026-07-03
 
 ### Added

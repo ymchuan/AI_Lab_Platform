@@ -9,6 +9,7 @@ __pycache__/
 benchmarks/results/
 8060s_smoke_results/
 data/rag/
+logs/
 
 # Local raw AI review/prompt references. Keep summarized, project-owned docs tracked instead.
 docs/CODE_REVIEW_ISSUES.md

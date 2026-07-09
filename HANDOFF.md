@@ -34,6 +34,8 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-03 8060S 回归后的架构判断：不要立即把团队主力 `qwen-agent` / Qwen3-Coder-30B 从 5090 移到 8060S，也不要为了“brain/eyes”一次性替换现有 `vision-local`。5090 仍是最稳的 CUDA 主代码节点；新设备继续承载 embedding / vision；8060S 先作为新增候选节点接入 `:12342`，按 `brain-local`、`doc-local`、`rerank-local`、轻量模型服务逐项 benchmark。只有当 8060S 在 model latency、Codex CLI smoke、patch/repo task 和稳定性上通过同一套门槛，才考虑承接 `coder-small-local` 或更高优先级路由。
 
+2026-07-09 5090 启动流程收敛：新增 `scripts/start_5090_services.ps1`，统一启动 `qwen-tunnel`、`rag`、`rag-tunnel`、`agent`、`agent-tunnel` 和 `status`。本次排障确认 David / Cline 使用 `labagent-agent` 报“目标计算机积极拒绝”的根因是 Agent Router 旧启动方式没有正确加载 `.env.local`，导致内部回落到本机不存在的 `127.0.0.1:8000/v1`。现在 `agent` action 会显式传入 `--base-url $env:LABAGENT_BASE_URL` 和相关 key；2026-07-09 已复测公网 `http://82.156.69.153:18020/v1/chat/completions`，`labagent-agent` direct chat 返回 `pong`。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
@@ -86,7 +88,8 @@ curl.exe http://82.156.69.153:8000/v1/models -H "Authorization: Bearer <LABAGENT
 5090 本机执行：
 
 ```powershell
-ssh -N -R 12340:127.0.0.1:1234 -i C:\Users\N\.ssh\id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+cd E:\qwen_setup
+.\scripts\start_5090_services.ps1 -Action qwen-tunnel
 ```
 
 新设备本机执行：
@@ -94,6 +97,31 @@ ssh -N -R 12340:127.0.0.1:1234 -i C:\Users\N\.ssh\id_ed25519 -o StrictHostKeyChe
 ```powershell
 ssh -N -R 12341:127.0.0.1:1234 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
 ```
+
+## 怎么启动 5090 上的本地服务
+
+每个长驻 action 单独开一个 PowerShell 窗口执行，并保持窗口不关闭：
+
+```powershell
+cd E:\qwen_setup
+
+# RAG Service，本机 :8010
+.\scripts\start_5090_services.ps1 -Action rag
+
+# RAG 公网入口，云端 :18010 -> 5090 :8010
+.\scripts\start_5090_services.ps1 -Action rag-tunnel
+
+# Agent Router，本机 :8020
+.\scripts\start_5090_services.ps1 -Action agent
+
+# Agent Router 公网入口，云端 :18020 -> 5090 :8020
+.\scripts\start_5090_services.ps1 -Action agent-tunnel
+
+# 查看本机和云端监听状态
+.\scripts\start_5090_services.ps1 -Action status
+```
+
+注意：不要只运行 `python -m services.agent.server --host 127.0.0.1 --port 8020` 后就假设可用。若没有加载 `.env.local` 或显式传 `--base-url`，Agent Router 会默认请求本机 `127.0.0.1:8000/v1`，而 5090 本机没有 LiteLLM，David / Cline 会看到 502 或“目标计算机积极拒绝”。
 
 ## 怎么启动 OpenWebUI
 

@@ -281,6 +281,32 @@ curl.exe http://82.156.69.153:8000/v1/chat/completions `
 
 RAG Service v1 运行在 5090，不在新设备上运行。它读取 5090 本地 `data/rag/index.json`，embedding 可通过云端 LiteLLM 路由到新设备 `embed-local`，chat 可直连 5090 本机 LM Studio。
 
+5090 上的常用服务已经收敛到统一脚本：
+
+```powershell
+cd E:\qwen_setup
+
+# 5090 LM Studio -> 云端 :12340
+.\scripts\start_5090_services.ps1 -Action qwen-tunnel
+
+# RAG Service -> 本机 :8010
+.\scripts\start_5090_services.ps1 -Action rag
+
+# RAG 公网入口 -> 云端 :18010
+.\scripts\start_5090_services.ps1 -Action rag-tunnel
+
+# Agent Router -> 本机 :8020
+.\scripts\start_5090_services.ps1 -Action agent
+
+# Agent Router 公网入口 -> 云端 :18020
+.\scripts\start_5090_services.ps1 -Action agent-tunnel
+
+# 检查本机和云端监听端口
+.\scripts\start_5090_services.ps1 -Action status
+```
+
+每个长驻 action 建议单独开一个 PowerShell 窗口执行，并保持窗口不关闭。`agent` action 会显式传入 `--base-url $env:LABAGENT_BASE_URL`，避免 Agent Router 回落到本机不存在的 `127.0.0.1:8000/v1`。
+
 在 5090 PowerShell 启动服务：
 
 ```powershell

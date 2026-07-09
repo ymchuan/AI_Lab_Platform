@@ -198,24 +198,19 @@ python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？
 RAG Service v1 本地启动：
 
 ```powershell
-$env:LABAGENT_RAG_API_KEY = "<LABAGENT_RAG_API_KEY>"
-python -m services.rag.server --host 127.0.0.1 --port 8010
+.\scripts\start_5090_services.ps1 -Action rag
 ```
 
 Agent router 本地启动：
 
 ```powershell
-Get-Content .env.local | ForEach-Object {
-  $p = $_.Split("=", 2)
-  if ($p.Count -eq 2) { [System.Environment]::SetEnvironmentVariable($p[0], $p[1], "Process") }
-}
-python -m services.agent.server --host 127.0.0.1 --port 8020
+.\scripts\start_5090_services.ps1 -Action agent
 ```
 
 Agent router 公网临时入口：
 
 ```powershell
-ssh -N -R 0.0.0.0:18020:127.0.0.1:8020 -i C:\Users\N\.ssh\id_ed25519 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+.\scripts\start_5090_services.ps1 -Action agent-tunnel
 ```
 
 远程客户端配置为 `http://82.156.69.153:18020/v1`、模型 `labagent-agent`、鉴权 `<LABAGENT_AGENT_API_KEY>`。云端已支持 `GatewayPorts clientspecified`，腾讯云安全组已放行 TCP 18020。
@@ -223,7 +218,14 @@ ssh -N -R 0.0.0.0:18020:127.0.0.1:8020 -i C:\Users\N\.ssh\id_ed25519 -o ExitOnFo
 David 远程调试时，可在 5090 额外开启公网 RAG 隧道。云端 sshd 已设置 `GatewayPorts clientspecified`，腾讯云安全组需放行 TCP 18010：
 
 ```powershell
-ssh -N -R 0.0.0.0:18010:127.0.0.1:8010 -i C:\Users\N\.ssh\id_ed25519 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+.\scripts\start_5090_services.ps1 -Action rag-tunnel
+```
+
+5090 主模型隧道也可以用统一脚本启动：
+
+```powershell
+.\scripts\start_5090_services.ps1 -Action qwen-tunnel
+.\scripts\start_5090_services.ps1 -Action status
 ```
 
 ## License
