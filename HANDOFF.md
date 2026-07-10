@@ -331,6 +331,7 @@ python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？
 | `MODEL_RESEARCH.md` | 5090 / 新设备的模型选型研究和节点分工建议。 |
 | `NETWORK.md` | 云服务器、安全组、SSH 隧道和网络拓扑说明。 |
 | `PROJECT_BRIEF_FOR_AI_REVIEW.md` | 给 Gemini / Claude / ChatGPT 等外部 AI reviewer 的单文件项目简报，汇总背景、架构、进度、问题和评审问题。 |
+| `PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` | 给自己准备秋招和项目深挖用，包含面试讲法、常见追问、RAG v1.x 具体实现路线和代码学习顺序。 |
 | `Progress_Summary.md` | 给别人看的进展汇报和阶段总结。 |
 | `RAG_LEARNING_NOTES.md` | RAG 的概念、实现、调试和升级路径说明。 |
 | `SETUP.md` | 从零部署 LabAgent 平台的步骤文档。 |

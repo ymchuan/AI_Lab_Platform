@@ -114,6 +114,7 @@ Model:    qwen-local
 ### 快速上手
 - [交接文档](HANDOFF.md) — **新成员/新 AI 读这个就能上手**
 - [给外部 AI 的项目简报](docs/PROJECT_BRIEF_FOR_AI_REVIEW.md) — **发给 Gemini / 其他 AI 做评审时优先用这个**
+- [项目深挖与面试 FAQ](docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md) — **秋招面试讲法、项目深度升级路线和常见追问**
 
 ### 核心文档
 - [部署指南](docs/SETUP.md) — 从零部署完整教程
