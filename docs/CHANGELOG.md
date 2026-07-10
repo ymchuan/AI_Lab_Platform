@@ -4,6 +4,18 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.9] - 2026-07-10
+
+### Added
+- 新增 `scripts/check_labagent_status.ps1`，作为 5090 每日全链路巡检脚本。
+- 巡检脚本会读取 `.env.local`，检查 5090 本机 `:1234/:8010/:8020`、云端 `:8000/:12340/:12341/:18010/:18020`、LiteLLM 模型列表、`qwen-agent` chat、`embed-local` embedding、`vision-local` 图片请求、RAG health 和 `labagent-agent` health/chat。
+- 巡检结果会输出 OK/WARN/FAIL 汇总，并写入本地忽略目录 `logs/labagent_status_*.json`，方便每天留存但不进入 Git。
+
+### Verified
+- 2026-07-10 运行 `scripts/check_labagent_status.ps1`：核心链路 14 OK、0 FAIL。
+- 当前 `qwen-agent`、`embed-local`、`vision-local`、公网 `labagent-agent` 均可用；`labagent-agent` direct chat 返回 `pong`。
+- 当前只有公网 RAG `:18010` 是 WARN，因为 `rag-tunnel` 未开启；这不影响团队使用 `qwen-agent` 或 `labagent-agent`。
+
 ## [0.4.8] - 2026-07-09
 
 ### Added

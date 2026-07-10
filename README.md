@@ -228,6 +228,14 @@ David 远程调试时，可在 5090 额外开启公网 RAG 隧道。云端 sshd 
 .\scripts\start_5090_services.ps1 -Action status
 ```
 
+每日全链路巡检：
+
+```powershell
+.\scripts\check_labagent_status.ps1
+```
+
+该脚本会检查 5090 本机服务、云端隧道、LiteLLM、`qwen-agent`、`embed-local`、`vision-local`、RAG 和 `labagent-agent`，并把脱敏结果写入本地 `logs/`。
+
 ## License
 
 Private - 仅限个人/学术使用

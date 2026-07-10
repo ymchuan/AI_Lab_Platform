@@ -36,6 +36,8 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-09 5090 启动流程收敛：新增 `scripts/start_5090_services.ps1`，统一启动 `qwen-tunnel`、`rag`、`rag-tunnel`、`agent`、`agent-tunnel` 和 `status`。本次排障确认 David / Cline 使用 `labagent-agent` 报“目标计算机积极拒绝”的根因是 Agent Router 旧启动方式没有正确加载 `.env.local`，导致内部回落到本机不存在的 `127.0.0.1:8000/v1`。现在 `agent` action 会显式传入 `--base-url $env:LABAGENT_BASE_URL` 和相关 key；2026-07-09 已复测公网 `http://82.156.69.153:18020/v1/chat/completions`，`labagent-agent` direct chat 返回 `pong`。
 
+2026-07-10 新增每日巡检脚本 `scripts/check_labagent_status.ps1`。它会检查本机服务、云端隧道、LiteLLM、`qwen-agent`、`embed-local`、`vision-local`、RAG 和 `labagent-agent` 的真实 API smoke test，并输出 OK/WARN/FAIL 汇总。首次运行结果：核心链路 14 OK、0 FAIL；公网 RAG `:18010` 未开启时显示 WARN，这是可选公网 RAG 入口，不影响团队用 `qwen-agent` 或 `labagent-agent`。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
@@ -119,6 +121,9 @@ cd E:\qwen_setup
 
 # 查看本机和云端监听状态
 .\scripts\start_5090_services.ps1 -Action status
+
+# 每日全链路巡检，包含真实 API smoke test
+.\scripts\check_labagent_status.ps1
 ```
 
 注意：不要只运行 `python -m services.agent.server --host 127.0.0.1 --port 8020` 后就假设可用。若没有加载 `.env.local` 或显式传 `--base-url`，Agent Router 会默认请求本机 `127.0.0.1:8000/v1`，而 5090 本机没有 LiteLLM，David / Cline 会看到 502 或“目标计算机积极拒绝”。

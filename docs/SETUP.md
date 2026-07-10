@@ -303,6 +303,9 @@ cd E:\qwen_setup
 
 # 检查本机和云端监听端口
 .\scripts\start_5090_services.ps1 -Action status
+
+# 每日全链路巡检，包含真实 API smoke test
+.\scripts\check_labagent_status.ps1
 ```
 
 每个长驻 action 建议单独开一个 PowerShell 窗口执行，并保持窗口不关闭。`agent` action 会显式传入 `--base-url $env:LABAGENT_BASE_URL`，避免 Agent Router 回落到本机不存在的 `127.0.0.1:8000/v1`。
