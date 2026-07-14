@@ -10,7 +10,7 @@
 
 - `README.md`：当前高层状态、架构、模型选择和快速开始事实。
 - `HANDOFF.md`：最新运维状态和下一步动作。
-- `docs/README.md`：文档地图。如果新增、删除、重命名文档，必须同步这里。
+- `docs/README.md`：文档门户。如果新增、删除、重命名文档，必须同步这里和所属分类目录的 README。
 - `docs/project/Progress_Summary.md`：仅在外部可感知的里程碑变化时更新成果、边界、证据和简历口径；不复制完整操作过程。
 - `docs/history/CHANGELOG.md`：简短的日期化变更记录。
 - 与本次变更匹配的专题文档，例如：
@@ -57,7 +57,7 @@
 移动文档不是单纯改文件夹。必须同时完成：
 
 1. 使用 `git mv` 保留 Git 历史。
-2. 更新 README、HANDOFF、文档门户、Markdown 链接、脚本和测试中的路径。
+2. 更新 README、HANDOFF、文档门户、所属分类 README、Markdown 链接、脚本和测试中的路径。
 3. 如果 RAG corpus 包含该目录，确认 discovery 支持新层级并补测试。
 4. 在运行节点重建本地 RAG index；运行数据不提交 Git。
 
