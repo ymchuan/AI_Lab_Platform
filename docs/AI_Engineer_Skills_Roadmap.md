@@ -1,143 +1,46 @@
-﻿# AI Infra / Agent 工程师技能路线图
++# AI Infra / Agent 工程师技能路线图
 
-> 结合当前项目，分析简历上需要什么、怎么补、怎么和已有项目融合。
+> 这份文档只回答“这个项目能证明哪些能力、还缺什么、学习顺序是什么”。技术实现和项目排期以 docs/AGENT_PROJECT_ROADMAP.md 为准。
 
-## 一、当前项目已经覆盖的技能
+## 已有可证明能力
 
-| 技能 | 当前状态 | 简历关键词 |
-|------|---------|-----------|
-| 本地大模型部署 | ✅ 5090 + LM Studio + `qwen/qwen3-coder-30b`；新设备 + LM Studio + `embed-local` / `vision-local` | LLM Deployment, Local Inference |
-| OpenAI-compatible API | ✅ LiteLLM 网关 | API Gateway, OpenAI Protocol |
-| 网络架构 | ✅ SSH Reverse Tunnel + NAT 约束处理 | Network Engineering, Reverse Proxy |
-| 云服务器运维 | ✅ Ubuntu 24.04 + systemd + 安全组 | Cloud Infrastructure, Linux Administration |
-| 客户端接入 | ✅ Cline / OpenAI SDK | Agent Tooling, Developer Experience |
-| 多节点调度 | ✅ v1：`qwen-agent` + `embed-local` + `vision-local`；Reranker 待补 | Multi-node Orchestration |
-| RAG baseline | ✅ v0：Markdown chunking + `embed-local` + 本地 JSON index + retrieval eval + cited answer | RAG Pipeline, Retrieval Evaluation |
+| 能力 | LabAgent 中的证据 | 面试表达重点 |
+|------|------------------|--------------|
+| 本地模型服务 | LM Studio 承载 qwen-agent、embed-local、vision-local | 能在显存、模型质量与服务稳定性之间做取舍 |
+| API 网关与协议 | LiteLLM 暴露 OpenAI-compatible API | 用统一 Base URL 隔离客户端与本地模型细节 |
+| 受限网络部署 | SSH Reverse Tunnel 解决校园网 NAT | 理解连接方向、端口暴露、保活和故障定位 |
+| 多节点路由 | 5090、新设备和候选 8060S 分工 | 按任务类型和验证数据分配模型，不把显存简单相加 |
+| RAG baseline | 切块、embedding、JSON 索引、检索、引用回答和 HTTP API | 能拆分 retrieval 问题与 generation 问题 |
+| 评测意识 | gateway、latency、RAG、repo map、patch 等固定脚本 | 用回归 case 而不是主观体验做模型选择 |
+| 客户端兼容 | Cline 与 Codex CLI 基础工作流 | 协议连通、工具调用、流式和文件编辑需要分层验收 |
 
-**结论：基础设施已经有雏形，RAG v0 已经起步，但智能层深度仍不足。下一阶段要把 RAG v0 升级为 RAG Service v1，并继续补 Agent Runtime、MCP、评测、模型工程（量化/微调）这些能体现 Agent 开发岗能力的部分。**
+## 仍需补齐的能力
 
-## 二、简历上最值钱的能力
+| 优先级 | 能力 | 最小项目交付物 | 为什么有价值 |
+|--------|------|----------------|--------------|
+| P0 | 客户端异常与工具兼容 | Codex C7-C9、Claude Code 最小复现 | 展示协议和开发者体验意识 |
+| P1 | 生产化 RAG | workspace、向量库、reranker、faithfulness eval | 把学习版检索变成可说明质量的数据产品 |
+| P1 | Router trace | 请求级路由、耗时、错误与最终模型记录 | 能定位多模型系统的真实失败点 |
+| P2 | Agent Runtime | 工具注册、权限、执行、恢复和 trace | 补齐 Agent 岗最看重的执行闭环 |
+| P2 | MCP / Skills | 可发现的工具和可复用工作流 | 展示生态集成与工程抽象能力 |
+| P3 | 模型工程 | 量化或 LoRA 前后同集评测 | 证明不仅会调用模型，也会验证优化效果 |
 
-### 第一梯队：必须补
+## 推荐学习顺序
 
-| 能力 | 为什么重要 | 项目落地方式 |
-|------|-----------|-------------|
-| RAG | 大模型应用最常见落地形态 | 做一个可上传/索引文档的知识库问答系统 |
-| Agent Runtime | Agent 岗核心能力 | 实现任务规划、工具调用、状态记录、错误恢复 |
-| Tool Use / Function Calling | Agent 执行动作的基础 | 文件、命令、代码执行、搜索、知识库查询工具 |
-| MCP Server | AI 工具生态的新接口 | 暴露本地模型、RAG、工具给 MCP 客户端 |
-| Eval Harness | 工程化深度的分水岭 | 对 RAG/Agent/模型做可重复评测 |
+1. 先通读 README.md、HANDOFF.md、docs/ARCHITECTURE.md 和 docs/API.md，能画出请求从客户端到本地 GPU 的链路。
+2. 读 services/rag 与 docs/RAG_LEARNING_NOTES.md，理解文档如何变成可检索证据。
+3. 读 services/agent 与 docs/AGENT_ROUTER_LEARNING_NOTES.md，区分 router、RAG 与完整 Agent Runtime。
+4. 跑一轮 benchmarks，理解质量、延迟、失败模式和回归的关系。
+5. 按 docs/AGENT_PROJECT_ROADMAP.md 从 P0 到 P3 做增量交付，不跳过验证。
 
-### 第二梯队：强加分
+## 简历表述边界
 
-| 能力 | 为什么重要 | 项目落地方式 |
-|------|-----------|-------------|
-| 模型选型与 Benchmark | 证明不是只会“部署” | 对 Qwen、DeepSeek、GLM、Llama 等模型做本地对照 |
-| 向量数据库 | RAG 基础设施 | Qdrant / Chroma / pgvector 三选一 |
-| Reranking | 提升 RAG 质量 | 接入 BGE reranker 或同类模型 |
-| Docker 化 | 让项目可复现 | 将 API、RAG、Agent、评测服务容器化 |
-| 可观测性 | 生产化能力 | 记录 token、延迟、工具调用、失败原因 |
+可以说已完成本地 GPU 网关、多节点路由、RAG baseline、轻量 router、视觉 side channel 和 Codex 基础兼容性。
 
-### 第三梯队：模型工程
+不应说已经完成自主 Coding Agent、完整长期记忆、生产级 RAG 或 Claude Code 稳定工具调用。这些是下一阶段可落地的设计目标。
 
-| 能力 | 为什么重要 | 项目落地方式 |
-|------|-----------|-------------|
-| 量化 | 适配本地显存、提升部署效率 | GGUF / AWQ / GPTQ 对比实验 |
-| LoRA / QLoRA 微调 | 展示模型定制能力 | 用项目日志 / 工具调用数据做小规模 SFT |
-| 推理引擎替换 | 提升性能和并发 | 从 LM Studio 迁移到 vLLM / SGLang / llama.cpp |
-| 长上下文优化 | Agent / RAG 常见痛点 | 做上下文压缩、检索裁剪、摘要记忆 |
+## 面试准备入口
 
-## 三、建议执行路径
-
-### Phase A：模型与基础设施基准
-
-目标：先搞清楚当前可用资源分别最适合跑什么。8060S 已恢复为候选节点，但需要先通过 `:12342` 路由、latency 和 coding/RAG smoke 后再纳入稳定资源池。
-
-```text
-5090 -> 主力模型 / 代码模型 / Agent 主脑
-5080 + 4060 Ti -> 32GB 专用显存资源池，但不是单块连续 32GB；Windows shared GPU memory 不能按 VRAM 使用；当前已接入 Embedding 和 Vision，后续分配 Rerank / 第二推理节点
-云服务器 -> LiteLLM / HTTPS / 鉴权 / 隧道中转
-```
-
-OCR / Whisper / 文档解析能力先后移到新设备或 5090 空闲时段实现。
-
-交付物：
-
-- `docs/MODEL_RESEARCH.md`：模型调研和最终选择。
-- `benchmarks/`：本地 benchmark 脚本，覆盖 gateway、latency、agent、RAG、repo map、patch 和 Cline 多轮。
-- `docs/BENCHMARK_RESULTS.md`：吞吐、延迟、显存、Agent 任务通过率、patch 生成质量和多轮稳定性。
-
-### Phase B：RAG 知识库
-
-目标：把项目从“模型 API 网关”升级为“能处理真实知识任务的 AI 应用”。当前 v0 已支持项目 Markdown 文档索引、检索和带引用回答；下一步要服务化和生产化。
-
-```text
-文档 -> 解析 / OCR -> Chunking -> Embedding -> 向量库
-用户问题 -> 检索 -> Rerank -> 引用片段 -> Qwen 生成答案
-```
-
-交付物：
-
-- 已完成：`services/rag` 的 index/search/ask CLI。
-- 已完成：`benchmarks/rag_retrieval_eval.py`，当前 3/3 通过。
-- 待完成：文档 ingestion API。
-- 待完成：Qdrant / Chroma 等向量数据库。
-- 待完成：Reranker。
-- 待完成：RAG 问答 API。
-- 待完成：answer faithfulness / citation eval。
-
-### Phase C：Agent Runtime
-
-目标：实现一个能做事的 Agent，而不是只聊天。
-
-```text
-用户目标
-  -> Planner
-  -> Tool Router
-  -> Tools: 文件 / Shell / Python / RAG / HTTP API
-  -> Memory + Trace
-  -> Final Answer
-```
-
-交付物：
-
-- Agent 任务执行 API。
-- 工具注册表。
-- 任务 trace 日志。
-- 错误重试和工具权限控制。
-- Agent benchmark。
-
-### Phase D：MCP / Skills / 工具生态
-
-目标：让你的平台能接入 Claude Code、Cursor、Cline 等工具生态。
-
-交付物：
-
-- MCP Server：暴露 RAG、模型调用、项目工具。
-- Skills：把常用工作流封装成可复用能力。
-- Tool manifest：统一描述工具输入输出和权限。
-
-### Phase E：模型工程
-
-目标：展示你不只是会调 API，也理解模型部署和优化。
-
-交付物：
-
-- 模型量化对比：FP16 / AWQ / GPTQ / GGUF。
-- LoRA 或 QLoRA 微调实验。
-- 微调前后评测对比。
-- 推理引擎对比：LM Studio / vLLM / SGLang / llama.cpp。
-
-## 四、目标简历描述
-
-> 设计并持续迭代一套私有 AI Agent 基础设施平台：基于 RTX 5090、本地多 GPU 节点与腾讯云轻量网关，通过 SSH Reverse Tunnel 解决校园网 NAT 环境下模型服务公网访问问题，并使用 LiteLLM 暴露 OpenAI-compatible API。在此基础上构建 RAG 知识库、Agent Runtime、MCP Server、工具调用体系和评测框架，支持本地模型选型、量化、微调和多节点路由。项目覆盖 LLM 部署、AI API Gateway、RAG Pipeline、Agent Tool Use、MCP、Eval Harness、模型工程与可观测性。
-
-## 五、迭代规则
-
-每完成一个关键节点，更新：
-
-1. `HANDOFF.md`：当前真实状态和下一步。
-2. `README.md`：对外简介和快速使用。
-3. `docs/Progress_Summary.md`：阶段成果。
-4. `docs/CHANGELOG.md`：变更记录。
-5. 对应专题文档：如 `MODEL_RESEARCH.md`、`BENCHMARK_RESULTS.md`、`RAG_DESIGN.md`、`AGENT_DESIGN.md`。
+- 项目讲解与 17 道 Agent 面经映射：docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md
+- 技术选择与模型数据：docs/MODEL_RESEARCH.md、docs/BENCHMARK_RESULTS.md
+- 实际代码阅读顺序：docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md 第 8 节

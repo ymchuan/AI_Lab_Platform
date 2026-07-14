@@ -17,9 +17,10 @@ LabAgent 的文档按 Diataxis 思路分成四类：
 
 1. `README.md`：项目一句话、当前架构、模型别名、快速入口。
 2. `HANDOFF.md`：当前真实运行状态、重启步骤、下一步优先级。
-3. `docs/PROJECT_BRIEF_FOR_AI_REVIEW.md`：发给 Gemini / Claude / ChatGPT 做外部评审。
-4. `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`：准备秋招、复盘项目深度、回答 Agent 面经。
-5. `services/agent/README.md` 和 `services/rag/` 代码：理解 router 与 RAG 的真实实现。
+3. `Progress_Summary.md`：快速了解已经交付的能力、边界和下一优先级。
+4. `PROJECT_BRIEF_FOR_AI_REVIEW.md`：发给 Gemini / Claude / ChatGPT 做外部评审。
+5. `PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`：准备秋招、复盘项目深度、回答 Agent 面经。
+6. `services/agent/README.md` 和 `services/rag/` 代码：理解 router 与 RAG 的真实实现。
 
 ## 单一事实来源
 
@@ -42,7 +43,7 @@ LabAgent 的文档按 Diataxis 思路分成四类：
 | `../README.md` | 项目总入口，适合第一次打开仓库。 |
 | `../HANDOFF.md` | 当前交接文档，适合新会话、新成员、外部 AI 接手时先读。 |
 | `PROJECT_BRIEF_FOR_AI_REVIEW.md` | 单文件项目简报，用于给外部 AI 或评审者快速理解项目。 |
-| `Progress_Summary.md` | 面向他人的阶段性成果汇报。 |
+| `Progress_Summary.md` | 面向他人的精简阶段报告；不重复历史过程和启动命令。 |
 | `CHANGELOG.md` | 日期化版本变更记录。 |
 
 ## 部署与运维
@@ -71,7 +72,7 @@ LabAgent 的文档按 Diataxis 思路分成四类：
 |------|------|
 | `RAG_LEARNING_NOTES.md` | RAG 概念、当前实现、调试方法和升级路线。 |
 | `AGENT_ROUTER_LEARNING_NOTES.md` | `labagent-agent` 的 router 分支、brain / eyes / RAG 分工和边界。 |
-| `AGENT_PROJECT_ROADMAP.md` | RAG、Agent Runtime、MCP、Eval、模型工程的中长期路线。 |
+| `AGENT_PROJECT_ROADMAP.md` | 项目深化的阶段、交付物和验收门槛；不重复详细设计。 |
 | `BENCHMARK_DESIGN.md` | Benchmark 分层、指标和解释规则。 |
 | `BENCHMARK_RESULTS.md` | Benchmark 结果和阶段结论。 |
 | `CODE_REVIEW_TRIAGE.md` | 外部 code review 建议的采纳、后置和拒绝记录。 |
@@ -82,9 +83,16 @@ LabAgent 的文档按 Diataxis 思路分成四类：
 |------|------|
 | `PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` | 面试讲法、Agent 面经映射、RAG v1.x 设计和代码学习顺序。 |
 | `Tech_Stack_Knowledge_Base.md` | LM Studio、LiteLLM、SSH 隧道、RAG、Agent、MCP、vLLM 等技术概念解释。 |
-| `AI_Engineer_Skills_Roadmap.md` | AI Infra / Agent Engineer 学习路线。 |
+| `AI_Engineer_Skills_Roadmap.md` | 已有证据、能力缺口和学习顺序；不重复项目排期。 |
 | `AGENT_OPERATING_RULES.md` | Qwen/Cline 系统提示词建议、本地 skills 和外部提示词边界。 |
 | `DOCUMENTATION_SYNC.md` | 每次里程碑后的文档同步规则。 |
+
+## 历史与证据
+
+| 文件 | 用途 |
+|------|------|
+| `AI_API_Gateway_Project_Log.md` | 部署、排障和里程碑的长篇过程记录；只用于追溯历史，不作为当前事实入口。 |
+| `CHANGELOG.md` | 日期化变更记录；只追加摘要，不承担部署说明。 |
 
 ## 本地忽略参考
 
@@ -101,4 +109,5 @@ LabAgent 的文档按 Diataxis 思路分成四类：
 - 不再在 README、HANDOFF、Progress 和 Brief 里各维护一份完整文档目录。
 - 新增文档前先判断是否能并入现有专题文档。
 - 长日志放 `AI_API_Gateway_Project_Log.md`，当前事实放 `README.md` / `HANDOFF.md` / 专题文档。
+- Progress 只保留成果、边界、证据和下一步；详细流程分别链接到专题文档和历史日志。
 - 面试表达可以提炼，但不能把未来计划写成已完成能力。

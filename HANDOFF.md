@@ -310,7 +310,7 @@ python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？
 
 ## 文档地图
 
-完整文档目录已移到 `docs/README.md`。这里不再重复维护大表，避免 README、HANDOFF、Progress 和 Brief 四处出现不同版本。
+完整文档目录已移到 `docs/README.md`。这里不再重复维护大表，避免 README、HANDOFF、Progress 和 Brief 四处出现不同版本。Progress 已收敛为对外阶段报告；部署历史保留在 `docs/AI_API_Gateway_Project_Log.md`，详细项目设计保留在 `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`。
 
 高频入口：
 

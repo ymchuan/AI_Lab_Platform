@@ -1,410 +1,97 @@
-﻿# Agent 项目深化路线图
++# Agent 项目深化路线图
 
-> 目标：把 LabAgent Platform 从“本地模型部署项目”升级成能支撑 Agent 开发岗简历的端到端工程项目。
+> 这是 LabAgent 的执行路线图：回答先做什么、什么算完成、何时进入下一阶段。详细设计不在这里重复，统一链接到专题文档。
 
-## 岗位能力画像
+## 当前起点
 
-从近期 Agent / AI Engineer 岗位描述和官方框架文档看，岗位不只要求会调用模型，更强调：
+LabAgent 已经具备本地模型公网网关、多节点路由、RAG Service v1 baseline、图片 side channel 和轻量 router。当前 services/agent 仍是 route + side channel compose，不是能自主执行工具的完整 Agent Runtime。
 
-- 后端工程能力：Python / TypeScript / Go / Java、API、数据库、异步任务、部署。
-- RAG：向量数据库、chunking、hybrid search、reranking、引用溯源、RAG 评测。
-- Agent：planning、tool use、memory、multi-step reasoning、失败恢复、human-in-the-loop。
-- MCP：工具、资源、prompt 的标准化暴露和安全边界。
-- Eval Harness：可重复评测、trace-aware evaluation、回归测试。
-- LLMOps：监控、日志、成本、延迟、模型路由、灰度。
-- 模型工程：模型选型、量化、微调、推理引擎优化。
+项目深化必须遵守三个原则：
 
-## 2026-06-10 调研结论
+1. 先把团队真正会用的客户端路径测稳，再增加新功能。
+2. 每个新模块都必须有可运行代码、固定 case 和可复现结果。
+3. 未来能力与已完成能力严格分开写，避免把路线图包装成现状。
 
-当前项目已经完成“本地模型经云服务器暴露为 OpenAI-compatible API”的最小闭环，但这还偏部署工程。要支撑 Agent 开发岗，需要继续补三类深度：
+## 里程碑与验收门槛
 
-1. **应用工程深度**：FastAPI 服务、数据库、异步任务、权限边界、日志、测试和部署。
-2. **Agent/RAG 深度**：RAG ingestion、检索、rerank、引用溯源；Agent tool use、planner、memory、trace、recovery、human-in-the-loop。
-3. **模型工程深度**：模型选型 benchmark、GGUF/AWQ/GPTQ 量化对比、LoRA/QLoRA 小实验、vLLM/SGLang/llama.cpp 推理引擎对照。
-
-当前最重要的原则：**每个模块都要有可运行代码、可复现评测和复盘文档**。简历里能讲清楚“我做了什么取舍、如何验证、指标如何变化”，比堆更多模型名更有价值。
-
-## 项目目标形态
+| 阶段 | 目标 | 最小交付物 | 完成标准 |
+|------|------|------------|----------|
+| P0 客户端兼容 | 固定团队可用入口 | Codex C7/C8/C9 结果、清晰错误体验 | 能说明 qwen-agent 与 labagent-agent 各自支持什么，失败怎么排查 |
+| P1 RAG v1.x | 让每个项目 workspace 有可靠知识检索 | workspace registry、向量存储接口、reranker、评测集 | 检索、引用和回答指标可回归，不串 workspace |
+| P2 Router 可观测 | 让路由决策可解释 | trace id、route、耗时、side-channel 结果和失败原因 | 一次请求可从入口定位到最终模型和证据 |
+| P3 Agent Runtime | 让 Agent 在受控范围内执行任务 | tool registry、权限、executor、状态、recovery | 能完成固定多步任务并留下 trace，危险操作必须确认 |
+| P4 MCP / Skills | 对外暴露平台能力 | MCP tools/resources、项目技能包 | 客户端可发现能力，输入 schema 和权限边界明确 |
+| P5 模型工程 | 用数据做模型与推理优化取舍 | 量化或 LoRA 小实验、前后 benchmark | 有同一评测集上的质量、延迟或资源对比 |
 
-```text
-外部客户端 / Cline / Cursor / Web UI
-        ↓
-云服务器 LiteLLM + HTTPS
-        ↓
-本地多节点模型服务
-        ↓
-RAG Service + Agent Runtime + MCP Server + Eval Harness
-```
+## P0：客户端兼容性
 
-## 模块规划
+当前团队的基础需求已经由 qwen-agent 覆盖。接下来不要凭一次成功就宣称完全兼容，而是固定矩阵：
 
-### 1. Gateway / Ops
+- C7：长一点的上下文与多文件任务。
+- C8：隧道断开、模型未加载、错误 key 时的错误可读性。
+- C9：labagent-agent 的文本、图片和 Responses tools 透传。
+- Claude Code：独立验证 tool_use schema，不影响 Codex 主路径。
 
-目标：让当前网关更像生产系统。
+详细步骤和记录位置：docs/CODEX_CLI_COMPATIBILITY.md、docs/TEAM_CLIENT_COMPATIBILITY.md、docs/CLAUDE_CODE_COMPATIBILITY.md。
 
-交付物：
+## P1：RAG v1.x
 
-- LiteLLM 配置模板和多节点路由。
-- 隧道健康检查。
-- API key 脱敏和轮换记录。
-- 服务状态页面或 CLI。
-- Caddy/Nginx HTTPS 入口。
+先服务于“每个人/每个项目有自己的文档”，而不是建立一个全局混合知识库。
 
-### 2. RAG Service
+最小顺序：
 
-目标：做出一个真实可用的知识库问答系统。
+1. 定义 workspace_id、文档元数据和访问边界。
+2. 将 JSON index 抽象为 storage interface。
+3. 用 Qdrant 或 Chroma 实现向量后端。
+4. 在新设备接入 reranker。
+5. 增加 retrieval、citation 和 faithfulness 评测。
+6. 最后再考虑 query rewrite、迭代检索等 agentic RAG。
 
-先把边界讲清楚：
+详细数据模型、接口和选型理由：docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md 第 4、6、9 节；学习材料：docs/RAG_LEARNING_NOTES.md。
 
-- 一个 workspace 对应一个团队、一个项目，或者一个明确的知识域。
-- 团队成员不直接写 vector DB；他们把文档交给 RAG Service，由服务完成解析、切块、embedding 和索引。
-- 不同 workspace 的文档默认隔离，查询也默认按 workspace 过滤，避免把无关团队的资料混在一起。
-- 第一版可以先用“每个 workspace 一个 `index.json`”的简单方案；后续迁移到 Qdrant 时，优先考虑“单 collection + `workspace_id` payload filter”，只有在强隔离需求很高时才拆更多 collection。
-- 公共平台文档可以单独放一个 shared workspace，和团队私有文档分开。
+## P2：Router 可观测性
 
-功能：
+在增加 planner 前，先补 trace：
 
-- 文档上传：PDF / Markdown / DOCX / PPTX / 图片。
-- 文档解析：MinerU / PaddleOCR-VL。
-- Chunking：标题感知、语义分块、表格保留。
-- Embedding：Qwen3-Embedding 或 BGE-M3。
-- Vector DB：Qdrant / Chroma / pgvector 三选一。
-- Rerank：Qwen3-Reranker。
-- 回答生成：引用溯源，返回证据片段。
+- 为入口请求生成 trace id。
+- 记录 route、最终模型、embedding/RAG/vision 是否被调用、耗时与错误。
+- 对 side channel 设置 timeout、fallback 和清晰的用户可见状态。
+- 给 trace 增加最小回归测试。
 
-交付物：
+这样才能判断“模型不好”“路由错了”还是“隧道断了”。
 
-```text
-services/rag/
-├── ingestion.py
-├── retriever.py
-├── reranker.py
-├── api.py
-├── schemas.py
-├── storage/
-└── tests/
-```
+## P3：Agent Runtime
 
-当前 RAG v0 已完成第一步：
+只在 P0-P2 稳定后开始。首个版本只覆盖受控工作流：
 
-```text
-docs/ + README.md + HANDOFF.md
-  -> markdown loader
-  -> chunk
-  -> embed-local
-  -> local JSON index
-  -> cosine retrieval
-  -> qwen-agent answer with citations
-```
+    用户目标
+      -> planner
+      -> tool registry
+      -> 受限 file / shell / RAG tools
+      -> executor + permissions
+      -> trace + validation
+      -> final answer
 
-当前验证：2026-06-23 重建运行索引为 354 chunks / 21 files，`rag_retrieval_eval.py` 默认 top-k 8 复测 3/3 通过，端到端 `ask` 可带 `[Sx]` 引用回答。
+第一个 Agent MVP 不应直接获得无限文件系统和 shell 权限。先限制 workspace、白名单命令、超时和人工确认，再扩大能力。
 
-2026-06-22 已新增 RAG Service v1 HTTP baseline：
+## P4-P5：后续增强
 
-```text
-services/rag/server.py
-  -> GET /health
-  -> POST /v1/rag/search
-  -> POST /v1/rag/ask
-  -> POST /v1/chat/completions
-```
+- MCP：先暴露 search_knowledge_base、query_model_status 等低风险能力。
+- Skills：先固化 model-benchmark、project-handoff、incident-review 三类流程。
+- 模型工程：从一个小型量化或 LoRA 实验开始，微调前后跑同一套 RAG/Agent/patch 评测。
+- 推理引擎：只有在 LM Studio 成为吞吐或并发瓶颈后，才比较 vLLM、SGLang、llama.cpp。
 
-它仍使用本地 JSON index，目标是让 David/Cline 能远程调试 RAG。下一版不要一开始做全平台，先把当前项目文档目录升级为 **workspace-based RAG v1.x**：
+## 文档职责
 
-```text
-docs/ + README.md + HANDOFF.md
-  -> markdown loader
-  -> chunk
-  -> embedding
-  -> vector db
-  -> workspace_id partitioning
-  -> rerank
-  -> answer with citations
-```
+| 问题 | 主文档 |
+|------|--------|
+| 当前运行状态、端口和重启 | HANDOFF.md、docs/SETUP.md |
+| RAG 技术设计和面试追问 | docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md |
+| RAG 概念与当前实现 | docs/RAG_LEARNING_NOTES.md |
+| Router 的现状与学习解释 | docs/AGENT_ROUTER_LEARNING_NOTES.md |
+| 模型和硬件选择 | docs/MODEL_RESEARCH.md |
+| AI Engineer 能力缺口 | docs/AI_Engineer_Skills_Roadmap.md |
+| 已完成变更 | docs/CHANGELOG.md |
 
-在这个基础上，再往 **agentic RAG** 走：让检索层具备 query rewrite、iterative retrieval、tool routing、rerank、citation validation 和 faithfulness check，而不是一上来就把它做成完整 Agent Runtime。
-
-### 3. Agent Runtime
-
-目标：实现一个能做事的 Agent，而不是只聊天。
-
-核心能力：
-
-- Planner：把目标拆成步骤。
-- Tool Registry：工具描述、参数 schema、权限等级。
-- Executor：执行工具调用。
-- Memory：短期任务状态 + 长期项目记忆。
-- Trace：记录每一步 LLM 输入输出、工具调用、错误。
-- Recovery：失败重试、降级、请求用户确认。
-
-推荐先手写最小 Agent Loop，再引入 LangGraph。
-
-在这之前，先保留一个轻量 router 层：
-
-- 对外暴露单一模型名 `labagent-agent`。
-- 内部把文本、图片和项目知识拆成 side channel；其中项目知识走 workspace-scoped RAG。
-- 最后仍由 `qwen-agent` 收口。
-
-这一层的价值是先把团队客户端接入和知识路由做稳，再继续往真正的 planner / executor 走。
-
-交付物：
-
-```text
-services/agent/
-├── graph.py
-├── tools/
-│   ├── file_tools.py
-│   ├── shell_tools.py
-│   ├── python_tools.py
-│   └── rag_tools.py
-├── memory.py
-├── trace.py
-├── permissions.py
-└── api.py
-```
-
-第一版 Agent MVP 场景：
-
-1. 读取项目文档，回答当前架构和下一步。
-2. 查询 RAG，定位故障排查步骤。
-3. 生成模型 benchmark 计划。
-4. 在受控白名单命令内运行只读诊断。
-5. 生成复盘草稿，但危险操作必须要求人工确认。
-
-### 4. MCP Server
-
-目标：把你的平台能力暴露给支持 MCP 的客户端。
-
-MCP 能力：
-
-- Tools：`search_knowledge_base`、`run_agent_task`、`query_model_status`。
-- Resources：项目文档、benchmark 报告、运行日志。
-- Prompts：代码审查、RAG 诊断、模型评测报告模板。
-
-安全要求：
-
-- 所有危险工具需要权限确认。
-- 文件操作限定 workspace。
-- Shell 工具白名单。
-- 日志脱敏。
-
-### 5. Skills / Workflow Packages
-
-目标：把项目经验封装成可复用工作流。
-
-建议创建：
-
-```text
-skills/
-├── rag-ingestion/SKILL.md
-├── model-benchmark/SKILL.md
-├── agent-eval/SKILL.md
-├── project-handoff/SKILL.md
-└── incident-review/SKILL.md
-```
-
-Skills 和 MCP 的区别：
-
-- Skill 是“让 Agent 学会某个流程”的说明书 + 脚本。
-- MCP 是“让 Agent 能调用外部能力”的协议服务。
-
-建议先做 3 个最贴合本项目的 skills：
-
-- `model-benchmark`：固定模型评测流程、结果表格和复盘模板。
-- `project-handoff`：读取项目状态、生成交接文档和下一步清单。
-- `incident-review`：针对 502、SSH 隧道断开、OOM 等故障生成诊断和复盘。
-
-### 6. Eval Harness
-
-目标：让项目有工程深度。
-
-评测对象：
-
-- 模型：延迟、吞吐、显存、代码任务通过率。
-- RAG：faithfulness、context precision、context recall、answer relevance。
-- Agent：任务成功率、工具选择准确率、无效调用次数、恢复能力。
-
-交付物：
-
-```text
-benchmarks/
-├── gateway_health_eval.py
-├── model_latency.py
-├── run_agent_tasks.py
-├── rag_oracle_eval.py
-├── repo_map_eval.py
-├── patch_task_eval.py
-├── cline_dialogue_eval.py
-├── datasets/
-└── results/
-```
-
-当前已完成一个最小可运行骨架：
-
-- `model_latency.py`：测试 OpenAI-compatible 模型延迟、粗略吞吐、流式首 token 时间。
-- `run_agent_tasks.py`：用固定任务集测试模型的规划、工具选择、故障恢复表达。
-- `rag_oracle_eval.py`：给定正确上下文，测试模型是否能按事实回答，为后续真实检索 RAG 做上限基线。
-- `rag_retrieval_eval.py`：基于真实 Markdown chunk 和 `embed-local` 检索项目文档，测试 retrieval 是否能命中正确证据。
-- `gateway_health_eval.py`：区分 LiteLLM 网关可达和后端 SSH 隧道/模型可达。
-- `repo_map_eval.py`：用真实项目文件测试模型是否能理解当前工程状态。
-- `patch_task_eval.py`：测试模型能否生成小而可审查的 diff，贴近 Cline 修改文件流程。
-- `cline_dialogue_eval.py`：测试多轮上下文下的 Cline 工作流建议和模型路由判断。
-
-### 7. 模型工程
-
-目标：补上“微调、量化、推理优化”的经验。
-
-优先顺序：
-
-1. 模型选型和 benchmark。
-2. GGUF / AWQ / GPTQ 量化对比。
-3. LoRA / QLoRA 小规模微调。
-4. 微调前后评测。
-5. vLLM / SGLang / llama.cpp 推理引擎对照。
-
-微调任务建议：
-
-- 工具调用格式微调。
-- 项目文档问答风格微调。
-- Agent trace 修复数据微调。
-- 中文技术文档摘要微调。
-
-模型工程不要一开始就追大实验。第一轮只做可完成的小闭环：
-
-1. 选 1 个 7B/14B 或 30B 量化模型作为实验对象。
-2. 用 50-200 条项目文档问答 / 工具调用格式样本做 LoRA/QLoRA。
-3. 微调前后跑同一套 RAG / Agent / coding benchmark。
-4. 记录是否真的提升，而不是只记录“我微调过”。
-
-### 8. Claude Code Compatibility
-
-目标：把 `Claude Code` 的文本链路和 `tool use` 兼容性单独拆开评测，不把协议连通性误当作完整工作流可用。
-
-当前状态：
-
-- 文本问答链路已可通过 LiteLLM + `qwen-agent` 跑通。
-- `tool use` 目前仍会遇到参数 schema 不匹配问题。
-- 这条线应当作为实验项单独处理，不影响主力 `Cline + qwen-agent` 路径。
-
-建议交付物：
-
-```text
-benchmarks/
-├── claude_code_compat_eval.py
-└── datasets/
-    └── claude_code_compat_tasks.jsonl
-```
-
-评测重点：
-
-1. 能否稳定发起 `tool use`。
-2. 参数 schema 是否和本地模型输出一致。
-3. 失败时是否能给出可读错误，而不是只暴露笼统的参数异常。
-4. 与 `Cline` 主路径相比，兼容性差异在哪里。
-
-### 9. Team Client Compatibility
-
-目标：让团队成员可以用自己熟悉的 coding-agent CLI 接入 LabAgent 网关，而不是只支持项目发起人的 Cline 配置。
-
-当前判断：
-
-- `Cline + qwen-agent` 是当前主通道。
-- `Codex CLI` 是下一步优先验证对象，因为它理论上更可能直接使用 OpenAI-compatible base URL + key。
-- `Claude Code CLI` 已验证文本链路，但工具调用 schema 不稳定，暂不作为团队主通道。
-
-验证矩阵：
-
-1. plain chat 是否有非空 `content`。
-2. streaming 是否正常。
-3. repo read 是否能读取/理解项目文件。
-4. patch/file edit 是否可用。
-5. tool/function calling 是否符合客户端 schema。
-6. 图片消息是否能被路由到 `vision-local` 或后续 `labagent-agent` router。
-7. 后端隧道断开、模型未 load、key 错误时，错误是否可读。
-
-交付物：
-
-```text
-docs/TEAM_CLIENT_COMPATIBILITY.md
-benchmarks/codex_cli_compat_eval.py        # 待验证后再定
-benchmarks/claude_code_compat_eval.py      # 已规划
-```
-
-## 里程碑
-
-### M1：当前状态校准 ✅
-
-- 文档统一为 Ubuntu 24.04。
-- 明确云服务器 2GB 不升级。
-- 明确 5090 已接入主推理链路；2026-06-18 新设备已接入 `embed-local` embedding 路由；2026-07-03 8060S 已恢复为候选节点，但暂未接入 `:12342` 或 LiteLLM alias。
-- 完成多模型 benchmark 后，将 `qwen/qwen3-coder-30b` 定为 5090 `qwen-agent` 默认模型，将 `qwen/qwen3.6-27b` 降为 `qwen-think` reasoning baseline。
-- API Key 脱敏。
-
-### M2：模型选型与 Benchmark（当前优先级）
-
-- Benchmark / Eval 脚本骨架已创建。
-- Benchmark 已升级为 v2：能记录 `content`、`reasoning_content` 和 `finish_reason`，并覆盖 gateway health、repo map、patch generation 和 Cline 多轮对话。
-- 继续补真实 Agent harness：tool call、patch apply、repo task、RAG retrieval、trace。
-- 记录 5090 默认模型 Qwen3-Coder 的真实 ID、量化格式、上下文长度、GPU 占用和失败模式。
-- 保留 Qwen3.6、Gemma、GLM 等作为对照模型，后续重点评估 embedding/reranker/VL 候选。
-- 产出 `BENCHMARK_RESULTS.md`，用指标验证 `qwen-agent` 上线质量。
-
-### M3：多节点接入
-
-- 新设备 `embed-local` 已接入。
-- 后续继续接入 `rerank-local` / `vision-local` / `coder-small-local`。
-- 8060S 已恢复为候选节点，`whisper-local` / OCR / 文档解析 / rerank 可重新纳入候选，但必须先完成 `:12342` 路由和 benchmark；未通过前仍由新设备或 5090 空闲时段承担。
-- LiteLLM 多节点基础路由已完成；`vision-local` 已接入，完整 RAG / Reranker / 第二推理路由待补。
-
-### M4：RAG MVP
-
-- [x] RAG v0：Markdown 文档 -> chunk -> embedding -> 本地 JSON index -> 检索 -> 带引用回答。
-- [x] 至少支持当前项目文档问答。
-- [ ] RAG Service v1：workspace 隔离、向量数据库、reranker、API Server、answer faithfulness / citation eval。
-
-### M5：Agent MVP
-
-- Agent 能读取项目、查询 RAG、运行受控命令、生成变更计划。
-- 所有运行有 trace。
-
-### M6：MCP + Skills
-
-- MCP Server 暴露 RAG 和 Agent 工具。
-- 至少 3 个项目 skills。
-
-### M7：Eval + 模型工程
-
-- RAG/Agent 回归测试。
-- 量化对比。
-- LoRA/QLoRA 小实验。
-
-## 每个关键节点的复盘规则
-
-每完成一个里程碑，更新：
-
-- `README.md`
-- `HANDOFF.md`
-- `docs/Progress_Summary.md`
-- `docs/CHANGELOG.md`
-- 对应专题文档和 benchmark 报告
-
-复盘必须记录：
-
-1. 做了什么。
-2. 为什么做。
-3. 架构怎么变化。
-4. 遇到什么问题。
-5. 如何验证。
-6. 对简历价值是什么。
-
-## 主要参考来源
-
-- GE Vernova Senior AI Agent Engineer job: https://careers.gevernova.com/senior-ai-agent-engineer/job/R5025220
-- LangGraph docs: https://docs.langchain.com/oss/python/langgraph/overview
-- MCP specification: https://modelcontextprotocol.io/specification/2025-11-25
-- Anthropic Agent Skills: https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills
-- Anthropic agent evals: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
-- Ragas metrics: https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/
-- EleutherAI lm-evaluation-harness: https://github.com/EleutherAI/lm-evaluation-harness
-- Hugging Face PEFT / LoRA: https://huggingface.co/docs/peft/en/index
+每完成一个里程碑，按 docs/DOCUMENTATION_SYNC.md 更新事实、验证结果和下一步。
 
