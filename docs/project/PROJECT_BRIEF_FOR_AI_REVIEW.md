@@ -129,7 +129,7 @@ qwen-agent = qwen/qwen3-coder-30b
 ```text
 README.md
 HANDOFF.md
-docs/*.md
+docs/**/*.md
 ```
 
 当前索引：
@@ -327,15 +327,15 @@ eyes: vision-local 负责看图
 | `README.md` | 项目总览 |
 | `HANDOFF.md` | 当前交接状态和下一步 |
 | `docs/README.md` | 完整文档地图和单一事实来源规则 |
-| `docs/Progress_Summary.md` | 成果汇报 |
-| `docs/ARCHITECTURE.md` | 架构细节 |
-| `docs/API.md` | API 和调用方式 |
-| `docs/MODEL_RESEARCH.md` | 模型选择和测试结论 |
-| `docs/TEAM_CLIENT_COMPATIBILITY.md` | Codex / Claude Code / Cline 团队接入计划 |
-| `docs/CODEX_CLI_COMPATIBILITY.md` | Codex CLI 配置、验收矩阵和 smoke fixture |
-| `docs/AGENT_ROUTER_LEARNING_NOTES.md` | Agent Router / brain / eyes / RAG 分工 |
+| `docs/project/Progress_Summary.md` | 成果汇报 |
+| `docs/architecture/ARCHITECTURE.md` | 架构细节 |
+| `docs/architecture/API.md` | API 和调用方式 |
+| `docs/architecture/MODEL_RESEARCH.md` | 模型选择和测试结论 |
+| `docs/quality/TEAM_CLIENT_COMPATIBILITY.md` | Codex / Claude Code / Cline 团队接入计划 |
+| `docs/quality/CODEX_CLI_COMPATIBILITY.md` | Codex CLI 配置、验收矩阵和 smoke fixture |
+| `docs/engineering/AGENT_ROUTER_LEARNING_NOTES.md` | Agent Router / brain / eyes / RAG 分工 |
 | `services/agent/README.md` | `labagent-agent` 运行和验证 |
-| `docs/RAG_LEARNING_NOTES.md` | RAG 实现和学习笔记 |
+| `docs/engineering/RAG_LEARNING_NOTES.md` | RAG 实现和学习笔记 |
 
 ## 9. 参考资料
 

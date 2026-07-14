@@ -1,13 +1,20 @@
-﻿# Changelog
+# Changelog
 
 本项目的所有重要变更都会记录在此文件中。
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.13] - 2026-07-14
+
+### Changed
+- 将受版本控制的文档重组为 getting-started、architecture、operations、engineering、quality、project、history 七类目录，根目录仅保留 docs 文档门户。
+- 将根 README、HANDOFF、AI/Agent 指引、benchmark fixture、RAG eval 数据集与专题文档中的路径同步到新目录。
+- RAG 默认文档发现从单层模式改为递归 docs/**/*.md，并补嵌套文档 discovery 单元测试；现有本地 index 需在运行节点重建。
+
 ## [0.4.12] - 2026-07-14
 
 ### Added
-- 新增 `docs/ONBOARDING_GUIDE.md`，为零基础新成员提供从项目目标、基础概念、网络与运维、API、RAG、Router、评测到路线图的渐进式学习路径、代码阅读顺序和自检清单。
+- 新增 `docs/getting-started/ONBOARDING_GUIDE.md`，为零基础新成员提供从项目目标、基础概念、网络与运维、API、RAG、Router、评测到路线图的渐进式学习路径、代码阅读顺序和自检清单。
 
 ### Changed
 - 将从零上手指南设为 README、HANDOFF 和文档地图的首选新成员入口；教程只维护学习路径，当前运行事实继续以 README、HANDOFF 和专题文档为准。
@@ -29,7 +36,7 @@
 ### Changed
 - 精简 README 的文档索引，只保留最高频入口，完整目录改由 `docs/README.md` 维护。
 - 精简 HANDOFF 的完整文档目录，避免与 README、Progress Summary、AI review brief 重复维护。
-- 更新 `docs/DOCUMENTATION_SYNC.md`，把文档地图和单一事实来源纳入收尾规则。
+- 更新 `docs/project/DOCUMENTATION_SYNC.md`，把文档地图和单一事实来源纳入收尾规则。
 
 ## [0.4.9] - 2026-07-10
 
@@ -37,7 +44,7 @@
 - 新增 `scripts/check_labagent_status.ps1`，作为 5090 每日全链路巡检脚本。
 - 巡检脚本会读取 `.env.local`，检查 5090 本机 `:1234/:8010/:8020`、云端 `:8000/:12340/:12341/:18010/:18020`、LiteLLM 模型列表、`qwen-agent` chat、`embed-local` embedding、`vision-local` 图片请求、RAG health 和 `labagent-agent` health/chat。
 - 巡检结果会输出 OK/WARN/FAIL 汇总，并写入本地忽略目录 `logs/labagent_status_*.json`，方便每天留存但不进入 Git。
-- 新增 `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`，整理 LabAgent 的面试讲法、下一阶段 RAG v1.x / workspace / reranker / eval 具体实现方案、常见追问和学习代码顺序。
+- 新增 `docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`，整理 LabAgent 的面试讲法、下一阶段 RAG v1.x / workspace / reranker / eval 具体实现方案、常见追问和学习代码顺序。
 - 在项目深挖文档中补充 Agent 面经 17 问的逐题映射：当前 LabAgent 如何回答、哪些能力不能硬吹、以及补齐完整 Coding Agent Runtime 需要哪些模块。
 
 ### Verified
@@ -71,7 +78,7 @@
 ### Changed
 - 将 README、HANDOFF、Progress Summary、Architecture、Network、Setup 的 8060S 口径从“不可用/冻结”更新为“已恢复、候选节点、未接入路由、待 benchmark”。
 - 明确当前架构不建议把团队主力 coding worker 从 5090 迁移到 8060S；5090 继续承载 `qwen-agent`，新设备继续承载 `embed-local` / `vision-local`。
-- 重写 `docs/PROJECT_BRIEF_FOR_AI_REVIEW.md`，修复乱码并更新为可发给 Gemini / 其他 AI reviewer 的当前项目简报。
+- 重写 `docs/project/PROJECT_BRIEF_FOR_AI_REVIEW.md`，修复乱码并更新为可发给 Gemini / 其他 AI reviewer 的当前项目简报。
 - 将 Vision/C9 状态从“图片链路依赖 `:12341` 待恢复”更新为“链路已通，下一步做图片质量 benchmark”。
 - `labagent-agent` 的 `/v1/responses` 对 Codex tools 请求增加透传：当请求包含 `tools` 且没有图片时，直接代理到上游 `qwen-agent`，保留 Codex shell/file 工具调用协议；图片请求仍走 router/vision side channel。
 
@@ -86,18 +93,18 @@
 - 2026-06-28 复测 `vision-local` 最小回归：`benchmarks/vision_local_eval.py` 两个固定任务 2/2 通过，结果文件写入 `benchmarks/results/vision_local_20260628_062604.jsonl`。
 - 新增 `labagent-agent` 轻量 router：`services/agent` 以 OpenAI-compatible 形式组合 `qwen-agent`、`vision-local` 和 RAG Service，支持 `/health`、`/v1/models`、`/v1/chat/completions` 和 `/v1/responses`。
 - 新增 `labagent-agent` experimental brain/eyes side channel：可通过 `LABAGENT_AGENT_BRAIN_MODEL=qwen3.6-27b-uncensored@?` 启用，默认只在图片请求时尝试，失败/超时/空 content 会 fallback 到 `qwen-agent`。
-- 新增 `docs/PROJECT_BRIEF_FOR_AI_REVIEW.md`，作为发给 Gemini / 其他 AI reviewer 的单文件项目简报，汇总背景、架构、进度、问题和下一步评审问题。
-- 在 `docs/Progress_Summary.md` 和 `HANDOFF.md` 中补充文档入口分工，明确 README、HANDOFF、Progress Summary 和 AI review brief 各自用途。
-- 新增 `docs/AGENT_ROUTER_LEARNING_NOTES.md`，专门解释 router、`qwen-think`、`qwen-agent`、`vision-local` 和 RAG side channel 的分工。
+- 新增 `docs/project/PROJECT_BRIEF_FOR_AI_REVIEW.md`，作为发给 Gemini / 其他 AI reviewer 的单文件项目简报，汇总背景、架构、进度、问题和下一步评审问题。
+- 在 `docs/project/Progress_Summary.md` 和 `HANDOFF.md` 中补充文档入口分工，明确 README、HANDOFF、Progress Summary 和 AI review brief 各自用途。
+- 新增 `docs/engineering/AGENT_ROUTER_LEARNING_NOTES.md`，专门解释 router、`qwen-think`、`qwen-agent`、`vision-local` 和 RAG side channel 的分工。
 - 完成 RAG Service v1 端到端公网验证：索引重建为 364 chunks / 22 files，本地 `/health`、`/v1/rag/search`、`/v1/rag/ask` 和 `/v1/chat/completions` 均通过。
 - 通过 `ssh -N -R 0.0.0.0:18010:127.0.0.1:8010` 将 5090 RAG Service 暴露到云服务器公网 `82.156.69.153:18010`，David 外部机器 `/health` 验证返回 `ok=true`。
 - 云端 sshd 增加 `GatewayPorts clientspecified`，腾讯云安全组开放 TCP 18010，用于 RAG Service 远程验证。
 - 完成 `vision-local` 最小公网 smoke test：Qwen3-VL-30B 成功识别测试图片文字、颜色形状和截图式路由表，确认 OpenAI image message 路径端到端可用。
 - 新增 `benchmarks/vision_local_eval.py`，把手工 VL smoke 固化为可重复回归测试，覆盖合成图片 OCR/形状识别和截图式表格读取。
-- 新增 `docs/TEAM_CLIENT_COMPATIBILITY.md`，记录团队成员通过 Codex CLI / Claude Code CLI / Cline 接入 LabAgent 网关的兼容性目标、风险和验证矩阵。
-- 新增 `docs/CODEX_CLI_COMPATIBILITY.md`，将 Codex CLI 团队接入提升为当前 P0，记录推荐配置、验收矩阵、通过标准和待测项。
+- 新增 `docs/quality/TEAM_CLIENT_COMPATIBILITY.md`，记录团队成员通过 Codex CLI / Claude Code CLI / Cline 接入 LabAgent 网关的兼容性目标、风险和验证矩阵。
+- 新增 `docs/quality/CODEX_CLI_COMPATIBILITY.md`，将 Codex CLI 团队接入提升为当前 P0，记录推荐配置、验收矩阵、通过标准和待测项。
 - 新增 `benchmarks/fixtures/codex_cli_smoke`，作为 Codex CLI 手工验收 fixture，覆盖读项目、创建文件、单文件编辑、多文件编辑、测试执行和失败修复。
-- 扩展 `benchmarks/fixtures/codex_cli_smoke/TASKS.md` 和 `docs/CODEX_CLI_COMPATIBILITY.md`，补齐 C7 长上下文、C8 后端错误体验、C9 `labagent-agent` 后端 smoke 的执行步骤。
+- 扩展 `benchmarks/fixtures/codex_cli_smoke/TASKS.md` 和 `docs/quality/CODEX_CLI_COMPATIBILITY.md`，补齐 C7 长上下文、C8 后端错误体验、C9 `labagent-agent` 后端 smoke 的执行步骤。
 - 默认 RAG discovery 排除 `docs/LabAgent_Platform_V*.md` 外部建议文档，避免把外部 AI 的愿景/建议误当成项目事实源。
 - 记录 David 机器 `Codex CLI + qwen-agent` 的 `codex_cli_smoke` C1-C6 结果：读项目、创建文件、单文件 docstring、多文件实现+测试同步修改、添加函数+测试、失败修复均通过。
 - 记录 David 机器 Codex CLI 基础 workflow smoke：`qwen-agent` plain chat、目录读取和一文件写入均通过。
@@ -121,7 +128,7 @@
 ## [0.4.5] - 2026-06-25
 
 ### Added
-- 新增 `docs/CLAUDE_CODE_COMPATIBILITY.md`，记录 Claude Code 通过 LiteLLM 调用本地模型的可用边界、`tool use` 参数错误现象和后续处理计划。
+- 新增 `docs/quality/CLAUDE_CODE_COMPATIBILITY.md`，记录 Claude Code 通过 LiteLLM 调用本地模型的可用边界、`tool use` 参数错误现象和后续处理计划。
 - 将 Claude Code 本地 Qwen 路径明确标记为实验链路，主力 Agent / Coding 仍保持 `Cline + qwen-agent`。
 - 在 README / HANDOFF / Progress Summary 中同步 Claude Code 兼容性结论，避免把文本连通性误解为完整工具链可用。
 - 补齐 `vision-local` 文档收尾：API、部署、网络、架构、模型调研、进展汇报、benchmark 结果和技能路线统一为 `embed-local` / `vision-local` 已接入，下一步验证图片识别质量。
@@ -129,11 +136,11 @@
 ## [0.4.4] - 2026-06-22
 
 ### Added
-- 新增 `docs/CODE_REVIEW_TRIAGE.md`，记录外部 AI review 的采纳、后置和拒绝决策。
-- 新增 `docs/AGENT_OPERATING_RULES.md`，沉淀 Qwen/Cline 短系统提示词、外部系统提示词使用原则和本地 skills 说明。
+- 新增 `docs/engineering/CODE_REVIEW_TRIAGE.md`，记录外部 AI review 的采纳、后置和拒绝决策。
+- 新增 `docs/engineering/AGENT_OPERATING_RULES.md`，沉淀 Qwen/Cline 短系统提示词、外部系统提示词使用原则和本地 skills 说明。
 - 新增本地 Codex skill：`labagent-code-review`，用于后续 review 分流、RAG/benchmark hardening 和提示词提炼。
 - 新增 `services/rag/server.py`，提供 RAG Service v1 零依赖 HTTP API：`/health`、`/v1/rag/search`、`/v1/rag/ask` 和简化 `/v1/chat/completions`。
-- 扩写 `docs/RAG_LEARNING_NOTES.md`，增加 RAG 白话解释、本机调试、David/Cline 远程调用和故障定位流程。
+- 扩写 `docs/engineering/RAG_LEARNING_NOTES.md`，增加 RAG 白话解释、本机调试、David/Cline 远程调用和故障定位流程。
 - RAG CLI / Service 支持 `LABAGENT_EMBED_BASE_URL` 和 `LABAGENT_CHAT_BASE_URL`，允许 embedding 路由到新设备、chat 路由到 5090 或本机 LM Studio。
 
 ### Fixed
@@ -165,12 +172,12 @@
 - 补录 `qwen/qwen3-30b-a3b-2507` 与 `text-embedding-nomic-embed-text-v1.5` 的 2026-06-16 本地评测结果。
 - 补录 `qwen/qwen3.6-35b-a3b` 复测结果：当前 preset 仍是 reasoning-only 失败模式，`/no_think` 无效，不提升为默认 Agent 模型。
 - 补录 `qwen/qwen3.6-27b` reload 后复测结果：速度改善，但 final `content` 仍为空，`/no_think` 无效，继续仅保留为 `qwen-think` 候选。
-- 新增 `docs/DOCUMENTATION_SYNC.md`，明确每个关键节点后必须检查并更新项目文档。
+- 新增 `docs/project/DOCUMENTATION_SYNC.md`，明确每个关键节点后必须检查并更新项目文档。
 - 按文档同步规则校准 README、HANDOFF、Progress Summary、MODEL_RESEARCH 的模型定位口径：Qwen3-Coder-30B 暂列 `qwen-agent` 首选候选，Qwen3.6-27B 降为 `qwen-think` baseline。
 - 按 LabAgent 收尾规则补齐 API 文档、历史项目日志、RAG 数据集和 repo-map 数据集的新事实口径，避免后续评测继续使用旧的单 27B baseline。
 - 新增 `services/rag` RAG v0：Markdown chunking、OpenAI-compatible embedding client、本地 JSON 向量索引、cosine retrieval、`qwen-agent` 带引用回答 CLI。
 - 新增 `benchmarks/rag_retrieval_eval.py`，基于真实项目 Markdown 文档测试 retrieval 命中率。
-- 新增 `docs/RAG_LEARNING_NOTES.md`，用于记录 RAG 概念、当前实现、验证结果和后续升级路线。
+- 新增 `docs/engineering/RAG_LEARNING_NOTES.md`，用于记录 RAG 概念、当前实现、验证结果和后续升级路线。
 - 完成 RAG v0 验证：索引 319 chunks / 19 files，`rag_retrieval_eval.py` 3/3 通过，端到端 `ask` 可返回 `[Sx]` 引用。
 
 ### Fixed
@@ -210,9 +217,9 @@
 ### Changed
 - 校准当前事实基线：当前只有 5090 已接入，运行 `qwen/qwen3.6-27b`；文件为 `Qwen3.6-27B-Q6_K.gguf`，格式 GGUF，量化 Q6_K，大小约 23.01GB。
 - 明确当时记录的新设备和 8060S 仍未部署模型、隧道或 LiteLLM 路由。（历史记录；2026-06-18 已校正为 RTX 5080 + RTX 4060 Ti。）
-- 重写 `docs/MODEL_RESEARCH.md`，将模型选型从“推荐列表”改为按 5090 / 新设备 / 8060S 分工的落地矩阵。
-- 更新 `docs/AGENT_PROJECT_ROADMAP.md`，将 Agent 岗位能力拆成 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型工程等可交付模块。
-- 更新 `HANDOFF.md`、`README.md`、`docs/ARCHITECTURE.md`、`docs/API.md`、`docs/SETUP.md`、`docs/NETWORK.md` 和 `docs/Progress_Summary.md` 的当前状态描述。
+- 重写 `docs/architecture/MODEL_RESEARCH.md`，将模型选型从“推荐列表”改为按 5090 / 新设备 / 8060S 分工的落地矩阵。
+- 更新 `docs/project/AGENT_PROJECT_ROADMAP.md`，将 Agent 岗位能力拆成 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型工程等可交付模块。
+- 更新 `HANDOFF.md`、`README.md`、`docs/architecture/ARCHITECTURE.md`、`docs/architecture/API.md`、`docs/operations/SETUP.md`、`docs/architecture/NETWORK.md` 和 `docs/project/Progress_Summary.md` 的当前状态描述。
 
 ### Added
 - 增加关键节点复盘规则：每完成一个关键节点，都要同步更新 README、HANDOFF、Progress Summary、CHANGELOG 和对应专题文档。

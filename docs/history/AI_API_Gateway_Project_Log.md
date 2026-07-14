@@ -1,4 +1,4 @@
-﻿# 私有 AI API 网关项目复盘
+# 私有 AI API 网关项目复盘
 
 > 当前目标：把 5090 与新设备上的本地模型能力通过云服务器暴露成 OpenAI-compatible API，让其他机器、插件和程序可以像调用 OpenAI 一样调用本地模型。
 
@@ -6,7 +6,7 @@
 
 本文件保留早期部署和排障过程中的历史记录，其中部分模型列表、测试 key 和临时配置来自当时环境，不代表当前状态。
 
-当前事实以 `README.md`、`HANDOFF.md`、`docs/ARCHITECTURE.md`、`docs/API.md` 为准：
+当前事实以 `README.md`、`HANDOFF.md`、`docs/architecture/ARCHITECTURE.md`、`docs/architecture/API.md` 为准：
 
 - 云服务器：Ubuntu 24.04，2 核 2GB，短期无法升级。
 - 当前已接入节点：5090 主机已接入 LM Studio，并完成多模型 benchmark；`qwen/qwen3-coder-30b` 已定为 `qwen-agent` 默认模型，`qwen/qwen3.6-27b` 降为 `qwen-think` reasoning baseline。
@@ -1280,7 +1280,7 @@ David 机器已使用同一个 `LABAGENT_RAG_API_KEY` 调用公网 `/health` 并
 - 新增 `services/agent/server.py`
 - 新增 `services/agent/README.md`
 - 新增 `tests/test_agent_router.py`
-- 新增 `docs/AGENT_ROUTER_LEARNING_NOTES.md`
+- 新增 `docs/engineering/AGENT_ROUTER_LEARNING_NOTES.md`
 
 ### 路由规则
 

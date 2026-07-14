@@ -35,7 +35,7 @@ Work from the repository facts first. Read relevant files before changing code. 
 
 When making code changes, keep patches small and aligned with existing patterns. Prefer explicit validation over confident guesses. For RAG work, distinguish retrieval quality, grounded answer quality, and citation quality. For benchmark work, preserve raw JSONL outputs locally and document only summaries.
 
-After each meaningful milestone, update README.md, HANDOFF.md, docs/Progress_Summary.md, docs/CHANGELOG.md, and the relevant topic docs. State what changed, how it was validated, what remains risky, and the next action.
+After each meaningful milestone, update README.md, HANDOFF.md, docs/project/Progress_Summary.md, docs/history/CHANGELOG.md, and the relevant topic docs. State what changed, how it was validated, what remains risky, and the next action.
 
 If a task requires unavailable tools, tunnels, models, or credentials, say exactly what is missing and provide the smallest next verification step.
 ```

@@ -1,4 +1,4 @@
-﻿# LabAgent Platform
+# LabAgent Platform
 
 > 私有 AI 基础设施平台 — 本地 GPU 推理节点 + 云服务器轻量 API 网关
 
@@ -49,9 +49,9 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 
 已测试：qwen3.6-27b（基线）、GLM-4.7-Flash（对照）、Qwen3-Coder-30B、Qwen3.6-35B-A3B、Qwen3-30B-A3B-2507、Gemma 4 31B、Nomic embedding。2026-06-16 已将 Agent/Cline 评测拆成 `strict_passed`、`soft_passed` 和 `keyword_recall`：旧的 `0/4` 不能直接理解为“模型没有 Agent 能力”，只能说明它没有通过严格上线门槛。
 
-2026-06-18 已完成 RAG v0 最小闭环：`README.md` / `HANDOFF.md` / `docs/*.md` -> Markdown chunk -> `embed-local` -> 本地 JSON 向量索引 -> cosine retrieval -> `qwen-agent` 带引用回答。2026-06-23 重建运行索引后为 354 chunks / 21 files，`rag_retrieval_eval.py` 默认 top-k 8 复测 3/3 通过，端到端 `ask` 已能返回 `[Sx]` 引用。该版本是学习和 baseline 实现，不是最终生产 RAG；下一步要接入向量数据库、reranker、answer faithfulness / citation 评测和 API Server。
+2026-06-18 已完成 RAG v0 最小闭环：`README.md` / `HANDOFF.md` / `docs/**/*.md` -> Markdown chunk -> `embed-local` -> 本地 JSON 向量索引 -> cosine retrieval -> `qwen-agent` 带引用回答。2026-06-23 重建运行索引后为 354 chunks / 21 files，`rag_retrieval_eval.py` 默认 top-k 8 复测 3/3 通过，端到端 `ask` 已能返回 `[Sx]` 引用。该版本是学习和 baseline 实现，不是最终生产 RAG；下一步要接入向量数据库、reranker、answer faithfulness / citation 评测和 API Server。
 
-2026-06-22 已完成第一轮 code review hardening：benchmark / RAG 源码默认 URL 改为 localhost，公网网关必须通过环境变量显式指定；RAG index 增加 embedding model / chunk count / vector dimension 校验；默认 RAG discovery 排除 raw review 和外部系统提示词，避免污染知识库。新增 `docs/CODE_REVIEW_TRIAGE.md` 和 `docs/AGENT_OPERATING_RULES.md`，并创建本地 Codex skill `labagent-code-review`。
+2026-06-22 已完成第一轮 code review hardening：benchmark / RAG 源码默认 URL 改为 localhost，公网网关必须通过环境变量显式指定；RAG index 增加 embedding model / chunk count / vector dimension 校验；默认 RAG discovery 排除 raw review 和外部系统提示词，避免污染知识库。新增 `docs/engineering/CODE_REVIEW_TRIAGE.md` 和 `docs/engineering/AGENT_OPERATING_RULES.md`，并创建本地 Codex skill `labagent-code-review`。
 
 2026-06-22 已新增 RAG Service v1：`services/rag/server.py` 提供零依赖 HTTP API，包含 `/health`、`/v1/rag/search`、`/v1/rag/ask` 和简化 OpenAI-compatible `/v1/chat/completions`。它仍使用本地 JSON index，但已经可以通过 SSH 反向隧道暴露给 David/Cline 远程调试；向量数据库、reranker 和 answer eval 作为后续 v1.x。
 
@@ -96,7 +96,7 @@ Model:    qwen-local
 
 ### 部署
 
-详见 [docs/SETUP.md](docs/SETUP.md)
+详见 [docs/operations/SETUP.md](docs/operations/SETUP.md)
 
 ## 支持的模型
 
@@ -113,12 +113,12 @@ Model:    qwen-local
 
 完整文档地图见 [docs/README.md](docs/README.md)。README 只保留最高频入口：
 
-- [从零上手指南](docs/ONBOARDING_GUIDE.md) — 新成员从概念、架构、运行、代码到评测的学习路线。
+- [从零上手指南](docs/getting-started/ONBOARDING_GUIDE.md) — 新成员从概念、架构、运行、代码到评测的学习路线。
 - [交接文档](HANDOFF.md) — 当前真实运行状态、端口、重启步骤和下一步优先级。
-- [部署指南](docs/SETUP.md) — 从零部署本地节点、SSH 隧道、LiteLLM、RAG 和 Agent Router。
-- [API 文档](docs/API.md) — 模型别名、OpenAI-compatible API、RAG Service 和 Agent Router 接口。
-- [给外部 AI 的项目简报](docs/PROJECT_BRIEF_FOR_AI_REVIEW.md) — 发给 Gemini / Claude / ChatGPT 做项目评审。
-- [项目深挖与面试 FAQ](docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md) — 秋招面试讲法、项目深度升级路线和 Agent 面经映射。
+- [部署指南](docs/operations/SETUP.md) — 从零部署本地节点、SSH 隧道、LiteLLM、RAG 和 Agent Router。
+- [API 文档](docs/architecture/API.md) — 模型别名、OpenAI-compatible API、RAG Service 和 Agent Router 接口。
+- [给外部 AI 的项目简报](docs/project/PROJECT_BRIEF_FOR_AI_REVIEW.md) — 发给 Gemini / Claude / ChatGPT 做项目评审。
+- [项目深挖与面试 FAQ](docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md) — 秋招面试讲法、项目深度升级路线和 Agent 面经映射。
 
 ## 技术栈
 
@@ -157,7 +157,7 @@ python benchmarks/vision_local_eval.py --model vision-local
 
 结果默认写入 `benchmarks/results/`，该目录已加入 `.gitignore`。
 
-Codex CLI 团队接入当前使用手工验收矩阵，fixture 位于 `benchmarks/fixtures/codex_cli_smoke`。详见 [docs/CODEX_CLI_COMPATIBILITY.md](docs/CODEX_CLI_COMPATIBILITY.md)。
+Codex CLI 团队接入当前使用手工验收矩阵，fixture 位于 `benchmarks/fixtures/codex_cli_smoke`。详见 [docs/quality/CODEX_CLI_COMPATIBILITY.md](docs/quality/CODEX_CLI_COMPATIBILITY.md)。
 
 RAG v0 常用命令：
 

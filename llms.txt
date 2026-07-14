@@ -7,10 +7,10 @@ Primary reading order:
 - `README.md`: overview, architecture, current models, quick start.
 - `HANDOFF.md`: current runtime state, restart steps, ports, next actions.
 - `docs/README.md`: documentation map and source-of-truth rules.
-- `docs/API.md`: public API and model aliases.
-- `docs/ARCHITECTURE.md`: system design and node responsibilities.
-- `docs/CODEX_CLI_COMPATIBILITY.md`: Codex CLI compatibility tests.
-- `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`: interview/deep-dive material.
+- `docs/architecture/API.md`: public API and model aliases.
+- `docs/architecture/ARCHITECTURE.md`: system design and node responsibilities.
+- `docs/quality/CODEX_CLI_COMPATIBILITY.md`: Codex CLI compatibility tests.
+- `docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`: interview/deep-dive material.
 
 Important boundaries:
 

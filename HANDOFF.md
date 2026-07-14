@@ -1,4 +1,4 @@
-﻿# 项目交接文档
+# 项目交接文档
 
 > 写给接手这个项目的 AI / 新成员。读完这个文档就能上手。
 
@@ -8,7 +8,7 @@
 
 当前事实基线（2026-07-03 校准）：5090 主机已接入 LM Studio，默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 只保留为 `qwen-think` reasoning baseline，不直接替换主执行模型。已测试 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`google/gemma-4-31b`、`zai-org/glm-4.7-flash`、`text-embedding-nomic-embed-text-v1.5`。新设备硬件已校准为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，内网 IP 为 `172.16.14.17`，已通过 `:12341` SSH 反向隧道把 LM Studio 上的 `text-embedding-nomic-embed-text-v1.5-embedding` 和 `qwen/qwen3-vl-30b` 接入云端 LiteLLM，公网别名为 `embed-local` 和 `vision-local`；恢复 `:12341` 后，`labagent-agent` 图片链路已从远程客户端验证成功。8060S 已恢复为候选节点，内网 IP 仍记录为 `172.16.14.142`，但尚未接入 LiteLLM、尚未建立 `:12342` 隧道、尚未跑 benchmark。云服务器是 2 核 2GB Ubuntu 24.04，短期无法升级，也没有预算扩容，后续只能作为轻量网关和中转节点。当前 SSH 反向隧道不是常驻状态，需要在 5090、新设备以及未来 8060S 上分别手动保持。
 
-RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.md`、`docs/*.md` 切块，调用 `embed-local` 生成 768 维向量，保存本地 `data/rag/index.json`，再用 cosine similarity 检索并调用 `qwen-agent` 生成带 `[Sx]` 引用的回答。2026-06-26 重建运行索引：364 chunks / 22 files，CLI `search/ask` 和 HTTP `/health`、`/v1/rag/search`、`/v1/rag/ask`、`/v1/chat/completions` 已通过；RAG Service v1 已通过 `0.0.0.0:18010 -> 127.0.0.1:8010` SSH 反向隧道暴露，并由 David 外部机器访问公网 `/health` 返回 `ok=true`。当前它更像 workspace 级项目记忆层，而不是全局混合知识库。注意：当前仍是 baseline，还没有真实向量数据库、reranker、文档上传和 answer faithfulness 自动评测，且 RAG 服务/隧道仍需手动维持。
+RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.md`、`docs/**/*.md` 切块，调用 `embed-local` 生成 768 维向量，保存本地 `data/rag/index.json`，再用 cosine similarity 检索并调用 `qwen-agent` 生成带 `[Sx]` 引用的回答。2026-06-26 重建运行索引：364 chunks / 22 files，CLI `search/ask` 和 HTTP `/health`、`/v1/rag/search`、`/v1/rag/ask`、`/v1/chat/completions` 已通过；RAG Service v1 已通过 `0.0.0.0:18010 -> 127.0.0.1:8010` SSH 反向隧道暴露，并由 David 外部机器访问公网 `/health` 返回 `ok=true`。当前它更像 workspace 级项目记忆层，而不是全局混合知识库。注意：当前仍是 baseline，还没有真实向量数据库、reranker、文档上传和 answer faithfulness 自动评测，且 RAG 服务/隧道仍需手动维持。
 
 2026-06-23 校准：LiteLLM 不负责 RAG，只负责模型路由。RAG Service 应运行在 5090，读取 5090 的 `data/rag/index.json`；embedding 可继续放在新设备，通过 `embed-local` 路由调用。`services/rag` 支持统一网关 `LABAGENT_BASE_URL`，也支持拆分 `LABAGENT_EMBED_BASE_URL` / `LABAGENT_CHAT_BASE_URL`。如果 CLI 默认请求 `127.0.0.1:8000/v1/embeddings` 并失败，说明没有显式设置 embedding endpoint，不是 RAG 检索逻辑坏了。
 
@@ -18,7 +18,7 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-06-26 `vision-local` 最小公网 smoke test 已通过：`/v1/models` 返回 `vision-local`；通过 LiteLLM 向 Qwen3-VL-30B 发送内存生成 PNG，模型成功读出 `LABAGENT VL TEST 42`、蓝色方块和红色圆形；截图式 dashboard 测试能读出模型路由表和 alert，但长回答会触发 `finish_reason=length`。2026-06-28 已用 `benchmarks/vision_local_eval.py` 复测，合成图片 OCR/形状识别与截图式路由表两项均通过。正式 VL benchmark 应限制输出为 JSON/表格，避免截图 OCR 场景浪费 token。
 
-2026-06-26 团队接入需求新增：后续不只自己用 Cline，还要支持团队成员通过 Codex CLI / Claude Code CLI / Cline 等客户端接入同一个 LabAgent 网关。OpenAI-compatible chat 可用不等于 coding-agent CLI 完整可用，必须单独验证 streaming、工具/函数调用、文件编辑、错误处理和图片消息格式。当前优先级：Cline 保持主通道；Codex CLI 下一步优先验证；Claude Code CLI 因 `tool_use` schema 问题继续作为实验链路。详见 `docs/TEAM_CLIENT_COMPATIBILITY.md`。
+2026-06-26 团队接入需求新增：后续不只自己用 Cline，还要支持团队成员通过 Codex CLI / Claude Code CLI / Cline 等客户端接入同一个 LabAgent 网关。OpenAI-compatible chat 可用不等于 coding-agent CLI 完整可用，必须单独验证 streaming、工具/函数调用、文件编辑、错误处理和图片消息格式。当前优先级：Cline 保持主通道；Codex CLI 下一步优先验证；Claude Code CLI 因 `tool_use` schema 问题继续作为实验链路。详见 `docs/quality/TEAM_CLIENT_COMPATIBILITY.md`。
 
 2026-06-26 Codex CLI 在 David 机器完成基础 workflow smoke：`wire_api="responses"` 指向 `http://82.156.69.153:8000/v1` 可调用 `qwen-agent`；plain chat 返回 Qwen-backed answer；read-only 目录列表触发 `Get-ChildItem -Force` 并成功总结；一文件创建任务触发 `Set-Content` 并成功生成 `hello_labagent.txt`。Codex 会提示 `qwen-agent` 缺少 model metadata，这是自定义模型别名的预期 warning，不代表失败。当前状态可标为“基础 workflow 可用，复杂 patch/multi-file/长上下文/错误恢复待测”。
 
@@ -190,7 +190,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 5. **当前项目代码深度还不够** — 目前主要是部署、网关、隧道和文档。为了支撑 Agent 开发岗简历，下一阶段必须补 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型 benchmark、量化和小规模 LoRA/QLoRA 实验。
 
-6. **每个关键节点都要同步文档** — 详见 `docs/DOCUMENTATION_SYNC.md`。完成模型评测、部署变更、网络修复、架构调整或 benchmark harness 修改后，必须检查 README、HANDOFF、Progress Summary、CHANGELOG 和对应专题文档。
+6. **每个关键节点都要同步文档** — 详见 `docs/project/DOCUMENTATION_SYNC.md`。完成模型评测、部署变更、网络修复、架构调整或 benchmark harness 修改后，必须检查 README、HANDOFF、Progress Summary、CHANGELOG 和对应专题文档。
 
 7. **当前仍需确认 Qwen3-Coder 是否充分发挥 5090** — 主模型已定为 Qwen3-Coder-30B，但仍要用真实 tool call、patch apply、repo task、RAG retrieval 和 trace 评测确认上线质量，不能只凭主观聊天体验。
 
@@ -218,7 +218,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 19. **2026-06-22 已完成 code review hardening** — 已采纳外部 review 中高价值问题：benchmark / RAG 源码默认 Base URL 改为 localhost，公网地址只保留在部署文档和环境变量示例；RAG index 加入 embedding model、chunk count、vector dimension 校验；RAG CLI 支持 `--root` 并对缺失 index 给出明确错误；`max_tokens_override=0` 不再被误判；raw review / 外部系统提示词已排除默认 RAG discovery 并加入 `.gitignore`。
 
-20. **不要直接复制 `docs/claude-fable-5.md` 进 Qwen system prompt** — 该文件只作为本地参考，不进入 Git、不进入默认 RAG。项目已新增 `docs/AGENT_OPERATING_RULES.md`，里面有面向 Qwen3-Coder / Cline 的短系统提示词；新建本地 Codex skill `labagent-code-review`，下个新会话会自动出现在 skills 列表里。
+20. **不要直接复制 `docs/claude-fable-5.md` 进 Qwen system prompt** — 该文件只作为本地参考，不进入 Git、不进入默认 RAG。项目已新增 `docs/engineering/AGENT_OPERATING_RULES.md`，里面有面向 Qwen3-Coder / Cline 的短系统提示词；新建本地 Codex skill `labagent-code-review`，下个新会话会自动出现在 skills 列表里。
 
 21. **RAG Service v1 已完成公网 health 验证，但仍是手动验证入口** — `python -m services.rag.server --host 127.0.0.1 --port 8010` 可在 5090 本机启动 RAG HTTP API。公网访问需在 5090 额外开启 `ssh -N -R 0.0.0.0:18010:127.0.0.1:8010 ... ubuntu@82.156.69.153`，云端已设置 `GatewayPorts clientspecified`，腾讯云安全组已放行 TCP 18010。David 外部机器已验证 `/health` 返回 `ok=true`。RAG 文档不需要在 David 上，David 只是远程调用 5090 上的 RAG index。
 
@@ -238,7 +238,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 **当前阶段：RAG Service v1 已完成公网验证，`labagent-agent` 轻量 router 已完成本地三分支验证，下一步转向 RAG v1.x + Vision/团队客户端质量评测**。模型选型已经暂定 5090 的 `qwen-agent` 为 Qwen3-Coder-30B；新设备已承担 `embed-local` 和 `vision-local`。现在重点从“能否部署模型”转向“能否构建真实 RAG/Agent/VL 工程闭环”。
 
-2026-06-30 校准：当前 P0 改为 **Codex CLI 团队接入兼容性矩阵**。先证明 `qwen-agent` 直连 LiteLLM 能稳定完成团队开发 workflow，再继续推进 RAG v1.x 和 Agent Runtime。详见 `docs/CODEX_CLI_COMPATIBILITY.md` 和 `benchmarks/fixtures/codex_cli_smoke`。
+2026-06-30 校准：当前 P0 改为 **Codex CLI 团队接入兼容性矩阵**。先证明 `qwen-agent` 直连 LiteLLM 能稳定完成团队开发 workflow，再继续推进 RAG v1.x 和 Agent Runtime。详见 `docs/quality/CODEX_CLI_COMPATIBILITY.md` 和 `benchmarks/fixtures/codex_cli_smoke`。
 
 按优先级：
 
@@ -295,8 +295,8 @@ python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？
 
 - `README.md`
 - `HANDOFF.md`
-- `docs/Progress_Summary.md`
-- `docs/CHANGELOG.md`
+- `docs/project/Progress_Summary.md`
+- `docs/history/CHANGELOG.md`
 - 对应专题文档，例如 `MODEL_RESEARCH.md`、`BENCHMARK_RESULTS.md`、`AGENT_PROJECT_ROADMAP.md`
 
 复盘必须记录：
@@ -310,16 +310,18 @@ python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？
 
 ## 文档地图
 
-完整文档目录已移到 `docs/README.md`。这里不再重复维护大表，避免 README、HANDOFF、Progress 和 Brief 四处出现不同版本。Progress 已收敛为对外阶段报告；部署历史保留在 `docs/AI_API_Gateway_Project_Log.md`，详细项目设计保留在 `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`。
+完整文档目录已移到 `docs/README.md`。这里不再重复维护大表，避免 README、HANDOFF、Progress 和 Brief 四处出现不同版本。Progress 已收敛为对外阶段报告；部署历史保留在 `docs/history/AI_API_Gateway_Project_Log.md`，详细项目设计保留在 `docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`。
+
+2026-07-14 文档已改为分类子目录，RAG discovery 同步改为递归读取 `docs/**/*.md`。5090 上已有的 `data/rag/index.json` 仍记录旧 source path；下次使用 RAG 前应重建索引，避免返回过期来源路径。
 
 高频入口：
 
-- `docs/ONBOARDING_GUIDE.md`：第一次接手项目时按概念、架构、运维、代码和评测逐步学习。
+- `docs/getting-started/ONBOARDING_GUIDE.md`：第一次接手项目时按概念、架构、运维、代码和评测逐步学习。
 - `README.md`：项目总览、当前架构和模型别名。
 - `docs/README.md`：所有文档的用途、分类和单一事实来源规则。
-- `docs/SETUP.md`：从零部署和重启服务。
-- `docs/TROUBLESHOOTING.md`：故障排查。
-- `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`：面试和项目深挖。
+- `docs/operations/SETUP.md`：从零部署和重启服务。
+- `docs/operations/TROUBLESHOOTING.md`：故障排查。
+- `docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`：面试和项目深挖。
 
 RAG 的定位要记清楚：它是团队的项目记忆和查证层，不是日常编码主链路。团队成员多数时候会直接用 `qwen-agent`、`labagent-agent` 或 Cline 做开发，RAG 更适合问项目状态、架构、历史决策、接口和引用证据。
 

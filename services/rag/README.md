@@ -47,7 +47,7 @@ Default sources:
 ```text
 README.md
 HANDOFF.md
-docs/*.md
+docs/**/*.md
 ```
 
 Excluded from default discovery:

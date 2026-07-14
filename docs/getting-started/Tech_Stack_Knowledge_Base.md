@@ -1,4 +1,4 @@
-﻿# 技术栈知识手册
+# 技术栈知识手册
 
 > 边做边学，每用到一个新技术就记录下来。既是学习笔记，也是面试准备材料。
 
@@ -516,7 +516,7 @@ Embedding 模型  → 把文本变成数字向量（当前新设备已接入 `em
 2026-06-18 已完成 RAG v0：
 
 ```text
-README.md / HANDOFF.md / docs/*.md
+README.md / HANDOFF.md / docs/**/*.md
   -> services/rag/chunking.py 切块
   -> embed-local 生成 768 维向量
   -> data/rag/index.json 本地 JSON index

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Iterable, List, Sequence
 
 
-DEFAULT_SOURCE_PATTERNS = ["README.md", "HANDOFF.md", "docs/*.md"]
+DEFAULT_SOURCE_PATTERNS = ["README.md", "HANDOFF.md", "docs/**/*.md"]
 EXCLUDED_SOURCE_PATHS = {
     "docs/CODE_REVIEW_ISSUES.md",
     "docs/claude-fable-5.md",

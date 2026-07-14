@@ -1,4 +1,4 @@
-﻿# 架构设计
+# 架构设计
 
 ## 系统概览
 
@@ -153,7 +153,7 @@ RAG v0 请求的数据流：
 
 ```text
 1. 本地执行 python -m services.rag.cli index
-2. 读取 README.md / HANDOFF.md / docs/*.md
+2. 读取 README.md / HANDOFF.md / docs/**/*.md
 3. Markdown 文档按标题和长度切成 chunks
 4. RAG CLI 调用 embedding endpoint；当前推荐通过公网 LiteLLM 的 embed-local 路由转发到新设备
 5. 本地保存 data/rag/index.json

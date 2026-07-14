@@ -1,4 +1,4 @@
-+# Agent 项目深化路线图
+# Agent 项目深化路线图
 
 > 这是 LabAgent 的执行路线图：回答先做什么、什么算完成、何时进入下一阶段。详细设计不在这里重复，统一链接到专题文档。
 
@@ -32,7 +32,7 @@ LabAgent 已经具备本地模型公网网关、多节点路由、RAG Service v1
 - C9：labagent-agent 的文本、图片和 Responses tools 透传。
 - Claude Code：独立验证 tool_use schema，不影响 Codex 主路径。
 
-详细步骤和记录位置：docs/CODEX_CLI_COMPATIBILITY.md、docs/TEAM_CLIENT_COMPATIBILITY.md、docs/CLAUDE_CODE_COMPATIBILITY.md。
+详细步骤和记录位置：docs/quality/CODEX_CLI_COMPATIBILITY.md、docs/quality/TEAM_CLIENT_COMPATIBILITY.md、docs/quality/CLAUDE_CODE_COMPATIBILITY.md。
 
 ## P1：RAG v1.x
 
@@ -47,7 +47,7 @@ LabAgent 已经具备本地模型公网网关、多节点路由、RAG Service v1
 5. 增加 retrieval、citation 和 faithfulness 评测。
 6. 最后再考虑 query rewrite、迭代检索等 agentic RAG。
 
-详细数据模型、接口和选型理由：docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md 第 4、6、9 节；学习材料：docs/RAG_LEARNING_NOTES.md。
+详细数据模型、接口和选型理由：docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md 第 4、6、9 节；学习材料：docs/engineering/RAG_LEARNING_NOTES.md。
 
 ## P2：Router 可观测性
 
@@ -85,13 +85,12 @@ LabAgent 已经具备本地模型公网网关、多节点路由、RAG Service v1
 
 | 问题 | 主文档 |
 |------|--------|
-| 当前运行状态、端口和重启 | HANDOFF.md、docs/SETUP.md |
-| RAG 技术设计和面试追问 | docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md |
-| RAG 概念与当前实现 | docs/RAG_LEARNING_NOTES.md |
-| Router 的现状与学习解释 | docs/AGENT_ROUTER_LEARNING_NOTES.md |
-| 模型和硬件选择 | docs/MODEL_RESEARCH.md |
-| AI Engineer 能力缺口 | docs/AI_Engineer_Skills_Roadmap.md |
-| 已完成变更 | docs/CHANGELOG.md |
+| 当前运行状态、端口和重启 | HANDOFF.md、docs/operations/SETUP.md |
+| RAG 技术设计和面试追问 | docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md |
+| RAG 概念与当前实现 | docs/engineering/RAG_LEARNING_NOTES.md |
+| Router 的现状与学习解释 | docs/engineering/AGENT_ROUTER_LEARNING_NOTES.md |
+| 模型和硬件选择 | docs/architecture/MODEL_RESEARCH.md |
+| AI Engineer 能力缺口 | docs/project/AI_Engineer_Skills_Roadmap.md |
+| 已完成变更 | docs/history/CHANGELOG.md |
 
-每完成一个里程碑，按 docs/DOCUMENTATION_SYNC.md 更新事实、验证结果和下一步。
-
+每完成一个里程碑，按 docs/project/DOCUMENTATION_SYNC.md 更新事实、验证结果和下一步。

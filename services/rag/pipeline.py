@@ -101,12 +101,12 @@ def expand_query(query: str) -> str:
     doc_hints = (
         "README.md",
         "HANDOFF.md",
-        "docs/ARCHITECTURE.md",
-        "docs/API.md",
-        "docs/SETUP.md",
-        "docs/MODEL_RESEARCH.md",
-        "docs/Progress_Summary.md",
-        "docs/TEAM_CLIENT_COMPATIBILITY.md",
+        "docs/architecture/ARCHITECTURE.md",
+        "docs/architecture/API.md",
+        "docs/operations/SETUP.md",
+        "docs/architecture/MODEL_RESEARCH.md",
+        "docs/project/Progress_Summary.md",
+        "docs/quality/TEAM_CLIENT_COMPATIBILITY.md",
     )
     return (
         f"{query}\n"

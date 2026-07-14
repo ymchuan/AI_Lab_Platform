@@ -1,116 +1,119 @@
-# LabAgent 文档地图
+# LabAgent 文档门户
 
-> 这个文件是 `docs/` 的入口。第一次接触项目的人先读 `ONBOARDING_GUIDE.md`；已经熟悉项目的人可直接读根目录 `README.md`、`HANDOFF.md` 和对应专题文档。
+> 这是项目的 docs-as-code 首页。目录按读者任务分类：新人能从零学习，维护者能快速找运行手册，开发者能找到设计、评测和历史证据。
 
-## 文档分工
+## 快速入口
 
-LabAgent 的文档按 Diataxis 思路分成四类：
+| 你的目标 | 从这里开始 |
+|----------|------------|
+| 第一次接触项目 | [从零上手](getting-started/ONBOARDING_GUIDE.md) |
+| 今天要启动、巡检或排障 | [交接状态](../HANDOFF.md) -> [部署](operations/SETUP.md) -> [故障排查](operations/TROUBLESHOOTING.md) |
+| 要调用 API 或接入客户端 | [API 参考](architecture/API.md) -> [客户端兼容性](quality/TEAM_CLIENT_COMPATIBILITY.md) |
+| 要理解 RAG 或 Router 代码 | [RAG 学习](engineering/RAG_LEARNING_NOTES.md) -> [Router 学习](engineering/AGENT_ROUTER_LEARNING_NOTES.md) |
+| 要验证模型、客户端或链路 | [质量与评测](quality/BENCHMARK_DESIGN.md) |
+| 要了解下一阶段或准备面试 | [项目路线图](project/AGENT_PROJECT_ROADMAP.md) -> [项目深挖 FAQ](project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md) |
+| 要追溯某次历史决定 | [变更记录](history/CHANGELOG.md) -> [项目历史日志](history/AI_API_Gateway_Project_Log.md) |
 
-| 类型 | 解决的问题 | 代表文档 |
-|------|------------|----------|
-| Tutorial / 上手 | 我如何从零理解并运行项目？ | `ONBOARDING_GUIDE.md`, `SETUP.md`, `TROUBLESHOOTING.md` |
-| How-to / 操作 | 某个具体任务怎么做？ | `CODEX_CLI_COMPATIBILITY.md`, `TEAM_CLIENT_COMPATIBILITY.md` |
-| Reference / 参考 | 当前接口、架构、配置是什么？ | `API.md`, `ARCHITECTURE.md`, `NETWORK.md` |
-| Explanation / 解释 | 为什么这么设计？下一步怎么深化？ | `RAG_LEARNING_NOTES.md`, `AGENT_PROJECT_ROADMAP.md`, `PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` |
+## 目录结构
 
-## 推荐阅读顺序
+    docs/
+    ├── README.md                 文档门户和唯一导航入口
+    ├── getting-started/          新人概念学习与从零接手
+    ├── architecture/             系统结构、API、网络、模型选择
+    ├── operations/               部署、重启、平台与故障排查
+    ├── engineering/              RAG、Router、工程规则与 code review 决策
+    ├── quality/                  benchmark、客户端兼容性和验收
+    ├── project/                  阶段汇报、规划、AI review 与学习路线
+    └── history/                  changelog 与长篇历史过程
 
-1. `ONBOARDING_GUIDE.md`：从零建立概念、架构、运行、代码和评测的学习主线。
-2. `README.md`：项目一句话、当前架构、模型别名、快速入口。
-3. `HANDOFF.md`：当前真实运行状态、重启步骤、下一步优先级。
-4. `Progress_Summary.md`：快速了解已经交付的能力、边界和下一优先级。
-5. `PROJECT_BRIEF_FOR_AI_REVIEW.md`：发给 Gemini / Claude / ChatGPT 做外部评审。
-6. `PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`：准备秋招、复盘项目深度、回答 Agent 面经。
-7. `services/agent/README.md` 和 `services/rag/` 代码：理解 router 与 RAG 的真实实现。
+根目录只保留这个门户。新文档必须放入已有类别；确实出现新的长期职责时，才新增目录。
+
+## 分类说明
+
+### getting-started
+
+面向不了解项目、LLM 基础设施或本地模型部署的人。
+
+- [ONBOARDING_GUIDE](getting-started/ONBOARDING_GUIDE.md)：从概念到源码的七站学习路线和接手检查清单。
+- [Tech Stack Knowledge Base](getting-started/Tech_Stack_Knowledge_Base.md)：LM Studio、LiteLLM、反向隧道、RAG、Agent、MCP 等概念解释。
+
+### architecture
+
+面向需要理解“系统是什么、为什么这样分层、如何调用”的读者。
+
+- [ARCHITECTURE](architecture/ARCHITECTURE.md)：节点分工、数据流和设计决策。
+- [API](architecture/API.md)：模型别名、接口、认证、错误码与示例。
+- [NETWORK](architecture/NETWORK.md)：SSH 反向隧道、端口和安全组。
+- [MODEL_RESEARCH](architecture/MODEL_RESEARCH.md)：模型与硬件选型依据。
+
+### operations
+
+面向负责部署、启动、巡检和故障恢复的人。
+
+- [SETUP](operations/SETUP.md)：从零部署、重启和验证。
+- [TROUBLESHOOTING](operations/TROUBLESHOOTING.md)：常见故障、定位层次和恢复方法。
+- [WINDOWS_WSL2_SETUP](operations/WINDOWS_WSL2_SETUP.md)：Windows、WSL2、CUDA 环境准备。
+
+### engineering
+
+面向阅读或修改服务实现的人。
+
+- [RAG Learning Notes](engineering/RAG_LEARNING_NOTES.md)：RAG 当前实现、调试方法和升级方向。
+- [Agent Router Learning Notes](engineering/AGENT_ROUTER_LEARNING_NOTES.md)：labagent-agent 的分支、边界与失败处理。
+- [Agent Operating Rules](engineering/AGENT_OPERATING_RULES.md)：提示词边界、工作流与工程规范。
+- [Code Review Triage](engineering/CODE_REVIEW_TRIAGE.md)：外部 review 建议如何被采纳、延后或拒绝。
+
+### quality
+
+面向需要证明能力真实可用的人。
+
+- [Benchmark Design](quality/BENCHMARK_DESIGN.md)：评测层次、指标和解释规则。
+- [Benchmark Results](quality/BENCHMARK_RESULTS.md)：当前结果与结论。
+- [Team Client Compatibility](quality/TEAM_CLIENT_COMPATIBILITY.md)：Cline、Codex CLI、Claude Code 的总体边界。
+- [Codex CLI Compatibility](quality/CODEX_CLI_COMPATIBILITY.md)：C1-C9 fixture 和验收过程。
+- [Claude Code Compatibility](quality/CLAUDE_CODE_COMPATIBILITY.md)：Claude Code 实验链路与已知限制。
+
+### project
+
+面向项目管理、外部评审、学习规划和求职表达。
+
+- [Progress Summary](project/Progress_Summary.md)：精简的阶段成果、证据和当前限制。
+- [Project Brief for AI Review](project/PROJECT_BRIEF_FOR_AI_REVIEW.md)：可直接交给外部 AI 或评审者的单文件简报。
+- [Project Deep Dive and Interview FAQ](project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md)：实现设计、代码阅读顺序和面试追问。
+- [Agent Project Roadmap](project/AGENT_PROJECT_ROADMAP.md)：阶段、交付物和验收门槛。
+- [AI Engineer Skills Roadmap](project/AI_Engineer_Skills_Roadmap.md)：已有能力证据和学习缺口。
+- [Documentation Sync](project/DOCUMENTATION_SYNC.md)：里程碑后的文档同步规则。
+
+### history
+
+面向追溯，不作为当前运行事实的入口。
+
+- [CHANGELOG](history/CHANGELOG.md)：简短、日期化的变更摘要。
+- [AI API Gateway Project Log](history/AI_API_Gateway_Project_Log.md)：完整部署、排障和里程碑过程。
 
 ## 单一事实来源
 
-为避免重复维护，后续按这张表更新事实：
+| 信息 | 唯一事实来源 |
+|------|--------------|
+| 当前运行状态、端口、重启动作 | [HANDOFF](../HANDOFF.md) 和 [SETUP](operations/SETUP.md) |
+| 高层架构、设备角色、模型别名 | [README](../README.md) 和 [ARCHITECTURE](architecture/ARCHITECTURE.md) |
+| 请求格式、认证和错误码 | [API](architecture/API.md) |
+| 网络、隧道与安全组 | [NETWORK](architecture/NETWORK.md) |
+| 故障现象和恢复步骤 | [TROUBLESHOOTING](operations/TROUBLESHOOTING.md) |
+| RAG 与 Router 的代码设计 | engineering 目录下对应专题 |
+| 质量结论和客户端验收 | quality 目录下对应专题 |
+| 阶段规划、学习与面试表达 | project 目录下对应专题 |
+| 发生过什么 | history 目录；不能代替当前事实 |
 
-| 事实类型 | 主要维护位置 | 其他文档怎么写 |
-|----------|--------------|----------------|
-| 当前运行状态、端口、重启步骤 | `HANDOFF.md`, `docs/SETUP.md` | 只引用，不复制整段命令 |
-| 高层架构、设备角色、模型别名 | `README.md`, `docs/ARCHITECTURE.md` | 摘要说明，细节链接到主文档 |
-| API 请求格式和错误码 | `docs/API.md` | 不在学习笔记里重复长 curl |
-| 故障和修复方法 | `docs/TROUBLESHOOTING.md` | 日志文档只记录发生过什么 |
-| 版本历史 | `docs/CHANGELOG.md` | 每次只追加短条目 |
-| 长过程记录 | `docs/AI_API_Gateway_Project_Log.md` | 不作为当前事实基线 |
-| 面试讲法和项目深挖 | `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` | 不替代运维文档 |
+## RAG 文档索引
 
-## 入口文档
+RAG 现在递归发现 docs 下所有 Markdown 文件。目录迁移后，5090 上已有的 data/rag/index.json 仍保留旧 source_path，必须重新运行 index 命令后，RAG 才会反映新的目录结构和最新内容。
 
-| 文件 | 用途 |
-|------|------|
-| `ONBOARDING_GUIDE.md` | 新成员从零学习项目的顺序、代码导航、自检任务和查阅入口。 |
-| `../README.md` | 项目总入口，适合第一次打开仓库。 |
-| `../HANDOFF.md` | 当前交接文档，适合新会话、新成员、外部 AI 接手时先读。 |
-| `PROJECT_BRIEF_FOR_AI_REVIEW.md` | 单文件项目简报，用于给外部 AI 或评审者快速理解项目。 |
-| `Progress_Summary.md` | 面向他人的精简阶段报告；不重复历史过程和启动命令。 |
-| `CHANGELOG.md` | 日期化版本变更记录。 |
+本机忽略的原始 review、外部 AI 建议和系统提示词仍留在 docs 根目录，但不进入 Git，也不进入默认 RAG discovery。它们只作人工参考，不能当作项目事实来源。
 
-## 部署与运维
+## 维护规则
 
-| 文件 | 用途 |
-|------|------|
-| `SETUP.md` | 从零部署本地节点、SSH 隧道、云端 LiteLLM、RAG 和 Agent Router。 |
-| `NETWORK.md` | 网络拓扑、NAT、SSH Reverse Tunnel、安全组和端口规划。 |
-| `TROUBLESHOOTING.md` | 常见故障排查，包括隧道断开、PowerShell curl、Cline/Agent 连接失败、图片链路失败。 |
-| `WINDOWS_WSL2_SETUP.md` | Windows / WSL2 / CUDA 环境准备。 |
-
-## 架构与 API
-
-| 文件 | 用途 |
-|------|------|
-| `ARCHITECTURE.md` | 系统结构、节点分工、数据流和设计决策。 |
-| `API.md` | OpenAI-compatible API、RAG Service、Agent Router 的接口说明。 |
-| `MODEL_RESEARCH.md` | 5090 / 新设备 / 8060S 的模型选型、部署建议和测试顺序。 |
-| `TEAM_CLIENT_COMPATIBILITY.md` | Codex CLI、Claude Code CLI、Cline 的团队接入优先级和边界。 |
-| `CODEX_CLI_COMPATIBILITY.md` | Codex CLI 配置、C1-C9 验收矩阵和 smoke fixture。 |
-| `CLAUDE_CODE_COMPATIBILITY.md` | Claude Code 接本地模型的当前可用边界和未解问题。 |
-
-## RAG / Agent / Benchmark
-
-| 文件 | 用途 |
-|------|------|
-| `RAG_LEARNING_NOTES.md` | RAG 概念、当前实现、调试方法和升级路线。 |
-| `AGENT_ROUTER_LEARNING_NOTES.md` | `labagent-agent` 的 router 分支、brain / eyes / RAG 分工和边界。 |
-| `AGENT_PROJECT_ROADMAP.md` | 项目深化的阶段、交付物和验收门槛；不重复详细设计。 |
-| `BENCHMARK_DESIGN.md` | Benchmark 分层、指标和解释规则。 |
-| `BENCHMARK_RESULTS.md` | Benchmark 结果和阶段结论。 |
-| `CODE_REVIEW_TRIAGE.md` | 外部 code review 建议的采纳、后置和拒绝记录。 |
-
-## 学习与面试
-
-| 文件 | 用途 |
-|------|------|
-| `PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` | 面试讲法、Agent 面经映射、RAG v1.x 设计和代码学习顺序。 |
-| `Tech_Stack_Knowledge_Base.md` | LM Studio、LiteLLM、SSH 隧道、RAG、Agent、MCP、vLLM 等技术概念解释。 |
-| `AI_Engineer_Skills_Roadmap.md` | 已有证据、能力缺口和学习顺序；不重复项目排期。 |
-| `AGENT_OPERATING_RULES.md` | Qwen/Cline 系统提示词建议、本地 skills 和外部提示词边界。 |
-| `DOCUMENTATION_SYNC.md` | 每次里程碑后的文档同步规则。 |
-
-## 历史与证据
-
-| 文件 | 用途 |
-|------|------|
-| `AI_API_Gateway_Project_Log.md` | 部署、排障和里程碑的长篇过程记录；只用于追溯历史，不作为当前事实入口。 |
-| `CHANGELOG.md` | 日期化变更记录；只追加摘要，不承担部署说明。 |
-
-## 本地忽略参考
-
-这些文件在 `.gitignore` 中，只作本机参考，不作为项目事实来源，也不要默认读入 RAG：
-
-| 文件 | 用途 |
-|------|------|
-| `CODE_REVIEW_ISSUES.md` | 原始外部 review 问题清单，已由 `CODE_REVIEW_TRIAGE.md` 消化。 |
-| `claude-fable-5.md` | 外部系统提示词 / 原始参考材料，不能直接复制到项目提示词。 |
-| `LabAgent_Platform_V4_最新进度与下一步.md` | 外部 AI 给出的阶段建议，已人工吸收进 roadmap / brief。 |
-
-## 整理规则
-
-- 不再在 README、HANDOFF、Progress 和 Brief 里各维护一份完整文档目录。
-- 新增文档前先判断是否能并入现有专题文档。
-- 长日志放 `AI_API_Gateway_Project_Log.md`，当前事实放 `README.md` / `HANDOFF.md` / 专题文档。
-- Progress 只保留成果、边界、证据和下一步；详细流程分别链接到专题文档和历史日志。
-- Onboarding 只维护学习顺序、心智模型和自检任务；具体运行事实必须链接到事实来源。
-- 面试表达可以提炼，但不能把未来计划写成已完成能力。
+1. 新人教程只讲学习顺序和验证任务，不复制易过期的运行事实。
+2. 每一份事实只维护在一个专题文档；其他地方只摘要并链接。
+3. 新增、移动或删除文档时，同时更新本页、相关链接和 RAG discovery/测试。
+4. 重要里程碑按 [Documentation Sync](project/DOCUMENTATION_SYNC.md) 完成验证、文档同步和 Git 收尾。

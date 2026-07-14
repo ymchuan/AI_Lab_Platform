@@ -28,7 +28,7 @@ LabAgent 当前的流程是：
 
 ```text
 1. 准备资料
-   README.md / HANDOFF.md / docs/*.md
+   README.md / HANDOFF.md / docs/**/*.md
 
 2. 切成片段
    长文档太大，所以按标题和长度切成 chunk
@@ -72,7 +72,7 @@ RAG = 先找资料，再让模型根据资料回答。
 
 | 概念 | 白话解释 | 本项目当前对应 |
 |------|----------|----------------|
-| Corpus | 知识库原始资料 | `README.md`、`HANDOFF.md`、`docs/*.md` |
+| Corpus | 知识库原始资料 | `README.md`、`HANDOFF.md`、`docs/**/*.md` |
 | Chunk | 从长文档切出来的小片段 | `services/rag/chunking.py` |
 | Embedding | 把文字变成数字向量 | `embed-local`，Nomic Embed Text v1.5，768 维 |
 | Vector Index | 存 chunk 和向量的地方 | `data/rag/index.json` |

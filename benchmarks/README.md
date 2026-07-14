@@ -22,7 +22,7 @@ The goal is not a single leaderboard score. The goal is to make every model or w
 
 Manual fixtures:
 
-- `fixtures/codex_cli_smoke` - tiny project for manually validating Codex CLI against `qwen-agent` / `labagent-agent`. See `docs/CODEX_CLI_COMPATIBILITY.md`.
+- `fixtures/codex_cli_smoke` - tiny project for manually validating Codex CLI against `qwen-agent` / `labagent-agent`. See `docs/quality/CODEX_CLI_COMPATIBILITY.md`.
 
 ## Configuration
 
@@ -81,7 +81,7 @@ python -m services.rag.cli index
 python benchmarks/rag_retrieval_eval.py
 ```
 
-This checks whether retrieval over `README.md`, `HANDOFF.md`, and `docs/*.md` can find evidence for fixed LabAgent questions. It does not yet score answer faithfulness.
+This checks whether retrieval over `README.md`, `HANDOFF.md`, and `docs/**/*.md` can find evidence for fixed LabAgent questions. It does not yet score answer faithfulness.
 
 ### 6. Repo Understanding
 
@@ -176,7 +176,7 @@ Send the result folder back for review. Do not commit raw result files.
 - `soft_passed` means the answer contains enough useful signal to keep investigating.
 - `keyword_recall` shows partial credit instead of collapsing every near miss to 0.
 
-See `docs/BENCHMARK_DESIGN.md` for the full benchmark design rationale.
+See `docs/quality/BENCHMARK_DESIGN.md` for the full benchmark design rationale.
 
 ## Output Format
 

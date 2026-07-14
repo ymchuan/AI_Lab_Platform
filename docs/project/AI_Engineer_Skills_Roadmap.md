@@ -1,6 +1,6 @@
-+# AI Infra / Agent 工程师技能路线图
+# AI Infra / Agent 工程师技能路线图
 
-> 这份文档只回答“这个项目能证明哪些能力、还缺什么、学习顺序是什么”。技术实现和项目排期以 docs/AGENT_PROJECT_ROADMAP.md 为准。
+> 这份文档只回答“这个项目能证明哪些能力、还缺什么、学习顺序是什么”。技术实现和项目排期以 docs/project/AGENT_PROJECT_ROADMAP.md 为准。
 
 ## 已有可证明能力
 
@@ -27,11 +27,11 @@
 
 ## 推荐学习顺序
 
-1. 先通读 README.md、HANDOFF.md、docs/ARCHITECTURE.md 和 docs/API.md，能画出请求从客户端到本地 GPU 的链路。
-2. 读 services/rag 与 docs/RAG_LEARNING_NOTES.md，理解文档如何变成可检索证据。
-3. 读 services/agent 与 docs/AGENT_ROUTER_LEARNING_NOTES.md，区分 router、RAG 与完整 Agent Runtime。
+1. 先通读 README.md、HANDOFF.md、docs/architecture/ARCHITECTURE.md 和 docs/architecture/API.md，能画出请求从客户端到本地 GPU 的链路。
+2. 读 services/rag 与 docs/engineering/RAG_LEARNING_NOTES.md，理解文档如何变成可检索证据。
+3. 读 services/agent 与 docs/engineering/AGENT_ROUTER_LEARNING_NOTES.md，区分 router、RAG 与完整 Agent Runtime。
 4. 跑一轮 benchmarks，理解质量、延迟、失败模式和回归的关系。
-5. 按 docs/AGENT_PROJECT_ROADMAP.md 从 P0 到 P3 做增量交付，不跳过验证。
+5. 按 docs/project/AGENT_PROJECT_ROADMAP.md 从 P0 到 P3 做增量交付，不跳过验证。
 
 ## 简历表述边界
 
@@ -41,6 +41,6 @@
 
 ## 面试准备入口
 
-- 项目讲解与 17 道 Agent 面经映射：docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md
-- 技术选择与模型数据：docs/MODEL_RESEARCH.md、docs/BENCHMARK_RESULTS.md
-- 实际代码阅读顺序：docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md 第 8 节
+- 项目讲解与 17 道 Agent 面经映射：docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md
+- 技术选择与模型数据：docs/architecture/MODEL_RESEARCH.md、docs/quality/BENCHMARK_RESULTS.md
+- 实际代码阅读顺序：docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md 第 8 节

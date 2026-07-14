@@ -31,5 +31,5 @@
 
 - `README.md`
 - `HANDOFF.md`
-- `docs/Progress_Summary.md`
-- `docs/AGENT_OPERATING_RULES.md`
+- `docs/project/Progress_Summary.md`
+- `docs/engineering/AGENT_OPERATING_RULES.md`

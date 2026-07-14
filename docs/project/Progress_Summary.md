@@ -1,6 +1,6 @@
-+# 项目进展汇报
+# 项目进展汇报
 
-> 面向团队成员、导师或招聘方的阶段性成果报告。它只保留“做到什么、证据是什么、下一步做什么”；运行命令和历史过程分别以 HANDOFF.md、docs/AI_API_Gateway_Project_Log.md 为准。
+> 面向团队成员、导师或招聘方的阶段性成果报告。它只保留“做到什么、证据是什么、下一步做什么”；运行命令和历史过程分别以 HANDOFF.md、docs/history/AI_API_Gateway_Project_Log.md 为准。
 
 ## 当前结论（2026-07-14）
 
@@ -10,13 +10,14 @@ LabAgent 已完成团队可用的最小闭环：本地 GPU 上的模型可经云
 
 | 能力 | 当前状态 | 可复核证据 |
 |------|----------|------------|
-| 公网模型网关 | 已完成。云端 LiteLLM 通过 SSH Reverse Tunnel 转发到本地 LM Studio。 | README.md、docs/NETWORK.md、gateway health benchmark |
-| 主力代码模型 | 已完成。5090 上的 Qwen3-Coder-30B 作为 qwen-agent。 | docs/MODEL_RESEARCH.md、docs/BENCHMARK_RESULTS.md |
-| Embedding 与视觉 | 已完成。新设备提供 embed-local 和 vision-local；图片链路已有最小 smoke。 | docs/API.md、benchmarks/vision_local_eval.py |
-| RAG Service v1 baseline | 已完成。Markdown 切块、embedding、JSON 索引、检索、带引用回答和 HTTP API 已可用。 | services/rag、docs/RAG_LEARNING_NOTES.md |
-| 轻量 Agent Router | 已完成。labagent-agent 能将文本、图片和项目知识请求分到 qwen-agent、vision-local、RAG side channel。 | services/agent、docs/AGENT_ROUTER_LEARNING_NOTES.md |
-| Codex CLI | 基础工作流已通过。C1-C6 已验证；C7 长上下文、C8 异常体验和 C9 tools 透传仍需继续验证。 | docs/CODEX_CLI_COMPATIBILITY.md |
+| 公网模型网关 | 已完成。云端 LiteLLM 通过 SSH Reverse Tunnel 转发到本地 LM Studio。 | README.md、docs/architecture/NETWORK.md、gateway health benchmark |
+| 主力代码模型 | 已完成。5090 上的 Qwen3-Coder-30B 作为 qwen-agent。 | docs/architecture/MODEL_RESEARCH.md、docs/quality/BENCHMARK_RESULTS.md |
+| Embedding 与视觉 | 已完成。新设备提供 embed-local 和 vision-local；图片链路已有最小 smoke。 | docs/architecture/API.md、benchmarks/vision_local_eval.py |
+| RAG Service v1 baseline | 已完成。Markdown 切块、embedding、JSON 索引、检索、带引用回答和 HTTP API 已可用。 | services/rag、docs/engineering/RAG_LEARNING_NOTES.md |
+| 轻量 Agent Router | 已完成。labagent-agent 能将文本、图片和项目知识请求分到 qwen-agent、vision-local、RAG side channel。 | services/agent、docs/engineering/AGENT_ROUTER_LEARNING_NOTES.md |
+| Codex CLI | 基础工作流已通过。C1-C6 已验证；C7 长上下文、C8 异常体验和 C9 tools 透传仍需继续验证。 | docs/quality/CODEX_CLI_COMPATIBILITY.md |
 | 日常运维 | 已完成基础启动与巡检脚本。 | scripts/start_5090_services.ps1、scripts/check_labagent_status.ps1 |
+| 文档体系 | 已按新人上手、架构、运维、工程、质量、项目、历史分层；从零指南提供学习与代码阅读路径。 | docs/README.md、docs/getting-started/ONBOARDING_GUIDE.md |
 
 ## 当前架构
 
@@ -33,7 +34,7 @@ LabAgent 已完成团队可用的最小闭环：本地 GPU 上的模型可经云
     RAG :8010
     Agent Router :8020
 
-云服务器只承担轻量网关和隧道中转；RAG、Agent Router 和推理都留在本地节点。端口、重启顺序和故障恢复请读 HANDOFF.md 与 docs/SETUP.md。
+云服务器只承担轻量网关和隧道中转；RAG、Agent Router 和推理都留在本地节点。端口、重启顺序和故障恢复请读 HANDOFF.md 与 docs/operations/SETUP.md。
 
 ## 已验证边界
 
@@ -60,7 +61,7 @@ LabAgent 已完成团队可用的最小闭环：本地 GPU 上的模型可经云
 3. 让 8060S 先以实验节点接入并跑统一 benchmark，不直接替换 5090 主路径。
 4. 在上述证据稳定后，再做真正的 Agent Runtime：tool registry、trace、权限、恢复和评测。
 
-详细任务拆解见 docs/AGENT_PROJECT_ROADMAP.md；面试讲法和技术设计见 docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md。
+详细任务拆解见 docs/project/AGENT_PROJECT_ROADMAP.md；面试讲法和技术设计见 docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md。
 
 ## 可用于简历的表述
 
@@ -68,10 +69,10 @@ LabAgent 已完成团队可用的最小闭环：本地 GPU 上的模型可经云
 
 ## 相关文档
 
-- 从零学习路径：docs/ONBOARDING_GUIDE.md
+- 从零学习路径：docs/getting-started/ONBOARDING_GUIDE.md
 - 项目入口与模型别名：README.md
 - 当前运行状态、重启与下一步：HANDOFF.md
 - 文档地图：docs/README.md
-- 外部 AI 单文件简报：docs/PROJECT_BRIEF_FOR_AI_REVIEW.md
-- 历史部署与排障证据：docs/AI_API_Gateway_Project_Log.md
-- 日期化变更记录：docs/CHANGELOG.md
+- 外部 AI 单文件简报：docs/project/PROJECT_BRIEF_FOR_AI_REVIEW.md
+- 历史部署与排障证据：docs/history/AI_API_Gateway_Project_Log.md
+- 日期化变更记录：docs/history/CHANGELOG.md

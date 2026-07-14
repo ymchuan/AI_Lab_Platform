@@ -7,7 +7,7 @@ This repository is the LabAgent Platform: a private local-GPU AI infrastructure 
 1. `README.md` for the project overview, current model aliases, and architecture.
 2. `HANDOFF.md` for live operational state, restart steps, ports, and next priorities.
 3. `docs/README.md` for the full documentation map.
-4. `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` when the task is about interview preparation or project depth.
+4. `docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` when the task is about interview preparation or project depth.
 
 ## Current Boundaries
 
@@ -24,4 +24,4 @@ This repository is the LabAgent Platform: a private local-GPU AI infrastructure 
 
 ## Documentation Discipline
 
-Use `docs/README.md` as the documentation map. Keep current facts in `README.md`, `HANDOFF.md`, and the relevant topic doc. Keep long historical narrative in `docs/AI_API_Gateway_Project_Log.md`.
+Use `docs/README.md` as the documentation map. Keep current facts in `README.md`, `HANDOFF.md`, and the relevant topic doc. Keep long historical narrative in `docs/history/AI_API_Gateway_Project_Log.md`.

@@ -163,7 +163,7 @@ class RagCoreTest(unittest.TestCase):
                 },
                 {
                     "id": "vision#0",
-                    "source_path": "docs/API.md",
+                    "source_path": "docs/architecture/API.md",
                     "title": "Vision",
                     "ordinal": 0,
                     "text": "vision-local uses qwen3-vl-30b on the new device via :12341.",
@@ -186,15 +186,19 @@ class RagCoreTest(unittest.TestCase):
             docs = tmp_path / "docs"
             docs.mkdir()
             (docs / "A.md").write_text("doc", encoding="utf-8")
+            nested = docs / "architecture"
+            nested.mkdir()
+            (nested / "B.md").write_text("nested doc", encoding="utf-8")
             (docs / "CODE_REVIEW_ISSUES.md").write_text("raw review", encoding="utf-8")
             (docs / "claude-fable-5.md").write_text("raw prompt", encoding="utf-8")
             (docs / "LabAgent_Platform_V4_最新进度与下一步.md").write_text("external advice", encoding="utf-8")
 
-            files = discover_markdown_files(tmp_path, ["*.md", "docs/*.md"])
+            files = discover_markdown_files(tmp_path)
             relatives = [path.relative_to(tmp_path).as_posix() for path in files]
 
         self.assertIn("README.md", relatives)
         self.assertIn("docs/A.md", relatives)
+        self.assertIn("docs/architecture/B.md", relatives)
         self.assertNotIn(".env.md", relatives)
         self.assertNotIn("docs/CODE_REVIEW_ISSUES.md", relatives)
         self.assertNotIn("docs/claude-fable-5.md", relatives)

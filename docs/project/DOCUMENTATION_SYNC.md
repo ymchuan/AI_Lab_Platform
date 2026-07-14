@@ -11,16 +11,16 @@
 - `README.md`：当前高层状态、架构、模型选择和快速开始事实。
 - `HANDOFF.md`：最新运维状态和下一步动作。
 - `docs/README.md`：文档地图。如果新增、删除、重命名文档，必须同步这里。
-- `docs/Progress_Summary.md`：仅在外部可感知的里程碑变化时更新成果、边界、证据和简历口径；不复制完整操作过程。
-- `docs/CHANGELOG.md`：简短的日期化变更记录。
+- `docs/project/Progress_Summary.md`：仅在外部可感知的里程碑变化时更新成果、边界、证据和简历口径；不复制完整操作过程。
+- `docs/history/CHANGELOG.md`：简短的日期化变更记录。
 - 与本次变更匹配的专题文档，例如：
-  - `docs/BENCHMARK_RESULTS.md`
-  - `docs/MODEL_RESEARCH.md`
-  - `docs/ARCHITECTURE.md`
-  - `docs/API.md`
-  - `docs/NETWORK.md`
-  - `docs/SETUP.md`
-  - `docs/TROUBLESHOOTING.md`
+  - `docs/quality/BENCHMARK_RESULTS.md`
+  - `docs/architecture/MODEL_RESEARCH.md`
+  - `docs/architecture/ARCHITECTURE.md`
+  - `docs/architecture/API.md`
+  - `docs/architecture/NETWORK.md`
+  - `docs/operations/SETUP.md`
+  - `docs/operations/TROUBLESHOOTING.md`
   - `benchmarks/README.md`
 
 ## 单一事实来源
@@ -29,18 +29,18 @@
 
 | 内容 | 写在哪里 |
 |------|----------|
-| 当前服务、端口、重启步骤 | `HANDOFF.md`, `docs/SETUP.md` |
+| 当前服务、端口、重启步骤 | `HANDOFF.md`, `docs/operations/SETUP.md` |
 | 文档完整目录和阅读顺序 | `docs/README.md` |
 | 高层项目介绍和模型别名 | `README.md` |
-| 接口、请求格式和错误码 | `docs/API.md` |
-| 网络和隧道细节 | `docs/NETWORK.md` |
-| 故障现象和修复步骤 | `docs/TROUBLESHOOTING.md` |
-| 长篇过程记录 | `docs/AI_API_Gateway_Project_Log.md` |
-| 面试讲法和项目深挖 | `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` |
-| 项目深化阶段和验收门槛 | `docs/AGENT_PROJECT_ROADMAP.md` |
-| AI Engineer 能力缺口与学习顺序 | `docs/AI_Engineer_Skills_Roadmap.md` |
-| 客户端总体支持边界 | `docs/TEAM_CLIENT_COMPATIBILITY.md` |
-| 新成员学习顺序、代码导航与自检 | `docs/ONBOARDING_GUIDE.md` |
+| 接口、请求格式和错误码 | `docs/architecture/API.md` |
+| 网络和隧道细节 | `docs/architecture/NETWORK.md` |
+| 故障现象和修复步骤 | `docs/operations/TROUBLESHOOTING.md` |
+| 长篇过程记录 | `docs/history/AI_API_Gateway_Project_Log.md` |
+| 面试讲法和项目深挖 | `docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` |
+| 项目深化阶段和验收门槛 | `docs/project/AGENT_PROJECT_ROADMAP.md` |
+| AI Engineer 能力缺口与学习顺序 | `docs/project/AI_Engineer_Skills_Roadmap.md` |
+| 客户端总体支持边界 | `docs/quality/TEAM_CLIENT_COMPATIBILITY.md` |
+| 新成员学习顺序、代码导航与自检 | `docs/getting-started/ONBOARDING_GUIDE.md` |
 
 ## 新文档判断
 
@@ -51,6 +51,15 @@
 3. 读者是谁，完成什么任务后就不需要再读它？
 
 如果不能给出明确答案，优先合并到现有专题文档，而不是再新增一份总览。
+
+## 文档移动
+
+移动文档不是单纯改文件夹。必须同时完成：
+
+1. 使用 `git mv` 保留 Git 历史。
+2. 更新 README、HANDOFF、文档门户、Markdown 链接、脚本和测试中的路径。
+3. 如果 RAG corpus 包含该目录，确认 discovery 支持新层级并补测试。
+4. 在运行节点重建本地 RAG index；运行数据不提交 Git。
 
 ## Benchmark 结果
 
