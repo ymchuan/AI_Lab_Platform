@@ -1,0 +1,20 @@
+# LabAgent Platform
+
+LabAgent Platform exposes local GPU-hosted models through a lightweight cloud OpenAI-compatible gateway.
+
+Primary reading order:
+
+- `README.md`: overview, architecture, current models, quick start.
+- `HANDOFF.md`: current runtime state, restart steps, ports, next actions.
+- `docs/README.md`: documentation map and source-of-truth rules.
+- `docs/API.md`: public API and model aliases.
+- `docs/ARCHITECTURE.md`: system design and node responsibilities.
+- `docs/CODEX_CLI_COMPATIBILITY.md`: Codex CLI compatibility tests.
+- `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`: interview/deep-dive material.
+
+Important boundaries:
+
+- `labagent-agent` is currently a lightweight router, not a complete coding agent runtime.
+- RAG Service v1 is a baseline project-memory service using a local JSON index; vector DB, reranker, and faithfulness eval are future work.
+- Do not read ignored raw reference docs by default: `docs/CODE_REVIEW_ISSUES.md`, `docs/claude-fable-5.md`, `docs/LabAgent_Platform_V*.md`.
+- Do not expose or commit real API keys, SSH keys, `.env.local`, logs, local RAG data, or raw benchmark result dumps.

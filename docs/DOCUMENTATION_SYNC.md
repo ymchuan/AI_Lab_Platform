@@ -10,6 +10,7 @@
 
 - `README.md`：当前高层状态、架构、模型选择和快速开始事实。
 - `HANDOFF.md`：最新运维状态和下一步动作。
+- `docs/README.md`：文档地图。如果新增、删除、重命名文档，必须同步这里。
 - `docs/Progress_Summary.md`：项目时间线和简历口径汇总。
 - `docs/CHANGELOG.md`：简短的日期化变更记录。
 - 与本次变更匹配的专题文档，例如：
@@ -21,6 +22,21 @@
   - `docs/SETUP.md`
   - `docs/TROUBLESHOOTING.md`
   - `benchmarks/README.md`
+
+## 单一事实来源
+
+不要在多个总览文档里复制同一段当前状态。按下面规则写：
+
+| 内容 | 写在哪里 |
+|------|----------|
+| 当前服务、端口、重启步骤 | `HANDOFF.md`, `docs/SETUP.md` |
+| 文档完整目录和阅读顺序 | `docs/README.md` |
+| 高层项目介绍和模型别名 | `README.md` |
+| 接口、请求格式和错误码 | `docs/API.md` |
+| 网络和隧道细节 | `docs/NETWORK.md` |
+| 故障现象和修复步骤 | `docs/TROUBLESHOOTING.md` |
+| 长篇过程记录 | `docs/AI_API_Gateway_Project_Log.md` |
+| 面试讲法和项目深挖 | `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` |
 
 ## Benchmark 结果
 

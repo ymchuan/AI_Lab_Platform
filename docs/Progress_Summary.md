@@ -8,6 +8,7 @@
 
 - `docs/PROJECT_BRIEF_FOR_AI_REVIEW.md`：给 Gemini / Claude / ChatGPT 等外部 AI reviewer 的单文件项目简报。它会集中说明背景、架构、当前进度、主要问题和希望对方评审的问题。
 - `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`：给自己准备秋招和项目深挖用，包含面试讲法、常见追问、RAG v1.x 具体实现路线和代码学习顺序。
+- `docs/README.md`：完整文档地图，解释每个文档的用途和单一事实来源规则。
 - `docs/Progress_Summary.md`：给人看的阶段性成果汇报，偏展示“我们已经做到哪里、下一步做什么”。
 - `HANDOFF.md`：给接手项目的新 AI / 新成员看的操作交接文档，偏当前状态、启动方式、注意事项和下一步优先级。
 - `README.md`：项目入口和文档索引，适合第一次打开仓库时先读。

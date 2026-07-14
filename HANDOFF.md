@@ -308,37 +308,17 @@ python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？
 5. 失败/限制是什么。
 6. 对简历和面试表达的价值是什么。
 
-## 完整文档目录
+## 文档地图
 
-| 文档 | 简要说明 |
-|------|----------|
-| `AGENT_OPERATING_RULES.md` | Qwen/Cline 的系统提示词建议、外部提示词边界和本地 skills 使用规则。 |
-| `AGENT_PROJECT_ROADMAP.md` | Agent 能力拆解和后续路线图，涵盖 RAG、Agent Runtime、MCP、Eval、量化等方向。 |
-| `AGENT_ROUTER_LEARNING_NOTES.md` | 解释 `labagent-agent` 为什么要做 router，以及 brain / eyes / RAG 的分工。 |
-| `AI_API_Gateway_Project_Log.md` | 项目开发日志，记录每次部署、网络、模型、RAG 和 benchmark 的详细过程。 |
-| `AI_Engineer_Skills_Roadmap.md` | 面向 AI Infra / Agent Engineer 的学习路线和技能栈说明。 |
-| `API.md` | OpenAI-compatible API 文档，包含模型别名、请求格式、错误码和调用示例。 |
-| `ARCHITECTURE.md` | 系统架构、节点分工、数据流和设计决策说明。 |
-| `BENCHMARK_DESIGN.md` | benchmark 分层、评分规则和为什么这样设计的解释。 |
-| `BENCHMARK_RESULTS.md` | benchmark 结果记录和每轮结论摘要。 |
-| `CHANGELOG.md` | 版本更新日志，记录每次重要变更。 |
-| `CLAUDE_CODE_COMPATIBILITY.md` | Claude Code 接本地模型时的可用边界、错误现象和测试结论。 |
-| `claude-fable-5.md` | 原始外部参考材料，只作本地参考，不作为默认知识源。 |
-| `CODEX_CLI_COMPATIBILITY.md` | Codex CLI 接入 LabAgent 的配置、验收矩阵、fixture 和当前通过/待测状态。 |
-| `CODE_REVIEW_ISSUES.md` | 原始外部 review 问题清单，只作本地参考，不作为默认知识源。 |
-| `CODE_REVIEW_TRIAGE.md` | 外部 review 的采纳、后置和拒绝决策记录。 |
-| `DOCUMENTATION_SYNC.md` | 关键节点后的文档同步契约，规定哪些文件要一起更新。 |
-| `MODEL_RESEARCH.md` | 5090 / 新设备的模型选型研究和节点分工建议。 |
-| `NETWORK.md` | 云服务器、安全组、SSH 隧道和网络拓扑说明。 |
-| `PROJECT_BRIEF_FOR_AI_REVIEW.md` | 给 Gemini / Claude / ChatGPT 等外部 AI reviewer 的单文件项目简报，汇总背景、架构、进度、问题和评审问题。 |
-| `PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` | 给自己准备秋招和项目深挖用，包含面试讲法、常见追问、RAG v1.x 具体实现路线和代码学习顺序。 |
-| `Progress_Summary.md` | 给别人看的进展汇报和阶段总结。 |
-| `RAG_LEARNING_NOTES.md` | RAG 的概念、实现、调试和升级路径说明。 |
-| `SETUP.md` | 从零部署 LabAgent 平台的步骤文档。 |
-| `TEAM_CLIENT_COMPATIBILITY.md` | Codex CLI / Claude Code CLI / Cline 的团队接入兼容性矩阵。 |
-| `Tech_Stack_Knowledge_Base.md` | 核心技术点的原理和知识手册。 |
-| `TROUBLESHOOTING.md` | 常见故障、排查方法和恢复步骤。 |
-| `WINDOWS_WSL2_SETUP.md` | Windows / WSL2 / CUDA 环境准备说明。 |
+完整文档目录已移到 `docs/README.md`。这里不再重复维护大表，避免 README、HANDOFF、Progress 和 Brief 四处出现不同版本。
+
+高频入口：
+
+- `README.md`：项目总览、当前架构和模型别名。
+- `docs/README.md`：所有文档的用途、分类和单一事实来源规则。
+- `docs/SETUP.md`：从零部署和重启服务。
+- `docs/TROUBLESHOOTING.md`：故障排查。
+- `docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`：面试和项目深挖。
 
 RAG 的定位要记清楚：它是团队的项目记忆和查证层，不是日常编码主链路。团队成员多数时候会直接用 `qwen-agent`、`labagent-agent` 或 Cline 做开发，RAG 更适合问项目状态、架构、历史决策、接口和引用证据。
 

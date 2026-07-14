@@ -4,6 +4,18 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.10] - 2026-07-14
+
+### Added
+- 新增 `docs/README.md` 作为文档地图，按 Diataxis 思路整理上手、操作、参考和解释类文档，并明确单一事实来源规则。
+- 新增根目录 `AGENTS.md` 和 `llms.txt`，给后续 AI 助手提供首读顺序、项目边界、验证命令和安全注意事项。
+- 新增用户级 Codex skills：`handoff` 和 `warpgrep`；`skill-creator` 确认为系统内置 skill。
+
+### Changed
+- 精简 README 的文档索引，只保留最高频入口，完整目录改由 `docs/README.md` 维护。
+- 精简 HANDOFF 的完整文档目录，避免与 README、Progress Summary、AI review brief 重复维护。
+- 更新 `docs/DOCUMENTATION_SYNC.md`，把文档地图和单一事实来源纳入收尾规则。
+
 ## [0.4.9] - 2026-07-10
 
 ### Added

@@ -111,37 +111,13 @@ Model:    qwen-local
 
 ## 文档索引
 
-### 快速上手
-- [交接文档](HANDOFF.md) — **新成员/新 AI 读这个就能上手**
-- [给外部 AI 的项目简报](docs/PROJECT_BRIEF_FOR_AI_REVIEW.md) — **发给 Gemini / 其他 AI 做评审时优先用这个**
-- [项目深挖与面试 FAQ](docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md) — **秋招面试讲法、项目深度升级路线和常见追问**
+完整文档地图见 [docs/README.md](docs/README.md)。README 只保留最高频入口：
 
-### 核心文档
-- [部署指南](docs/SETUP.md) — 从零部署完整教程
-- [架构设计](docs/ARCHITECTURE.md) — 系统架构与设计决策
-- [API 文档](docs/API.md) — 接口规范与使用示例
-- [网络配置](docs/NETWORK.md) — NAT、安全组、四节点拓扑
-- [故障排查](docs/TROUBLESHOOTING.md) — 常见问题与解决方案
-- [模型选型调研](docs/MODEL_RESEARCH.md) — 5090 / 5080 新设备模型组合与评测顺序
-- [RAG 学习与实现笔记](docs/RAG_LEARNING_NOTES.md) — RAG 概念、当前 v0 实现、验证结果和升级路线
-- [Agent Router 学习笔记](docs/AGENT_ROUTER_LEARNING_NOTES.md) — `labagent-agent` 编排层、`qwen-think` / `qwen-agent` / `vision-local` / RAG 的分工
-- [Agent 深化路线图](docs/AGENT_PROJECT_ROADMAP.md) — RAG / Agent / MCP / Eval / 微调量化规划
-- [Benchmark 结果](docs/BENCHMARK_RESULTS.md) — 模型 / RAG / Agent 评测记录
-- [Benchmark 设计](docs/BENCHMARK_DESIGN.md) — Agent / Coding / RAG 评测分层与解释规则
-- [Claude Code 兼容性](docs/CLAUDE_CODE_COMPATIBILITY.md) — Claude Code 通过 LiteLLM 接本地模型的可用边界与后续评测计划
-- [团队客户端兼容性](docs/TEAM_CLIENT_COMPATIBILITY.md) — Codex CLI / Claude Code CLI / Cline 等团队接入路径和验证计划
-- [Codex CLI 兼容性验证](docs/CODEX_CLI_COMPATIBILITY.md) — 当前 P0，团队成员用 Codex CLI 接 LabAgent 后端的配置、验收矩阵和 smoke fixture
-- [文档同步规则](docs/DOCUMENTATION_SYNC.md) — 每个关键节点后的复盘与文档更新契约
-- [Code Review 分流记录](docs/CODE_REVIEW_TRIAGE.md) — 外部 AI review 的采纳、后置和拒绝决策
-- [Agent 操作规则](docs/AGENT_OPERATING_RULES.md) — Qwen/Cline 系统提示词建议与本地 skills 说明
-- [Windows WSL2 配置](docs/WINDOWS_WSL2_SETUP.md) — Windows 本地节点的 Linux/CUDA 环境准备
-
-### 参考文档
-- [更新日志](docs/CHANGELOG.md) — 版本历史
-- [进展汇报](docs/Progress_Summary.md) — 成果总结
-- [技术栈知识手册](docs/Tech_Stack_Knowledge_Base.md) — 每个技术点的原理
-- [AI 工程师技能路线图](docs/AI_Engineer_Skills_Roadmap.md) — 学习路径
-- [项目开发日志](docs/AI_API_Gateway_Project_Log.md) — 完整开发记录
+- [交接文档](HANDOFF.md) — 当前真实运行状态、端口、重启步骤和下一步优先级。
+- [部署指南](docs/SETUP.md) — 从零部署本地节点、SSH 隧道、LiteLLM、RAG 和 Agent Router。
+- [API 文档](docs/API.md) — 模型别名、OpenAI-compatible API、RAG Service 和 Agent Router 接口。
+- [给外部 AI 的项目简报](docs/PROJECT_BRIEF_FOR_AI_REVIEW.md) — 发给 Gemini / Claude / ChatGPT 做项目评审。
+- [项目深挖与面试 FAQ](docs/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md) — 秋招面试讲法、项目深度升级路线和 Agent 面经映射。
 
 ## 技术栈
 

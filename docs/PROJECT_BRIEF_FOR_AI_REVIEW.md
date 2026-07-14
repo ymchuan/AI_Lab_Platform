@@ -326,6 +326,7 @@ eyes: vision-local 负责看图
 |------|------|
 | `README.md` | 项目总览 |
 | `HANDOFF.md` | 当前交接状态和下一步 |
+| `docs/README.md` | 完整文档地图和单一事实来源规则 |
 | `docs/Progress_Summary.md` | 成果汇报 |
 | `docs/ARCHITECTURE.md` | 架构细节 |
 | `docs/API.md` | API 和调用方式 |
