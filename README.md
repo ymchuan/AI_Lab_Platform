@@ -113,6 +113,7 @@ Model:    qwen-local
 
 完整文档地图见 [docs/README.md](docs/README.md)。README 只保留最高频入口：
 
+- [从零上手指南](docs/ONBOARDING_GUIDE.md) — 新成员从概念、架构、运行、代码到评测的学习路线。
 - [交接文档](HANDOFF.md) — 当前真实运行状态、端口、重启步骤和下一步优先级。
 - [部署指南](docs/SETUP.md) — 从零部署本地节点、SSH 隧道、LiteLLM、RAG 和 Agent Router。
 - [API 文档](docs/API.md) — 模型别名、OpenAI-compatible API、RAG Service 和 Agent Router 接口。

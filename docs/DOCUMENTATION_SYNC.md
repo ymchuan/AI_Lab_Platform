@@ -40,6 +40,7 @@
 | 项目深化阶段和验收门槛 | `docs/AGENT_PROJECT_ROADMAP.md` |
 | AI Engineer 能力缺口与学习顺序 | `docs/AI_Engineer_Skills_Roadmap.md` |
 | 客户端总体支持边界 | `docs/TEAM_CLIENT_COMPATIBILITY.md` |
+| 新成员学习顺序、代码导航与自检 | `docs/ONBOARDING_GUIDE.md` |
 
 ## 新文档判断
 

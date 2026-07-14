@@ -1,6 +1,6 @@
 # LabAgent 文档地图
 
-> 这个文件是 `docs/` 的入口。第一次读项目时，先读根目录 `README.md`，再读 `HANDOFF.md`，然后按本页选择专题文档。
+> 这个文件是 `docs/` 的入口。第一次接触项目的人先读 `ONBOARDING_GUIDE.md`；已经熟悉项目的人可直接读根目录 `README.md`、`HANDOFF.md` 和对应专题文档。
 
 ## 文档分工
 
@@ -8,19 +8,20 @@ LabAgent 的文档按 Diataxis 思路分成四类：
 
 | 类型 | 解决的问题 | 代表文档 |
 |------|------------|----------|
-| Tutorial / 上手 | 我怎么把系统跑起来？ | `SETUP.md`, `TROUBLESHOOTING.md` |
+| Tutorial / 上手 | 我如何从零理解并运行项目？ | `ONBOARDING_GUIDE.md`, `SETUP.md`, `TROUBLESHOOTING.md` |
 | How-to / 操作 | 某个具体任务怎么做？ | `CODEX_CLI_COMPATIBILITY.md`, `TEAM_CLIENT_COMPATIBILITY.md` |
 | Reference / 参考 | 当前接口、架构、配置是什么？ | `API.md`, `ARCHITECTURE.md`, `NETWORK.md` |
 | Explanation / 解释 | 为什么这么设计？下一步怎么深化？ | `RAG_LEARNING_NOTES.md`, `AGENT_PROJECT_ROADMAP.md`, `PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md` |
 
 ## 推荐阅读顺序
 
-1. `README.md`：项目一句话、当前架构、模型别名、快速入口。
-2. `HANDOFF.md`：当前真实运行状态、重启步骤、下一步优先级。
-3. `Progress_Summary.md`：快速了解已经交付的能力、边界和下一优先级。
-4. `PROJECT_BRIEF_FOR_AI_REVIEW.md`：发给 Gemini / Claude / ChatGPT 做外部评审。
-5. `PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`：准备秋招、复盘项目深度、回答 Agent 面经。
-6. `services/agent/README.md` 和 `services/rag/` 代码：理解 router 与 RAG 的真实实现。
+1. `ONBOARDING_GUIDE.md`：从零建立概念、架构、运行、代码和评测的学习主线。
+2. `README.md`：项目一句话、当前架构、模型别名、快速入口。
+3. `HANDOFF.md`：当前真实运行状态、重启步骤、下一步优先级。
+4. `Progress_Summary.md`：快速了解已经交付的能力、边界和下一优先级。
+5. `PROJECT_BRIEF_FOR_AI_REVIEW.md`：发给 Gemini / Claude / ChatGPT 做外部评审。
+6. `PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md`：准备秋招、复盘项目深度、回答 Agent 面经。
+7. `services/agent/README.md` 和 `services/rag/` 代码：理解 router 与 RAG 的真实实现。
 
 ## 单一事实来源
 
@@ -40,6 +41,7 @@ LabAgent 的文档按 Diataxis 思路分成四类：
 
 | 文件 | 用途 |
 |------|------|
+| `ONBOARDING_GUIDE.md` | 新成员从零学习项目的顺序、代码导航、自检任务和查阅入口。 |
 | `../README.md` | 项目总入口，适合第一次打开仓库。 |
 | `../HANDOFF.md` | 当前交接文档，适合新会话、新成员、外部 AI 接手时先读。 |
 | `PROJECT_BRIEF_FOR_AI_REVIEW.md` | 单文件项目简报，用于给外部 AI 或评审者快速理解项目。 |
@@ -110,4 +112,5 @@ LabAgent 的文档按 Diataxis 思路分成四类：
 - 新增文档前先判断是否能并入现有专题文档。
 - 长日志放 `AI_API_Gateway_Project_Log.md`，当前事实放 `README.md` / `HANDOFF.md` / 专题文档。
 - Progress 只保留成果、边界、证据和下一步；详细流程分别链接到专题文档和历史日志。
+- Onboarding 只维护学习顺序、心智模型和自检任务；具体运行事实必须链接到事实来源。
 - 面试表达可以提炼，但不能把未来计划写成已完成能力。

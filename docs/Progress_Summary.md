@@ -68,6 +68,7 @@ LabAgent 已完成团队可用的最小闭环：本地 GPU 上的模型可经云
 
 ## 相关文档
 
+- 从零学习路径：docs/ONBOARDING_GUIDE.md
 - 项目入口与模型别名：README.md
 - 当前运行状态、重启与下一步：HANDOFF.md
 - 文档地图：docs/README.md

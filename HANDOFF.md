@@ -314,6 +314,7 @@ python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？
 
 高频入口：
 
+- `docs/ONBOARDING_GUIDE.md`：第一次接手项目时按概念、架构、运维、代码和评测逐步学习。
 - `README.md`：项目总览、当前架构和模型别名。
 - `docs/README.md`：所有文档的用途、分类和单一事实来源规则。
 - `docs/SETUP.md`：从零部署和重启服务。

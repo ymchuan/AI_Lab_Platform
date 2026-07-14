@@ -4,6 +4,14 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.12] - 2026-07-14
+
+### Added
+- 新增 `docs/ONBOARDING_GUIDE.md`，为零基础新成员提供从项目目标、基础概念、网络与运维、API、RAG、Router、评测到路线图的渐进式学习路径、代码阅读顺序和自检清单。
+
+### Changed
+- 将从零上手指南设为 README、HANDOFF 和文档地图的首选新成员入口；教程只维护学习路径，当前运行事实继续以 README、HANDOFF 和专题文档为准。
+
 ## [0.4.11] - 2026-07-14
 
 ### Changed
