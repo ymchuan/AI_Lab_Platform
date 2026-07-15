@@ -8,6 +8,8 @@ param(
   [switch]$SkipVision
 )
 
+# Keep this source file ASCII-only so Windows PowerShell 5.1 can parse it
+# correctly even after the script is transferred between machines.
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
@@ -367,11 +369,11 @@ Invoke-ChatCase `
   -Name "Chinese final content" `
   -Messages @(
     @{ role = "system"; content = $systemPrompt },
-    @{ role = "user"; content = "只用一句中文回答：你现在是在 8060S 候选节点上接受本地模型测试。不要输出思考过程。" }
+    @{ role = "user"; content = "Reply in exactly one short Simplified Chinese sentence saying that you are being tested as a local model on the 8060S candidate node. Do not output reasoning." }
   ) `
   -CaseMaxTokens 128 `
   -Temperature 0.2 `
-  -ExpectRegex "8060S|候选|本地|模型" `
+  -ExpectRegex "8060S" `
   -CaseTimeoutSec 180
 
 Invoke-ChatCase `
@@ -398,11 +400,11 @@ Invoke-ChatCase `
   -Name "LabAgent architecture recommendation" `
   -Messages @(
     @{ role = "system"; content = $systemPrompt },
-    @{ role = "user"; content = "LabAgent 当前有 5090 跑 qwen-agent，新设备跑 embed-local/vision-local，8060S 是新恢复的候选节点。请用 5 条以内建议说明 8060S 应该先承担什么角色，为什么不要直接替换 5090 主代码模型。" }
+    @{ role = "user"; content = "LabAgent currently runs qwen-agent on the 5090 and embed-local/vision-local on the new device. The 8060S is a recovered candidate node. In at most five concise points, recommend its first role and explain why it should not immediately replace the 5090 coding model." }
   ) `
   -CaseMaxTokens $MaxTokens `
   -Temperature 0.3 `
-  -ExpectRegex "5090|8060S|qwen-agent|benchmark|候选" `
+  -ExpectRegex "5090|8060S|qwen-agent|benchmark|candidate|brain" `
   -CaseTimeoutSec $TimeoutSec
 
 Invoke-ChatCase `
@@ -410,11 +412,11 @@ Invoke-ChatCase `
   -Name "300-500 Chinese chars stability" `
   -Messages @(
     @{ role = "system"; content = $systemPrompt },
-    @{ role = "user"; content = "请用 300 到 500 字解释：为什么一个 reasoning 模型在成为团队默认 coding worker 前，必须先通过 latency、content 非空率、patch、repo map、Codex smoke 和稳定性测试。要求最终答案必须直接写在 content 里，不要只写思考过程。" }
+    @{ role = "user"; content = "Write 300 to 500 Simplified Chinese characters explaining why a reasoning model must pass latency, non-empty content, patch, repo map, Codex smoke, and stability tests before becoming the default coding worker. Keep those English metric names visible. Put the final answer in content and do not output reasoning only." }
   ) `
   -CaseMaxTokens ([Math]::Max($MaxTokens, 768)) `
   -Temperature 0.3 `
-  -ExpectRegex "latency|content|patch|Codex|稳定|测试|benchmark" `
+  -ExpectRegex "latency|content|patch|repo|Codex|benchmark" `
   -CaseTimeoutSec ([Math]::Max($TimeoutSec, 420))
 
 if ($SkipVision) {

@@ -283,3 +283,40 @@ curl.exe http://82.156.69.153:8000/v1/embeddings `
 
 如果 embedding 恢复，`vision-local` 图片请求才有继续测试的意义。
 
+## 问题 12：8060S benchmark 脚本出现乱码和 ParserError
+
+**症状**：
+
+- `run_8060s_brain_smoke.ps1` 中的中文变成 `鍊欓...` 一类乱码。
+- PowerShell 报 `UnexpectedToken`、`哈希文本不完整` 或缺少右括号。
+- 错误发生在请求模型之前。
+
+**原因**：
+
+旧版脚本源码包含中文 prompt。Windows PowerShell 5.1 可能把无 BOM UTF-8 文件按系统代码页读取；文件经过编辑器或聊天工具再次保存后，乱码可能进一步破坏字符串边界。该故障与 LM Studio、模型 ID 和推理能力无关。
+
+**解决**：
+
+1. 删除或覆盖 8060S 上已经乱码的旧副本，不要在乱码文件里逐行修补。
+2. 从当前仓库重新复制 `benchmarks/run_8060s_brain_smoke.ps1`。
+3. 当前脚本源码保持 ASCII-only，中文输出要求由英文 prompt 表达，兼容 Windows PowerShell 5.1 和 PowerShell 7。
+4. 重新运行：
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+.\run_8060s_brain_smoke.ps1 `
+  -Model "qwen3.6-35b-a3b-uncensored" `
+  -TimeoutSec 600 `
+  -MaxTokens 512 `
+  -SkipVision
+```
+
+如果仍在脚本解析阶段失败，先确认文件不是旧副本：
+
+```powershell
+Select-String -Path .\run_8060s_brain_smoke.ps1 -Pattern "鍊|妯|€"
+```
+
+当前版本应当没有任何匹配。
+

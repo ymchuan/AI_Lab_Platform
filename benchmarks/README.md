@@ -131,6 +131,8 @@ Then run one task at a time from `TASKS.md` through Codex CLI. This fixture is i
 
 Run this on the 8060S machine after LM Studio has loaded the target model and Local Server is ON:
 
+The script source is intentionally ASCII-only so it can be parsed by both Windows PowerShell 5.1 and PowerShell 7. If an older copied file contains mojibake such as `鍊欓`, replace the whole file with the current repository version before running it.
+
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\run_8060s_brain_smoke.ps1

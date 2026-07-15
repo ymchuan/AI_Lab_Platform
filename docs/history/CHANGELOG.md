@@ -4,6 +4,12 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.15] - 2026-07-15
+
+### Fixed
+- 将 `run_8060s_brain_smoke.ps1` 改为 ASCII-only 源码，避免 Windows PowerShell 5.1 把无 BOM UTF-8 中文 prompt 解析成乱码并触发 ParserError。
+- 增加脚本 ASCII 兼容性回归测试，并在 benchmark 与故障排查文档中记录旧副本替换步骤。
+
 ## [0.4.14] - 2026-07-14
 
 ### Added
