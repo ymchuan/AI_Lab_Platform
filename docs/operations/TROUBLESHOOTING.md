@@ -320,3 +320,45 @@ Select-String -Path .\run_8060s_brain_smoke.ps1 -Pattern "鍊|妯|€"
 
 当前版本应当没有任何匹配。
 
+## 问题 13：8060S `/v1/models` 成功，但所有 chat 都返回 HTTP 400
+
+**症状**：
+
+- `GET /v1/models` 返回多个模型 ID。
+- `POST /v1/chat/completions` 在等待几十秒后返回 HTTP 400。
+- 报告中 `content`、`reasoning` 和 token 计数全部为 0。
+
+**判断**：
+
+这不是模型回答质量差，而是请求在生成前被 LM Studio 拒绝。`/v1/models` 可能返回本机模型库存，不能单独证明指定 ID 已作为运行实例加载。常见原因包括选错当前加载 ID、JIT load 失败、内存/上下文配置无法加载，或后端返回了具体请求错误。
+
+**排查**：
+
+1. 在 LM Studio UI 确认 Developer / Local Server 当前真正加载的模型；如果已安装 LM Studio CLI，也可运行 `lms ps`。
+2. 使用加载实例的准确 ID，不要只从模型库存中猜测。
+3. 用当前版 `run_8060s_brain_smoke.ps1` 复测；它会优先保存 PowerShell 的 `ErrorDetails.Message`。
+4. 如果仍失败，先单独发一个最小请求并查看错误正文：
+
+```powershell
+$body = @{
+  model = "<LM Studio 当前加载的准确模型 ID>"
+  messages = @(@{ role = "user"; content = "Reply exactly: brain-ok" })
+  max_tokens = 64
+  temperature = 0
+} | ConvertTo-Json -Depth 10
+
+try {
+  Invoke-RestMethod `
+    -Uri "http://127.0.0.1:1234/v1/chat/completions" `
+    -Method Post `
+    -ContentType "application/json; charset=utf-8" `
+    -Body $body `
+    -TimeoutSec 600
+} catch {
+  $_.Exception.Message
+  $_.ErrorDetails.Message
+}
+```
+
+只有最小 chat 返回正常 `content` 后，才继续整套 smoke、`:12342` 隧道和 LiteLLM alias。
+

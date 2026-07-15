@@ -28,16 +28,31 @@ function Get-ErrorText {
   param($ErrorRecord)
 
   $message = $ErrorRecord.Exception.Message
+  $details = [string]$ErrorRecord.ErrorDetails.Message
+  if (-not [string]::IsNullOrWhiteSpace($details)) {
+    return "$message`n$details"
+  }
+
   $response = $ErrorRecord.Exception.Response
   if ($null -ne $response) {
     try {
-      $stream = $response.GetResponseStream()
-      if ($null -ne $stream) {
-        $reader = [System.IO.StreamReader]::new($stream)
-        $body = $reader.ReadToEnd()
-        if (-not [string]::IsNullOrWhiteSpace($body)) {
-          $message = "$message`n$body"
+      $contentProperty = $response.PSObject.Properties["Content"]
+      if ($null -ne $contentProperty -and $null -ne $response.Content) {
+        if ($response.Content -is [string]) {
+          $body = [string]$response.Content
+        } elseif ($null -ne $response.Content.PSObject.Methods["ReadAsStringAsync"]) {
+          $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
         }
+      } elseif ($null -ne $response.PSObject.Methods["GetResponseStream"]) {
+        $stream = $response.GetResponseStream()
+        if ($null -ne $stream) {
+          $reader = [System.IO.StreamReader]::new($stream)
+          try { $body = $reader.ReadToEnd() } finally { $reader.Dispose() }
+        }
+      }
+
+      if (-not [string]::IsNullOrWhiteSpace($body)) {
+        $message = "$message`n$body"
       }
     } catch {
       # Keep the original exception message.
@@ -424,7 +439,7 @@ if ($SkipVision) {
     id = "t06_vision"
     name = "vision image smoke"
     ok = $true
-    passed = $true
+    passed = $false
     latency_seconds = $null
     finish_reason = "skipped"
     content_length = 0
@@ -475,13 +490,16 @@ if ($SkipVision) {
   }
 }
 
-$passedCount = @($script:Results | Where-Object { $_.passed }).Count
-$totalCount = $script:Results.Count
+$evaluatedResults = @($script:Results | Where-Object { $_.finish_reason -ne "skipped" })
+$passedCount = @($evaluatedResults | Where-Object { $_.passed }).Count
+$totalCount = $evaluatedResults.Count
+$skippedCount = $script:Results.Count - $totalCount
 $failedCount = $totalCount - $passedCount
 $systemInfo["finished_at"] = (Get-Date).ToString("o")
 $systemInfo["passed"] = $passedCount
 $systemInfo["failed"] = $failedCount
 $systemInfo["total"] = $totalCount
+$systemInfo["skipped"] = $skippedCount
 
 $report = [ordered]@{
   system = $systemInfo
@@ -499,6 +517,7 @@ $md.Add("- Run ID: $runId") | Out-Null
 $md.Add("- Base URL: $BaseUrl") | Out-Null
 $md.Add(("- Selected model: {0}" -f $systemInfo["selected_model"])) | Out-Null
 $md.Add("- Passed: $passedCount / $totalCount") | Out-Null
+$md.Add("- Skipped: $skippedCount") | Out-Null
 $md.Add("- TimeoutSec: $TimeoutSec") | Out-Null
 $md.Add("- MaxTokens: $MaxTokens") | Out-Null
 $md.Add("") | Out-Null
@@ -521,16 +540,17 @@ foreach ($r in $script:Results) {
 $md.Add("") | Out-Null
 $md.Add("## How To Read") | Out-Null
 $md.Add("") | Out-Null
-$md.Add("- `content_length=0` means the model may be stuck in reasoning-only output for OpenAI-compatible clients.") | Out-Null
-$md.Add("- `finish=length` means the output budget was exhausted; lower context or max tokens before using it as a route.") | Out-Null
-$md.Add("- Vision failure is acceptable if this model is only meant to be `brain-local`, but it should not replace `vision-local`.") | Out-Null
-$md.Add("- Send this whole result folder back for review, especially `8060s_smoke_report.json` and `8060s_smoke_report.md`.") | Out-Null
+$md.Add('- `content_length=0` means the model may be stuck in reasoning-only output for OpenAI-compatible clients.') | Out-Null
+$md.Add('- `finish=length` means the output budget was exhausted; lower context or max tokens before using it as a route.') | Out-Null
+$md.Add('- Vision failure is acceptable if this model is only meant to be `brain-local`, but it should not replace `vision-local`.') | Out-Null
+$md.Add('- Send this whole result folder back for review, especially `8060s_smoke_report.json` and `8060s_smoke_report.md`.') | Out-Null
 
 $md | Set-Content -Path $mdPath -Encoding UTF8
 
 Write-Host ""
 Write-Host "Done."
 Write-Host "Passed: $passedCount / $totalCount"
+Write-Host "Skipped: $skippedCount"
 Write-Host "Markdown report: $mdPath"
 Write-Host "JSON report:     $jsonPath"
 Write-Host "Raw responses:   $script:RawDir"

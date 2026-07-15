@@ -10,7 +10,10 @@ class BenchmarkScriptTest(unittest.TestCase):
             / "run_8060s_brain_smoke.ps1"
         )
 
-        script.read_bytes().decode("ascii")
+        text = script.read_bytes().decode("ascii")
+        self.assertIn("ErrorDetails.Message", text)
+        self.assertIn('$evaluatedResults', text)
+        self.assertNotIn('$md.Add("- `', text)
 
 
 if __name__ == "__main__":

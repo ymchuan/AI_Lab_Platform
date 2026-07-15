@@ -4,6 +4,15 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.16] - 2026-07-15
+
+### Fixed
+- 8060S smoke 现在优先记录 PowerShell `ErrorDetails.Message` / HTTP 响应正文，skipped case 不再计入通过率，Markdown 报告中的反引号不再被解释为控制字符。
+
+### Changed
+- 记录 8060S 首轮本机结果：模型库存接口可达，但 5 个 chat case 全部 HTTP 400，模型质量未评估；复测前不接入 `:12342` 或 `brain-local`。
+- 根据本机报告将 8060S 系统物理内存从旧记录校准为 63.65GB。
+
 ## [0.4.15] - 2026-07-15
 
 ### Fixed

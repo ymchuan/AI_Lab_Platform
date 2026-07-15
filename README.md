@@ -40,7 +40,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 |------|-----|------|---------|------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M | 93.7GB 可用系统内存 | 主力推理节点 | ✅ 已接入 LM Studio，默认 Qwen3-Coder-30B |
 | 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 | 61.4GB | Embedding / Vision 节点；后续 Rerank/第二推理 | ✅ `embed-local` / `vision-local` 已接入 |
-| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 31.6GB | 候选 brain / 文档处理 / rerank / 轻量服务节点 | 🧪 已恢复可规划，未接入路由，待 benchmark |
+| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 63.65GB（本机 smoke 实测） | 候选 brain / 文档处理 / rerank / 轻量服务节点 | ⚠️ 本机模型列表可达，chat 全部 HTTP 400，待确认实际加载实例后复测 |
 | 云服务器 | 2核 Ubuntu 24.04 | 2GB | 轻量 API 网关/隧道中转 | ✅ LiteLLM 运行中，不计划升级 |
 
 ## 当前阶段：Qwen3-Coder 主模型 + RAG Service v1

@@ -164,6 +164,8 @@ The script writes a timestamped folder under `8060s_smoke_results/` with:
 
 Send the result folder back for review. Do not commit raw result files.
 
+Skipped cases are excluded from the pass denominator. HTTP failures include the response body when PowerShell exposes it, so a model-not-loaded or request-schema error is not misreported as an empty model answer.
+
 ## What This Baseline Checks
 
 - Can the model answer without filling the whole budget with reasoning?

@@ -236,6 +236,28 @@ POST /v1/chat/completions   OK
 3. 但它在 repo map 和多轮工作流上仍然偏慢，当前 benchmark 需要支持慢模型的增量落盘与更合理的评分。
 4. patch 任务的英文 diff 已经证明它能生成可用修改，后续应把重点放在 repo 理解、Cline 工作流和稳定性上。
 
+## 2026-07-15 8060S Qwen3.6-35B-A3B Uncensored 首轮 smoke
+
+环境：
+
+- Windows 11 专业版，PowerShell 5.1。
+- 系统物理内存 63.65GB。
+- 本机 LM Studio `http://127.0.0.1:1234/v1`。
+- 请求模型：`qwen3.6-35b-a3b-uncensored`。
+- Vision 跳过。
+
+结果：
+
+| Case | 结果 | 延迟 | 解释 |
+|------|------|------|------|
+| t00 models | 通过 | - | 只证明模型库存接口可达 |
+| t01-t05 chat | 全部 HTTP 400 | 22.9-59.7s | 请求在生成前被拒绝，无 content/reasoning/tokens |
+| t06 vision | skipped | - | 不应计入通过数 |
+
+原脚本显示 `2/7`，其中一个“通过”是 skipped vision，因此不能理解为模型能力通过 2 项。该轮只证明 LM Studio 服务和模型库存接口可达，尚不能评价 Qwen3.6-35B-A3B 的推理质量、速度或 brain 适用性。
+
+下一步：确认 LM Studio 当前真正加载的实例 ID，使用能保存 HTTP 400 响应正文的新脚本复测。复测前不建立 `:12342`，不新增 `brain-local` alias。
+
 ## 数据集说明
 
 截至 2026-06-18，8060S 不可用，因此不再出现在新的 planning 任务里。Agent planning 数据集现在把 RTX 5080 + RTX 4060 Ti 新设备当作下一节点，主要承接 Embedding / Reranker / VL / 第二代码模型。

@@ -38,13 +38,15 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-10 新增每日巡检脚本 `scripts/check_labagent_status.ps1`。它会检查本机服务、云端隧道、LiteLLM、`qwen-agent`、`embed-local`、`vision-local`、RAG 和 `labagent-agent` 的真实 API smoke test，并输出 OK/WARN/FAIL 汇总。首次运行结果：核心链路 14 OK、0 FAIL；公网 RAG `:18010` 未开启时显示 WARN，这是可选公网 RAG 入口，不影响团队用 `qwen-agent` 或 `labagent-agent`。
 
+2026-07-15 8060S 首轮本机 smoke：Windows 11 / PowerShell 5.1 报告系统物理内存 63.65GB，`/v1/models` 可达并返回模型库存；指定 `qwen3.6-35b-a3b-uncensored` 后，t01-t05 全部在 22.9-59.7 秒后返回 HTTP 400，没有进入生成阶段。该轮不能评价模型质量，也不能接入 `:12342`。先确认 LM Studio 当前真正加载的模型实例并用增强错误报告脚本复测。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
 |------|------|---------|---------|---------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ LM Studio 已接入，默认 load Qwen3-Coder-30B | 主力推理 / `qwen-agent` |
 | 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM | 172.16.14.17 | ✅ `embed-local` / `vision-local` 已接入，VL smoke 已通过 | Embedding 和 Vision 已上线；后续第二推理/Reranker |
-| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 31.6GB RAM | 172.16.14.142 | 🧪 已恢复，未接入路由 | 候选 `brain-local` / `doc-local` / `rerank-local`；先 benchmark，不替换主路由 |
+| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 63.65GB RAM（本机实测） | 172.16.14.142 | ⚠️ 模型列表可达，chat HTTP 400，未接入路由 | 先确认实际加载实例并复测；不替换主路由 |
 | 云服务器 | 2核 2GB Ubuntu 24.04 | 82.156.69.153 (公网) | ✅ LiteLLM 运行中；RAG :18010 已验证 | 轻量 API 网关 / RAG 临时公网入口 |
 
 ## 当前架构

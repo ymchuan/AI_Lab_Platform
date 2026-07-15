@@ -8,7 +8,7 @@
 |------|------|------|
 | 5090 (RTX 5090 32GB) | 主力推理 | ✅ 已配置 LM Studio；Qwen3-Coder-30B 已定为 `qwen-agent` 默认模型 |
 | 新设备 (RTX 5080 16GB + RTX 4060 Ti 16GB) | Embedding / Vision / 第二推理 / Rerank | ✅ `embed-local` / `vision-local` 已接入；Rerank 待配置 |
-| 8060S (AMD Ryzen AI Max+ 395 / Radeon 8060S / 31.6GB) | 候选 brain / 文档处理 / rerank / 轻量服务 | 🧪 已恢复，未接入路由，待 benchmark |
+| 8060S (AMD Ryzen AI Max+ 395 / Radeon 8060S / 63.65GB 实测) | 候选 brain / 文档处理 / rerank / 轻量服务 | ⚠️ 模型库存可达，chat HTTP 400，待确认加载实例 |
 | 云服务器 (Ubuntu 24.04, 2核 2GB) | 轻量 API 网关 / 隧道中转 | ✅ 已配置，短期无法升级 |
 
 ## 步骤 1：本地模型部署（每台 GPU 主机）
