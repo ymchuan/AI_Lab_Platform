@@ -256,7 +256,17 @@ POST /v1/chat/completions   OK
 
 原脚本显示 `2/7`，其中一个“通过”是 skipped vision，因此不能理解为模型能力通过 2 项。该轮只证明 LM Studio 服务和模型库存接口可达，尚不能评价 Qwen3.6-35B-A3B 的推理质量、速度或 brain 适用性。
 
-下一步：确认 LM Studio 当前真正加载的实例 ID，使用能保存 HTTP 400 响应正文的新脚本复测。复测前不建立 `:12342`，不新增 `brain-local` alias。
+第二轮（run `20260715_180901`）使用增强错误报告脚本：
+
+| Case | 错误正文 |
+|------|----------|
+| t01 / t03 / t04 | `The model has crashed without additional information. (Exit code: 18446744072635812000)` |
+| t02 / t05 | `Model reloaded.` |
+| t06 | skipped，已正确排除在通过率外 |
+
+本轮统计为 1/6，其中唯一通过项是模型库存接口；实际生成任务是 0/5。退出码低 32 位为 `0xC00008A0`。该结果证明模型进程反复崩溃并由 LM Studio 自动重载，但不能仅凭退出码确认根因是 OOM、AMD/Vulkan 后端或参数配置。
+
+结论：当前 `qwen3.6-35b-a3b-uncensored` + 8060S + LM Studio 配置不具备 `brain-local` 接入资格。下一步先降低 context/KV cache/GPU offload 等资源配置，再用 27B IQ3_XS 或 12B 模型做同机对照。复测通过最小 chat 前不建立 `:12342`，不新增 `brain-local` alias。
 
 ## 数据集说明
 

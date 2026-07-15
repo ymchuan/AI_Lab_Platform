@@ -6,7 +6,7 @@
 
 把内网 GPU 主机的大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何客户端像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-07-03 校准）：5090 主机已接入 LM Studio，默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 只保留为 `qwen-think` reasoning baseline，不直接替换主执行模型。已测试 `qwen/qwen3.6-27b`、`qwen/qwen3-coder-30b`、`qwen/qwen3-30b-a3b-2507`、`qwen/qwen3.6-35b-a3b`、`google/gemma-4-31b`、`zai-org/glm-4.7-flash`、`text-embedding-nomic-embed-text-v1.5`。新设备硬件已校准为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，内网 IP 为 `172.16.14.17`，已通过 `:12341` SSH 反向隧道把 LM Studio 上的 `text-embedding-nomic-embed-text-v1.5-embedding` 和 `qwen/qwen3-vl-30b` 接入云端 LiteLLM，公网别名为 `embed-local` 和 `vision-local`；恢复 `:12341` 后，`labagent-agent` 图片链路已从远程客户端验证成功。8060S 已恢复为候选节点，内网 IP 仍记录为 `172.16.14.142`，但尚未接入 LiteLLM、尚未建立 `:12342` 隧道、尚未跑 benchmark。云服务器是 2 核 2GB Ubuntu 24.04，短期无法升级，也没有预算扩容，后续只能作为轻量网关和中转节点。当前 SSH 反向隧道不是常驻状态，需要在 5090、新设备以及未来 8060S 上分别手动保持。
+当前事实基线（2026-07-15 校准）：5090 主机默认 Agent/Cline 执行模型为 `qwen/qwen3-coder-30b`；新设备通过 `:12341` 正式承载 `embed-local` 和 `vision-local`。8060S 内网 IP 记录为 `172.16.14.142`，实测 63.65GB 系统内存，但 `qwen3.6-35b-a3b-uncensored` 在 5/5 chat 中进程崩溃或自动重载，尚不具备 `:12342` / `brain-local` 接入资格。云服务器继续只承担 2 核 2GB Ubuntu 24.04 轻量网关和隧道中转。
 
 RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.md`、`docs/**/*.md` 切块，调用 `embed-local` 生成 768 维向量，保存本地 `data/rag/index.json`，再用 cosine similarity 检索并调用 `qwen-agent` 生成带 `[Sx]` 引用的回答。2026-06-26 重建运行索引：364 chunks / 22 files，CLI `search/ask` 和 HTTP `/health`、`/v1/rag/search`、`/v1/rag/ask`、`/v1/chat/completions` 已通过；RAG Service v1 已通过 `0.0.0.0:18010 -> 127.0.0.1:8010` SSH 反向隧道暴露，并由 David 外部机器访问公网 `/health` 返回 `ok=true`。当前它更像 workspace 级项目记忆层，而不是全局混合知识库。注意：当前仍是 baseline，还没有真实向量数据库、reranker、文档上传和 answer faithfulness 自动评测，且 RAG 服务/隧道仍需手动维持。
 
@@ -38,7 +38,7 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-10 新增每日巡检脚本 `scripts/check_labagent_status.ps1`。它会检查本机服务、云端隧道、LiteLLM、`qwen-agent`、`embed-local`、`vision-local`、RAG 和 `labagent-agent` 的真实 API smoke test，并输出 OK/WARN/FAIL 汇总。首次运行结果：核心链路 14 OK、0 FAIL；公网 RAG `:18010` 未开启时显示 WARN，这是可选公网 RAG 入口，不影响团队用 `qwen-agent` 或 `labagent-agent`。
 
-2026-07-15 8060S 首轮本机 smoke：Windows 11 / PowerShell 5.1 报告系统物理内存 63.65GB，`/v1/models` 可达并返回模型库存；指定 `qwen3.6-35b-a3b-uncensored` 后，t01-t05 全部在 22.9-59.7 秒后返回 HTTP 400，没有进入生成阶段。该轮不能评价模型质量，也不能接入 `:12342`。先确认 LM Studio 当前真正加载的模型实例并用增强错误报告脚本复测。
+2026-07-15 8060S 第二轮本机 smoke 已捕获真实错误：`qwen3.6-35b-a3b-uncensored` 在 t01/t03/t04 生成请求中进程崩溃（exit code `18446744072635812000`，低 32 位 `0xC00008A0`），t02/t05 返回 `Model reloaded.`。模型库存接口成功，但 5/5 chat 均未进入有效推理，因此该模型/配置不具备 `brain-local` 接入资格。先降低上下文/卸载配置并用更小模型做同机对照；原因尚未确定为 OOM 或 AMD 后端问题。
 
 ## 设备清单
 
@@ -46,7 +46,7 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 |------|------|---------|---------|---------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ LM Studio 已接入，默认 load Qwen3-Coder-30B | 主力推理 / `qwen-agent` |
 | 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM | 172.16.14.17 | ✅ `embed-local` / `vision-local` 已接入，VL smoke 已通过 | Embedding 和 Vision 已上线；后续第二推理/Reranker |
-| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 63.65GB RAM（本机实测） | 172.16.14.142 | ⚠️ 模型列表可达，chat HTTP 400，未接入路由 | 先确认实际加载实例并复测；不替换主路由 |
+| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 63.65GB RAM（本机实测） | 172.16.14.142 | ❌ 35B-A3B Uncensored 5/5 chat 崩溃/重载，未接入路由 | 先调低资源配置并做小模型对照；不替换主路由 |
 | 云服务器 | 2核 2GB Ubuntu 24.04 | 82.156.69.153 (公网) | ✅ LiteLLM 运行中；RAG :18010 已验证 | 轻量 API 网关 / RAG 临时公网入口 |
 
 ## 当前架构
@@ -188,7 +188,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 3. **5090 不能通过公网 IP 访问自己** — NAT 回环问题。5090 本机直接连 `127.0.0.1:1234`。
 
-4. **新设备已完成 embedding / vision 路由 v1，8060S 已恢复但仍是候选节点** — 新设备当前正式承载 `embed-local` 和 `vision-local`，且 2026-06-26 已通过公网 VL smoke test；2026-07-03 恢复 `:12341` 后，`labagent-agent` 图片链路已由远程客户端验证成功。Reranker、第二代码模型仍待接入；8060S 先接入为 `:12342` 实验节点，不直接替换 5090 主代码模型。
+4. **新设备已完成 embedding / vision 路由 v1，8060S 仍停留在本机候选阶段** — 新设备当前正式承载 `embed-local` 和 `vision-local`；8060S 的 35B-A3B Uncensored 生成进程会崩溃/自动重载，先完成本机资源调参与小模型对照，不建立 `:12342`，不替换 5090 主代码模型。
 
 5. **当前项目代码深度还不够** — 目前主要是部署、网关、隧道和文档。为了支撑 Agent 开发岗简历，下一阶段必须补 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型 benchmark、量化和小规模 LoRA/QLoRA 实验。
 
@@ -234,7 +234,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 26. **Codex C9 文本链路和图片链路都已打通，图片质量仍需 benchmark** — 2026-07-02 确认 `labagent-agent` 作为 Codex 后端可完成文本请求，Responses streaming 已含 `response.completed`。图片输入失败时，优先检查新设备 LM Studio 和 `ssh -N -R 12341:127.0.0.1:1234 ...`，不要先怀疑 Codex 或 18020。2026-07-03 恢复 `:12341` 后，远程图片识别已成功；但代码截图容易误读函数名/变量名，后续应扩展真实截图和代码截图 benchmark。
 
-27. **8060S 回归后的默认策略是新增候选节点，不是迁移主路由** — 8060S 的 Ryzen AI MAX+ 395 / Radeon 8060S / NPU 更适合作为统一内存、大容量上下文、文档处理、rerank、light service 或 reasoning side-channel 的实验节点。当前团队开发最重要的是 coding worker 稳定性，因此 `qwen-agent` 仍留在 5090。8060S 下一步先开 LM Studio、本机 `/v1/models`、云端 `:12342`、LiteLLM alias 和一组 benchmark；通过后再讨论 `brain-local` 是否进入 `labagent-agent` 默认路由。
+27. **8060S 仍是候选节点，不迁移主路由** — 35B-A3B Uncensored 首轮有效 smoke 发生进程崩溃/自动重载。当前先调低 context/KV/GPU offload，并用 27B IQ3_XS 或 12B 做同机对照；本地最小 chat 稳定前不开放 `:12342`，不讨论默认 `brain-local`。
 
 ## 下一步要做的事
 
@@ -247,7 +247,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 1. 先重启 5090 上的 `services.agent.server`，复测 `labagent-agent` C9 C1/C2/C3，确认 Responses tools 透传后 Codex 是否实际调用 PowerShell / 文件工具。
 2. 扩展 Codex CLI 团队客户端验证：C1-C6 已通过，C9 文本和图片链路已打通；下一步跑 C7 长上下文、C8 后端断链/模型未 load/key 错误时的错误处理。
 3. 保持团队默认后端为 LiteLLM `qwen-agent`；`labagent-agent` 继续作为统一入口候选，重点测 Responses tools 透传、图片回放、错误恢复和兼容性。
-4. 把 8060S 接入为候选节点：本机 LM Studio -> 云端 `:12342` -> LiteLLM alias -> latency / Codex smoke / patch/repo task。通过前不要迁移 `qwen-agent`。
+4. 修复 8060S 本机推理稳定性：降低 context/KV/GPU offload，查看 LM Studio runtime 日志，并用 27B/12B 对照。最小 chat 稳定后才进入 `:12342` / LiteLLM alias 阶段。
 5. 把 RAG v1.x 迁移到 Qdrant 或 Chroma，保留当前 JSON index 作为 baseline。
 6. 增加 reranker 对照：先在新设备 4060 Ti / 5080 上测试 Qwen3-Reranker 或 BGE reranker；8060S 可作为第二候选。
 7. 补 answer eval：检查回答是否有引用、是否忠实于 context、是否把 `qwen-agent` / `embed-local` / 节点映射说错。

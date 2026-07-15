@@ -51,14 +51,14 @@ LabAgent 已完成团队可用的最小闭环：本地 GPU 上的模型可经云
 | RAG 召回和引用质量有限 | JSON 索引 + cosine retrieval，没有 reranker 与自动评测 | workspace、Qdrant/Chroma、reranker、faithfulness eval |
 | Codex 统一 router 仍需复测 | Responses tools 透传改动需要在真实客户端回归 | 完成 C7、C8、C9 固定矩阵 |
 | Claude Code 未达稳定标准 | tool_use schema 与本地模型输出可能不兼容 | 单独建立最小复现与 adapter 决策 |
-| 8060S 尚未进入稳定资源池 | 未完成 :12342、LiteLLM alias 与 benchmark | 先完成本机/隧道/延迟/patch/repo 对照 |
+| 8060S 尚未进入稳定资源池 | 35B-A3B Uncensored 5/5 chat 进程崩溃/自动重载 | 先降低资源配置并做 27B/12B 同机对照；本地稳定后再接隧道 |
 | 多个本地服务需手动维持 | 隧道、RAG、Router 尚未完全常驻化 | 先用启动和巡检脚本，后续再服务化 |
 
 ## 下一阶段优先级
 
 1. 完成 Codex CLI C7、C8、C9 回归，明确 qwen-agent 与 labagent-agent 的支持边界。
 2. 以 workspace 为边界升级 RAG：向量数据库、reranker、引用与忠实性评测。
-3. 让 8060S 先以实验节点接入并跑统一 benchmark，不直接替换 5090 主路径。
+3. 先解决 8060S 本机 35B 崩溃并完成小模型对照；本地最小 chat 稳定后再作为实验节点接入。
 4. 在上述证据稳定后，再做真正的 Agent Runtime：tool registry、trace、权限、恢复和评测。
 
 详细任务拆解见 docs/project/AGENT_PROJECT_ROADMAP.md；面试讲法和技术设计见 docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md。

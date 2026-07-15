@@ -4,6 +4,12 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.17] - 2026-07-15
+
+### Changed
+- 记录 8060S 第二轮 smoke：35B-A3B Uncensored 的 5/5 chat 请求触发模型进程崩溃或 LM Studio 自动重载，当前配置不具备 `brain-local` 接入资格。
+- 将下一步改为降低 context/KV/GPU offload 后复测，并用 27B IQ3_XS 或 12B 做同机对照；证据不足时不把退出码直接解释为 OOM。
+
 ## [0.4.16] - 2026-07-15
 
 ### Fixed

@@ -332,12 +332,24 @@ Select-String -Path .\run_8060s_brain_smoke.ps1 -Pattern "鍊|妯|€"
 
 这不是模型回答质量差，而是请求在生成前被 LM Studio 拒绝。`/v1/models` 可能返回本机模型库存，不能单独证明指定 ID 已作为运行实例加载。常见原因包括选错当前加载 ID、JIT load 失败、内存/上下文配置无法加载，或后端返回了具体请求错误。
 
+2026-07-15 8060S 实例中，增强报告捕获到：
+
+```text
+The model has crashed without additional information.
+Exit code: 18446744072635812000
+Model reloaded.
+```
+
+这证明模型运行进程崩溃并被 LM Studio 自动重载。退出码低 32 位为 `0xC00008A0`，但不要仅凭该码把根因写成 OOM；还需要用 LM Studio 日志、较低资源配置和更小模型对照定位。
+
 **排查**：
 
 1. 在 LM Studio UI 确认 Developer / Local Server 当前真正加载的模型；如果已安装 LM Studio CLI，也可运行 `lms ps`。
-2. 使用加载实例的准确 ID，不要只从模型库存中猜测。
-3. 用当前版 `run_8060s_brain_smoke.ps1` 复测；它会优先保存 PowerShell 的 `ErrorDetails.Message`。
-4. 如果仍失败，先单独发一个最小请求并查看错误正文：
+2. 查看 LM Studio server/runtime 日志，保存崩溃前最后 50-100 行。
+3. 将 context length 先降到 4096 或 8192，关闭 speculative decoding，降低 KV cache / GPU offload 等资源压力后重载。
+4. 先跑一个更小的同机对照模型，例如已安装的 27B IQ3_XS 或 12B；若小模型可用而 35B 崩溃，优先定位 35B 资源/量化配置。若小模型也崩溃，优先定位运行时、驱动或 AMD 后端。
+5. 用当前版 `run_8060s_brain_smoke.ps1` 复测；它会优先保存 PowerShell 的 `ErrorDetails.Message`。
+6. 如果仍失败，先单独发一个最小请求并查看错误正文：
 
 ```powershell
 $body = @{

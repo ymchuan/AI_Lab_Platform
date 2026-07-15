@@ -9,7 +9,7 @@
 |------|------|------|---------|------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M | 93.7GB | 已接入 LM Studio，并完成多模型 benchmark；Qwen3-Coder-30B 已定为默认 `qwen-agent` | 主力推理 / Agent 主模型 |
 | 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 | 61.4GB | `embed-local` / `vision-local` 已接入 | Embedding 和 Vision 已上线；第二推理 / Rerank 待接入 |
-| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 63.65GB（2026-07-15 本机 smoke 实测） | 模型库存可达，但指定 35B chat 全部 HTTP 400；未接入 LiteLLM / `:12342` | 候选 brain / 文档处理 / rerank / 轻量服务节点 |
+| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 63.65GB（2026-07-15 本机 smoke 实测） | 35B-A3B Uncensored 5/5 chat 触发进程崩溃/自动重载；未接入 LiteLLM / `:12342` | 先做资源调参与小模型对照，再决定 brain / 文档 / rerank 角色 |
 | 云服务器 | Ubuntu 24.04, 2 核 2GB | 2GB | LiteLLM 已运行 | 轻量网关 / HTTPS / 隧道 |
 
 重要约束：
@@ -60,7 +60,7 @@ coder-small-local -> 8060S 或新设备候选 / 中小代码模型，通过 smok
 5. `patch_task_eval.py` 和 `repo_map_eval.py`：证明它不是只会聊天。
 6. 30-60 分钟稳定性：连续请求不掉线、不空内容、不明显 OOM。
 
-2026-07-15 首轮结果：`GET /v1/models` 成功，但 `qwen3.6-35b-a3b-uncensored` 的 5 个 chat case 全部返回 HTTP 400，未产生 `content` 或 `reasoning_content`。这属于模型加载/服务请求层失败，不是能力得分；8060S 继续保持候选状态，确认 LM Studio 实际加载实例后再复测。
+2026-07-15 第二轮结果：增强脚本确认 `qwen3.6-35b-a3b-uncensored` 的 5 个 chat case 中，3 次明确返回模型进程崩溃，2 次返回 `Model reloaded.`；无任何 `content`、`reasoning_content` 或 token 统计。退出码低 32 位为 `0xC00008A0`，但现有证据不足以断言具体是 OOM、Vulkan/AMD 后端还是 LM Studio 配置。当前模型/配置不进入 `brain-local`；下一轮先降低 context/KV/GPU offload，再用 27B IQ3_XS 或 12B 模型做同机对照。
 
 当前已有一键 smoke 脚本：
 

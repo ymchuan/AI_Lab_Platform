@@ -50,7 +50,7 @@
 出口 NAT:   123.127.159.1
 ```
 
-8060S 已恢复为候选节点，内网 IP 记录为 `172.16.14.142`。它尚未接入当前生产拓扑；建议使用云端 `:12342` 作为候选 LM Studio 隧道端口，先验证 `/v1/models`、chat、latency 和 Codex smoke，再决定是否暴露 `brain-local` / `doc-local` / `rerank-local` alias。
+8060S 内网 IP 记录为 `172.16.14.142`，当前 35B-A3B Uncensored 本机 chat 会触发进程崩溃/自动重载。云端 `:12342` 继续保留为候选端口，但在本机最小 chat 和小模型对照通过前不建立隧道，也不暴露任何 alias。
 
 新设备的 RTX 5080 16GB + RTX 4060 Ti 16GB 可以按资源池理解为 32GB 专用显存，但不是单卡连续显存。Windows 显示的共享 GPU 内存不应按 VRAM 规划；网络和路由规划应把它当作两张独立 GPU 看待。
 
