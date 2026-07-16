@@ -21,6 +21,7 @@
 - 8060S run `20260716_173515` 使用准确已加载的 35B Q4、context 4096 进行最小 preflight，仍返回 `Model reloaded.`；修复版脚本按设计停止后续 case，确认旧版连续 channel error 已被消除但模型/runtime 故障仍存在。
 - 8060S Gemma 4 31B QAT run `20260716_175201` 完成 5/5 API 生成且无 fatal，证明节点 runtime 并非普遍不可用；质量门槛 2/5，主要失败模式转为 reasoning 占满 completion budget、最终 content 为空。
 - Gemma 31B run `20260716_190938` 在 1024-token 下使 t03/t04/t05 形成最终 content，文本质量为 3/5；复杂任务延迟 52-115s，因此角色收敛为慢速 side model，不作为在线主 brain。
+- Gemma 31B VisionOnly run `20260716_204037` 在 context 16016、parallel 4 下进程崩溃；暂不建立 `vision-candidate`，只保留一次 context 4096/parallel 1 的最终控制变量。
 
 ## [0.4.17] - 2026-07-15
 

@@ -52,13 +52,15 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-16 Gemma 31B 1024-token 复测（run `20260716_190938`）：5/5 请求继续保持 runtime 正常，t03/t04/t05 最终 content 通过，文本质量为 3/5；复杂任务延迟 52-115s。结论改为：Gemma 适合 8060S 的 vision/document/offline side 候选，不适合在线主 brain。停止重复文本 smoke，脚本新增 `-VisionOnly`；图片最小验证通过后先接 `vision-candidate :12342`，不直接覆盖现有 `vision-local`。
 
+2026-07-16 Gemma 31B VisionOnly（run `20260716_204037`）：文本 case 均按设计跳过，唯一图片请求在 45.944s 后以退出码 `18446744072635812000` 崩溃。该轮 context 16016、parallel 4，暂不建立 `vision-candidate`。只再做一次 context 4096、parallel 1、关闭 speculative decoding 的相同请求；仍失败则 Gemma 固定为 document/offline text side，现有 `vision-local` 不迁移。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
 |------|------|---------|---------|---------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ LM Studio 已接入，默认 load Qwen3-Coder-30B | 主力推理 / `qwen-agent` |
 | 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM | 172.16.14.17 | ✅ `embed-local` / `vision-local` 已接入，VL smoke 已通过 | Embedding 和 Vision 已上线；后续第二推理/Reranker |
-| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 63.65GB RAM（本机实测） | 172.16.14.142 | ⚠️ Qwen 35B reload；Gemma 31B transport 5/5、文本质量 3/5，未接入路由 | 只做 Vision 验收；通过后接 `vision-candidate`，不替换主路由 |
+| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 63.65GB RAM（本机实测） | 172.16.14.142 | ⚠️ Gemma 31B 文本 side 可用，Vision 高资源配置崩溃，未接入路由 | 保守参数最终 Vision 复测；失败则只接 document/offline side |
 | 云服务器 | 2核 2GB Ubuntu 24.04 | 82.156.69.153 (公网) | ✅ LiteLLM 运行中；RAG :18010 已验证 | 轻量 API 网关 / RAG 临时公网入口 |
 
 ## 当前架构
@@ -211,7 +213,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 3. **5090 不能通过公网 IP 访问自己** — NAT 回环问题。5090 本机直接连 `127.0.0.1:1234`。
 
-4. **新设备已完成 embedding / vision 路由 v1，8060S 仍停留在本机候选阶段** — 新设备当前正式承载 `embed-local` 和 `vision-local`；8060S 的 Qwen 35B 路径 reload，但 Gemma 31B 已证明 runtime 可稳定生成。文本 smoke 已停止，下一步只做一次 Vision 验收；通过后先建立 `vision-candidate :12342`，不直接覆盖现有 `vision-local`，不替换 5090 主代码模型。
+4. **新设备已完成 embedding / vision 路由 v1，8060S 仍停留在本机候选阶段** — 新设备当前正式承载 `embed-local` 和 `vision-local`；8060S Gemma 31B 的文本 side 可用，但 VisionOnly 在 context 16016/parallel 4 下崩溃。只保留一次保守参数 Vision 复测；失败则不迁移现有 `vision-local`，8060S 只承担 document/offline side，不替换 5090 主代码模型。
 
 5. **当前项目代码深度还不够** — 目前主要是部署、网关、隧道和文档。为了支撑 Agent 开发岗简历，下一阶段必须补 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型 benchmark、量化和小规模 LoRA/QLoRA 实验。
 
