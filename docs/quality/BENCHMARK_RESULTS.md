@@ -291,6 +291,17 @@ POST /v1/chat/completions   OK
 
 统计为 6/6（模型库存 + 5/5 生成），Vision 跳过，`fatal_runtime_error=false`。这证明当前 harness 的 OpenAI chat 请求格式能够在 5090 + LM Studio + Qwen3-Coder 上正常完成，不会必然制造 channel error。由于控制组同时更换了硬件和模型，它不能单独证明 8060S 的根因是 AMD 后端；下一步仍需在 8060S 上用相同保守参数测试更小模型，才能区分 35B 配置问题和节点 runtime 问题。
 
+### 8060S 修复版 harness 复测
+
+2026-07-16 run `20260716_173515` 使用准确已加载 ID `qwen/qwen3.6-35b-a3b`：
+
+- `lms ps`：22.07GB、context 4096、parallel 4、状态 IDLE。
+- `/v1/models` 与 `lms ps` 的模型 ID 一致。
+- t01 最小 preflight 在 8.661s 后返回 HTTP 400 `{"error":"Model reloaded."}`，无 content/reasoning/token。
+- 修复版脚本正确跳过 t02-t05 和 Vision，没有继续请求正在重载的 runtime。
+
+本轮将旧报告中的连锁错误收敛为一个干净事实：即使准确模型已加载、context 已降到 4096，35B Q4 仍无法通过只含 `model/messages/max_tokens` 的最小请求。下一控制变量先把 parallel 从 4 降为 1；若仍失败，直接测试 12B，再测试 27B。只有更小模型通过后才继续研究 35B 的 offload/KV/runtime 参数。
+
 ## 数据集说明
 
 截至 2026-06-18，8060S 不可用，因此不再出现在新的 planning 任务里。Agent planning 数据集现在把 RTX 5080 + RTX 4060 Ti 新设备当作下一节点，主要承接 Embedding / Reranker / VL / 第二代码模型。

@@ -46,6 +46,8 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-16 5090 控制组：修复后的同一 smoke 脚本测试当前已加载的 `qwen/qwen3-coder-30b`，模型库存 + 5/5 文本生成全部通过，延迟 0.228-10.025s，全部 `finish_reason=stop`，无 fatal runtime error。结论是 harness/request schema 存在稳定成功路径；由于硬件和模型同时变化，下一步仍需在 8060S 上用 12B/27B 做同机控制变量。
 
+2026-07-16 8060S 修复版复测（run `20260716_173515`）：准确已加载的 `qwen/qwen3.6-35b-a3b` 为 22.07GB、context 4096、parallel 4；模型库存通过，但第一次最小 preflight 在 8.661s 后返回 `Model reloaded.`，其余 case 被正确跳过。下一步先把 parallel 降到 1 复测一次；仍失败则停止重复 35B，依次测试 12B、27B 来区分模型配置与节点 runtime。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |

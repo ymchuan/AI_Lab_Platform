@@ -17,6 +17,7 @@
 
 ### Verified
 - 使用修复后的同一 harness 在 5090 上测试 `qwen/qwen3-coder-30b`：模型库存和 5 个文本生成 case 全部通过，证明脚本请求格式存在稳定成功路径；8060S 仍需更小模型同机对照才能定位根因。
+- 8060S run `20260716_173515` 使用准确已加载的 35B Q4、context 4096 进行最小 preflight，仍返回 `Model reloaded.`；修复版脚本按设计停止后续 case，确认旧版连续 channel error 已被消除但模型/runtime 故障仍存在。
 
 ## [0.4.17] - 2026-07-15
 

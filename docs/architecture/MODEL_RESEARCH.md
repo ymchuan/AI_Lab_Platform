@@ -66,6 +66,8 @@ coder-small-local -> 8060S 或新设备候选 / 中小代码模型，通过 smok
 
 同日 5090 控制组使用修复后的同一脚本测试 `qwen/qwen3-coder-30b`，模型库存和 5 个文本生成 case 全部通过，延迟 0.228-10.025s，所有生成均为非空 `content`、`finish_reason=stop`，没有 fatal runtime error。这证明 harness/request schema 本身存在成功路径；但硬件和模型同时变化，不能据此直接把 8060S 故障归因到 AMD。下一项必须是在 8060S 上用 12B/27B 做同机控制变量。
 
+8060S 使用修复版 harness 的 run `20260716_173515` 进一步确认：准确加载的 `qwen/qwen3.6-35b-a3b`（22.07GB、context 4096、parallel 4）在第一个最小 preflight 就返回 `Model reloaded.`，脚本随后正确停止。所以下一轮不再重复 35B 全套 smoke；先把 parallel 降到 1 只跑 preflight，仍失败就切换 12B/27B 做同机控制变量。
+
 当前已有一键 smoke 脚本：
 
 ```powershell
