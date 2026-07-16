@@ -318,6 +318,12 @@ POST /v1/chat/completions   OK
 
 结论：该结果证明 8060S + LM Studio/AMD runtime 可以稳定运行接近规模的 Gemma 31B，Qwen 35B 的 reload 不能再概括为“8060S 所有大模型都不可用”。Gemma 31B 比 Qwen 35B 更值得继续评测，但当前仍不适合作为 `brain-local`：输出协议不稳定且复杂任务延迟 46-67s。下一轮用 `MaxTokens=1024` 诊断 t04/t05 是否最终落入 content；即使通过，也必须评估额外延迟与 token 成本。
 
+### Gemma 31B 1024-token 复测
+
+Run `20260716_190938` 保持相同模型并将 `MaxTokens` 提高到 1024：所有 5 个生成请求仍然 HTTP/runtime 正常，无 fatal；t03/t04/t05 形成最终 content，质量门槛由 2/5 提升为 3/5。t01/t02 仍分别受固定 64/128 token 短回答门槛限制而 reasoning-only。复杂任务延迟进一步升至 52.006s、86.648s 和 114.906s，t04/t05 分别消耗 748/972 completion tokens。
+
+结论：Gemma 31B 已满足“稳定慢速 side model”的基本文本证据，不适合需要低延迟的默认 brain。下一步停止重复文本 smoke，只使用新增的 `-VisionOnly` 发一个合成 OCR/形状请求；通过后以 `vision-candidate` 接入 `:12342`，保留现有 `vision-local` 作为回退。
+
 ## 数据集说明
 
 截至 2026-06-18，8060S 不可用，因此不再出现在新的 planning 任务里。Agent planning 数据集现在把 RTX 5080 + RTX 4060 Ti 新设备当作下一节点，主要承接 Embedding / Reranker / VL / 第二代码模型。

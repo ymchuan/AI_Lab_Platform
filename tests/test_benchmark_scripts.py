@@ -16,6 +16,8 @@ class BenchmarkScriptTest(unittest.TestCase):
         self.assertIn('[Parameter(Mandatory = $true)]', text)
         self.assertIn('skipped_after_fatal', text)
         self.assertIn('-MinimalRequest', text)
+        self.assertIn('-VisionOnly', text)
+        self.assertIn('skipped_by_mode', text)
         self.assertIn('Test-FatalRuntimeError', text)
         self.assertNotIn('$md.Add("- `', text)
 

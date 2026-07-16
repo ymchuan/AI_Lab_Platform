@@ -10,6 +10,7 @@ param(
   [int]$CooldownSec = 5,
   [string]$OutputDir = ".\8060s_smoke_results",
   [switch]$SkipVision,
+  [switch]$VisionOnly,
   [switch]$ContinueAfterFatal
 )
 
@@ -17,6 +18,10 @@ param(
 # correctly even after the script is transferred between machines.
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+
+if ($VisionOnly -and $SkipVision) {
+  throw "-VisionOnly and -SkipVision cannot be used together."
+}
 
 try {
   [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
@@ -209,6 +214,26 @@ function Invoke-ChatCase {
     [int]$CaseTimeoutSec = 300,
     [switch]$MinimalRequest
   )
+
+  if ($VisionOnly -and $Id -ne "t06_vision") {
+    Add-Result @{
+      id = $Id
+      name = $Name
+      ok = $true
+      passed = $false
+      latency_seconds = $null
+      finish_reason = "skipped_by_mode"
+      content_length = 0
+      reasoning_length = 0
+      prompt_tokens = $null
+      completion_tokens = $null
+      total_tokens = $null
+      expect_regex = $ExpectRegex
+      content_preview = "Skipped by -VisionOnly."
+      error = ""
+    }
+    return
+  }
 
   if ($script:FatalRuntimeError -and -not $ContinueAfterFatal) {
     Add-Result @{
@@ -528,7 +553,7 @@ if ($SkipVision) {
           )
         }
       ) `
-      -CaseMaxTokens 256 `
+      -CaseMaxTokens $MaxTokens `
       -Temperature 0.2 `
       -ExpectRegex "8060S|VISION|73|blue|red|green|rectangle|circle" `
       -CaseTimeoutSec $TimeoutSec
@@ -585,6 +610,7 @@ $md.Add("- Skipped: $skippedCount") | Out-Null
 $md.Add("- TimeoutSec: $TimeoutSec") | Out-Null
 $md.Add("- MaxTokens: $MaxTokens") | Out-Null
 $md.Add("- CooldownSec: $CooldownSec") | Out-Null
+$md.Add("- VisionOnly: $VisionOnly") | Out-Null
 $md.Add("- Fatal runtime error: $script:FatalRuntimeError") | Out-Null
 $md.Add("") | Out-Null
 $md.Add("## Results") | Out-Null

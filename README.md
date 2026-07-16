@@ -6,7 +6,7 @@
 
 本项目将内网 GPU 主机上的本地大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何支持 OpenAI 协议的客户端（Cline、OpenWebUI、Cursor 等）都能像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-07-16 校准）：5090 主机已部署并运行 LM Studio，5090 上的默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 保留为 `qwen-think` reasoning baseline，不直接替换主执行模型。新设备已确认为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，并已通过 `:12341` SSH 反向隧道把 `text-embedding-nomic-embed-text-v1.5-embedding` 和 `qwen/qwen3-vl-30b` 接入云端 LiteLLM，公网别名分别为 `embed-local` 和 `vision-local`；`labagent-agent` 图片链路已验证可用。8060S 实测 63.65GB 系统内存：Qwen3.6-35B-A3B Q8/Q4 无法通过最小生成，而 Gemma 4 31B QAT 已完成 5/5 API 推理、质量 2/5，证明节点 runtime 可运行接近规模模型；但 Gemma 仍存在 reasoning-only、46-67s 延迟问题，因此暂不建立 `:12342` 或 `brain-local`。云服务器固定为 2 核 2GB Ubuntu 24.04，后续继续作为轻量控制面而不是计算节点。
+当前事实基线（2026-07-16 校准）：5090 主机已部署并运行 LM Studio，5090 上的默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 保留为 `qwen-think` reasoning baseline，不直接替换主执行模型。新设备已确认为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，并已通过 `:12341` SSH 反向隧道把 `text-embedding-nomic-embed-text-v1.5-embedding` 和 `qwen/qwen3-vl-30b` 接入云端 LiteLLM，公网别名分别为 `embed-local` 和 `vision-local`；`labagent-agent` 图片链路已验证可用。8060S 实测 63.65GB 系统内存：Qwen3.6-35B-A3B Q8/Q4 无法通过最小生成，而 Gemma 4 31B QAT 已稳定完成 5/5 API 推理，1024-token 文本质量 3/5；复杂任务耗时 52-115s，因此角色收敛为 vision/document/offline side 候选，不作为在线 brain。云服务器固定为 2 核 2GB Ubuntu 24.04，后续继续作为轻量控制面而不是计算节点。
 
 新设备的专用显存可以按资源规划理解为 `16GB + 16GB = 32GB`，但它不是一块连续 32GB 显存。Windows 任务管理器里 RTX 5080 显示的 `46.7GB GPU 内存`包含约 `30.7GB` 共享系统内存，不能按 46.7GB VRAM 规划大模型。单个模型能否跨 RTX 5080 和 RTX 4060 Ti 运行，取决于推理引擎是否支持 tensor parallel、pipeline parallel、layer offload 或手动把不同模型分配到不同 GPU。短期更稳妥的规划是：5080 跑第二推理/视觉/中等代码模型，4060 Ti 跑 Embedding、Reranker 或轻量实验模型。
 
@@ -40,7 +40,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 |------|-----|------|---------|------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M | 93.7GB 可用系统内存 | 主力推理节点 | ✅ 已接入 LM Studio，默认 Qwen3-Coder-30B |
 | 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 | 61.4GB | Embedding / Vision 节点；后续 Rerank/第二推理 | ✅ `embed-local` / `vision-local` 已接入 |
-| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 63.65GB（本机 smoke 实测） | 候选 brain / 文档处理 / rerank / 轻量服务节点 | ⚠️ Qwen 35B reload；Gemma 31B transport 5/5、质量 2/5，继续评测但不接入 brain-local |
+| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 63.65GB（本机 smoke 实测） | 候选 Vision / 文档处理 / 离线 side 节点 | ⚠️ Qwen 35B reload；Gemma 31B transport 5/5、文本质量 3/5，下一步只做 Vision 验收 |
 | 云服务器 | 2核 Ubuntu 24.04 | 2GB | 轻量 API 网关/隧道中转 | ✅ LiteLLM 运行中，不计划升级 |
 
 ## 当前阶段：Qwen3-Coder 主模型 + RAG Service v1
@@ -80,7 +80,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | RAG Service v1 | ✅ 公网 health 已由 David 验证 | `services/rag` 支持 CLI index/search/ask 和 HTTP search/ask；`82.156.69.153:18010` 通过 SSH 反向隧道临时暴露；本地 `data/rag/` 不进 Git |
 | Agent Router v0 | ✅ 文本和图片 smoke 已通过，tools 透传待复测 | `127.0.0.1:8020` 提供 `labagent-agent`；公网 `18020` 已可访问；已补 `/v1/responses stream=true` 的 `response.completed` 兼容事件；恢复新设备 `:12341` 后图片链路已验证；无图片的 Codex Responses `tools` 请求现在透传 `qwen-agent`，需重启后复测 |
 | Codex CLI | ✅ C1-C6 小型开发 workflow 通过 | David 机器通过 `qwen-agent` 完成读项目、创建文件、单/多文件编辑、测试执行和失败修复；长上下文/异常错误体验待测 |
-| 8060S | ⚠️ Gemma 31B runtime 可用、输出质量待调 | Qwen 35B 停测；Gemma 用 1024 tokens 复测 final content 和延迟，通过前不接 `:12342` |
+| 8060S | ⚠️ Gemma 31B 慢速 side 候选 | Qwen 35B 停测；停止文本 smoke，只跑 `-VisionOnly`，通过后接 `vision-candidate :12342` |
 
 ## 快速开始
 

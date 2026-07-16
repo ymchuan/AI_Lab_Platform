@@ -168,6 +168,18 @@ Skipped cases are excluded from the pass denominator. HTTP failures include the 
 
 The first chat case is a minimal request containing only `model`, `messages`, and `max_tokens`. If it returns an HTTP error or LM Studio reports a crash/reload/channel failure, later chat cases are skipped by default so the script does not repeatedly hit a restarting runtime. `-ContinueAfterFatal` is only for deliberate crash reproduction.
 
+To validate only image input without repeating the text suite, run one generated OCR/shape case:
+
+```powershell
+.\run_8060s_brain_smoke.ps1 `
+  -Model "<exact-vision-model-id>" `
+  -VisionOnly `
+  -TimeoutSec 900 `
+  -MaxTokens 1024
+```
+
+Do not combine `-VisionOnly` with `-SkipVision`.
+
 ## What This Baseline Checks
 
 - Can the model answer without filling the whole budget with reasoning?
