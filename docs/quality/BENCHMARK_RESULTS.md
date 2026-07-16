@@ -302,6 +302,22 @@ POST /v1/chat/completions   OK
 
 本轮将旧报告中的连锁错误收敛为一个干净事实：即使准确模型已加载、context 已降到 4096，35B Q4 仍无法通过只含 `model/messages/max_tokens` 的最小请求。下一控制变量先把 parallel 从 4 降为 1；若仍失败，直接测试 12B，再测试 27B。只有更小模型通过后才继续研究 35B 的 offload/KV/runtime 参数。
 
+### 8060S Gemma 4 31B QAT 对照
+
+2026-07-16 run `20260716_175201` 使用 `google/gemma-4-31b-qat`：18.85GB、context 8192、parallel 4。
+
+| Case | HTTP/runtime | 延迟 | Finish | Content / Reasoning | 质量结果 |
+|------|--------------|------|--------|---------------------|----------|
+| t01 minimal preflight | 正常 | 5.731s | stop | 8 / 170 chars | 通过 |
+| t02 short Chinese | 正常 | 16.403s | length | 0 / 432 chars | 失败 |
+| t03 code review | 正常 | 46.632s | stop | 229 / 971 chars | 通过 |
+| t04 architecture | 正常 | 64.320s | length | 0 / 1863 chars | 失败 |
+| t05 long stability | 正常 | 67.005s | length | 0 / 1846 chars | 失败 |
+
+报告总计 3/6 包含 `/v1/models`；按生成任务计算，transport/API 成功 5/5，质量门槛通过 2/5，`fatal_runtime_error=false`。t03 的代码审查内容正确，但 t02/t04/t05 把 128/512 completion token 全部消耗在 `reasoning_content`，没有形成最终 `message.content`。
+
+结论：该结果证明 8060S + LM Studio/AMD runtime 可以稳定运行接近规模的 Gemma 31B，Qwen 35B 的 reload 不能再概括为“8060S 所有大模型都不可用”。Gemma 31B 比 Qwen 35B 更值得继续评测，但当前仍不适合作为 `brain-local`：输出协议不稳定且复杂任务延迟 46-67s。下一轮用 `MaxTokens=1024` 诊断 t04/t05 是否最终落入 content；即使通过，也必须评估额外延迟与 token 成本。
+
 ## 数据集说明
 
 截至 2026-06-18，8060S 不可用，因此不再出现在新的 planning 任务里。Agent planning 数据集现在把 RTX 5080 + RTX 4060 Ti 新设备当作下一节点，主要承接 Embedding / Reranker / VL / 第二代码模型。

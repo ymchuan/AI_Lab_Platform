@@ -9,7 +9,7 @@
 |------|------|------|---------|------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M | 93.7GB | 已接入 LM Studio，并完成多模型 benchmark；Qwen3-Coder-30B 已定为默认 `qwen-agent` | 主力推理 / Agent 主模型 |
 | 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 | 61.4GB | `embed-local` / `vision-local` 已接入 | Embedding 和 Vision 已上线；第二推理 / Rerank 待接入 |
-| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 63.65GB（2026-07-15 本机 smoke 实测） | 35B-A3B Uncensored 5/5 chat 触发进程崩溃/自动重载；未接入 LiteLLM / `:12342` | 先做资源调参与小模型对照，再决定 brain / 文档 / rerank 角色 |
+| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 63.65GB（本机 smoke 实测） | Qwen 35B reload；Gemma 31B transport 5/5、质量 2/5；未接入 LiteLLM / `:12342` | 继续调 Gemma final-content/延迟，再决定 brain / 文档 / rerank 角色 |
 | 云服务器 | Ubuntu 24.04, 2 核 2GB | 2GB | LiteLLM 已运行 | 轻量网关 / HTTPS / 隧道 |
 
 重要约束：
@@ -67,6 +67,8 @@ coder-small-local -> 8060S 或新设备候选 / 中小代码模型，通过 smok
 同日 5090 控制组使用修复后的同一脚本测试 `qwen/qwen3-coder-30b`，模型库存和 5 个文本生成 case 全部通过，延迟 0.228-10.025s，所有生成均为非空 `content`、`finish_reason=stop`，没有 fatal runtime error。这证明 harness/request schema 本身存在成功路径；但硬件和模型同时变化，不能据此直接把 8060S 故障归因到 AMD。下一项必须是在 8060S 上用 12B/27B 做同机控制变量。
 
 8060S 使用修复版 harness 的 run `20260716_173515` 进一步确认：准确加载的 `qwen/qwen3.6-35b-a3b`（22.07GB、context 4096、parallel 4）在第一个最小 preflight 就返回 `Model reloaded.`，脚本随后正确停止。所以下一轮不再重复 35B 全套 smoke；先把 parallel 降到 1 只跑 preflight，仍失败就切换 12B/27B 做同机控制变量。
+
+Gemma 31B QAT 的 run `20260716_175201` 改变了“节点 runtime 普遍不可用”的判断：18.85GB、context 8192、parallel 4 下 5/5 生成请求均完成，无 reload/channel/fatal；但只有 2/5 形成合格最终 content，复杂任务延迟 46-67s，另外 3 项因 reasoning 占满 completion budget 而 `finish_reason=length`。因此 8060S 可以继续作为实验推理节点，当前优先候选从 Qwen 35B 转为 Gemma 31B，但在 1024-token final-content 复测和稳定性测试前不建立 `brain-local`。
 
 当前已有一键 smoke 脚本：
 

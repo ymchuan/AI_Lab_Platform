@@ -346,6 +346,8 @@ Model reloaded.
 
 修复版脚本在 8060S 的 run `20260716_173515` 中只发送一次最小 preflight，准确已加载的 35B Q4 仍返回 `Model reloaded.`，其余 case 均按设计跳过。此时先把 LM Studio 的 Parallel Requests 从 4 降到 1，卸载并重新加载模型后重试；若最小请求仍失败，不再重复 35B 全套 smoke，改测 12B。12B 成功说明应继续定位 35B 模型/资源/offload，12B 也失败则优先定位 LM Studio runtime、AMD 后端或驱动。
 
+后续 `google/gemma-4-31b-qat` 对照在同一 8060S 上完成 5/5 HTTP 生成且无 fatal，说明 AMD/LM Studio 路径并非对所有大模型都失败。Gemma 的主要问题变为 reasoning 占满 128/512 completion budget、最终 content 为空。遇到这一模式应区分“runtime 崩溃”和“输出预算/模板不匹配”：前者查日志/驱动/offload，后者提高诊断 token budget、调整 thinking preset，并继续检查 final content 和延迟。
+
 **排查**：
 
 1. 在 LM Studio UI 确认 Developer / Local Server 当前真正加载的模型；如果已安装 LM Studio CLI，也可运行 `lms ps`。

@@ -6,7 +6,7 @@
 
 把内网 GPU 主机的大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何客户端像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-07-16 校准）：5090 主机默认 Agent/Cline 执行模型为 `qwen/qwen3-coder-30b`；新设备通过 `:12341` 正式承载 `embed-local` 和 `vision-local`。8060S 内网 IP 记录为 `172.16.14.142`，实测 63.65GB 系统内存，但 Qwen3.6-35B-A3B 的 Q8 与 Q4 两种配置均在 5/5 chat 中进程崩溃或自动重载，尚不具备 `:12342` / `brain-local` 接入资格。云服务器继续只承担 2 核 2GB Ubuntu 24.04 轻量网关和隧道中转。
+当前事实基线（2026-07-16 校准）：5090 主机默认 Agent/Cline 执行模型为 `qwen/qwen3-coder-30b`；新设备通过 `:12341` 正式承载 `embed-local` 和 `vision-local`。8060S 内网 IP 为 `172.16.14.142`，实测 63.65GB 系统内存；Qwen3.6-35B-A3B Q8/Q4 无法通过最小生成，Gemma 4 31B QAT 已稳定完成 5/5 API 推理但质量仅 2/5，仍有 reasoning-only 和 46-67s 延迟，因此尚不建立 `:12342` / `brain-local`。云服务器继续只承担 2 核 2GB Ubuntu 24.04 轻量网关和隧道中转。
 
 RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.md`、`docs/**/*.md` 切块，调用 `embed-local` 生成 768 维向量，保存本地 `data/rag/index.json`，再用 cosine similarity 检索并调用 `qwen-agent` 生成带 `[Sx]` 引用的回答。2026-06-26 重建运行索引：364 chunks / 22 files，CLI `search/ask` 和 HTTP `/health`、`/v1/rag/search`、`/v1/rag/ask`、`/v1/chat/completions` 已通过；RAG Service v1 已通过 `0.0.0.0:18010 -> 127.0.0.1:8010` SSH 反向隧道暴露，并由 David 外部机器访问公网 `/health` 返回 `ok=true`。当前它更像 workspace 级项目记忆层，而不是全局混合知识库。注意：当前仍是 baseline，还没有真实向量数据库、reranker、文档上传和 answer faithfulness 自动评测，且 RAG 服务/隧道仍需手动维持。
 
@@ -48,13 +48,15 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-16 8060S 修复版复测（run `20260716_173515`）：准确已加载的 `qwen/qwen3.6-35b-a3b` 为 22.07GB、context 4096、parallel 4；模型库存通过，但第一次最小 preflight 在 8.661s 后返回 `Model reloaded.`，其余 case 被正确跳过。下一步先把 parallel 降到 1 复测一次；仍失败则停止重复 35B，依次测试 12B、27B 来区分模型配置与节点 runtime。
 
+2026-07-16 Gemma 31B 对照（run `20260716_175201`）：`google/gemma-4-31b-qat` 为 18.85GB、context 8192、parallel 4；5/5 生成请求均完成、无 fatal，证明 8060S runtime 能运行接近规模模型。按质量计只有 2/5：t01/t03 有最终 content，t02/t04/t05 因 reasoning 占满 128/512 token 而 `finish_reason=length`、content 为空；复杂任务延迟 46-67s。Gemma 成为比 Qwen 35B 更合理的 brain 候选，但需先用 1024 tokens 复测 final content/延迟，不接生产路由。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
 |------|------|---------|---------|---------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ LM Studio 已接入，默认 load Qwen3-Coder-30B | 主力推理 / `qwen-agent` |
 | 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM | 172.16.14.17 | ✅ `embed-local` / `vision-local` 已接入，VL smoke 已通过 | Embedding 和 Vision 已上线；后续第二推理/Reranker |
-| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 63.65GB RAM（本机实测） | 172.16.14.142 | ❌ 35B-A3B Q8/Q4 均 5/5 chat 崩溃/重载，未接入路由 | 用保守参数做 12B/27B 对照并检查 runtime；不替换主路由 |
+| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 63.65GB RAM（本机实测） | 172.16.14.142 | ⚠️ Qwen 35B reload；Gemma 31B transport 5/5、质量 2/5，未接入路由 | 复测 Gemma final content/延迟；不替换主路由 |
 | 云服务器 | 2核 2GB Ubuntu 24.04 | 82.156.69.153 (公网) | ✅ LiteLLM 运行中；RAG :18010 已验证 | 轻量 API 网关 / RAG 临时公网入口 |
 
 ## 当前架构
@@ -207,7 +209,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 3. **5090 不能通过公网 IP 访问自己** — NAT 回环问题。5090 本机直接连 `127.0.0.1:1234`。
 
-4. **新设备已完成 embedding / vision 路由 v1，8060S 仍停留在本机候选阶段** — 新设备当前正式承载 `embed-local` 和 `vision-local`；8060S 的 35B-A3B Q8/Q4 生成进程都会崩溃/自动重载，先用保守参数完成 12B/27B 同机对照并定位 runtime，不建立 `:12342`，不替换 5090 主代码模型。
+4. **新设备已完成 embedding / vision 路由 v1，8060S 仍停留在本机候选阶段** — 新设备当前正式承载 `embed-local` 和 `vision-local`；8060S 的 Qwen 35B 路径 reload，但 Gemma 31B 已证明 runtime 可稳定生成。下一步只继续 Gemma final-content、延迟和稳定性评测，通过前不建立 `:12342`，不替换 5090 主代码模型。
 
 5. **当前项目代码深度还不够** — 目前主要是部署、网关、隧道和文档。为了支撑 Agent 开发岗简历，下一阶段必须补 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型 benchmark、量化和小规模 LoRA/QLoRA 实验。
 

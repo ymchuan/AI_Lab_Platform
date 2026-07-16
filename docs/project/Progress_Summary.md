@@ -51,14 +51,14 @@ LabAgent 已完成团队可用的最小闭环：本地 GPU 上的模型可经云
 | RAG 召回和引用质量有限 | JSON 索引 + cosine retrieval，没有 reranker 与自动评测 | workspace、Qdrant/Chroma、reranker、faithfulness eval |
 | Codex 统一 router 仍需复测 | Responses tools 透传改动需要在真实客户端回归 | 完成 C7、C8、C9 固定矩阵 |
 | Claude Code 未达稳定标准 | tool_use schema 与本地模型输出可能不兼容 | 单独建立最小复现与 adapter 决策 |
-| 8060S 尚未进入稳定资源池 | 35B-A3B Q8/Q4 均 5/5 chat 进程崩溃/自动重载 | 用保守参数做 12B/27B 同机对照并检查 LM Studio/AMD runtime；本地稳定后再接隧道 |
+| 8060S 尚未进入稳定资源池 | Qwen 35B reload；Gemma 31B transport 5/5 但质量 2/5、复杂任务 46-67s | 用 1024 tokens 复测 Gemma final content、延迟和稳定性；通过后再接隧道 |
 | 多个本地服务需手动维持 | 隧道、RAG、Router 尚未完全常驻化 | 先用启动和巡检脚本，后续再服务化 |
 
 ## 下一阶段优先级
 
 1. 完成 Codex CLI C7、C8、C9 回归，明确 qwen-agent 与 labagent-agent 的支持边界。
 2. 以 workspace 为边界升级 RAG：向量数据库、reranker、引用与忠实性评测。
-3. 先用 4096 context、关闭 speculative decoding 的保守参数完成 8060S 12B/27B 同机对照并定位 35B 崩溃；本地最小 chat 稳定后再作为实验节点接入。
+3. 继续 8060S Gemma 31B 的 1024-token final-content、延迟和稳定性复测；不再把 Qwen 35B 作为当前 brain 候选。
 4. 在上述证据稳定后，再做真正的 Agent Runtime：tool registry、trace、权限、恢复和评测。
 
 详细任务拆解见 docs/project/AGENT_PROJECT_ROADMAP.md；面试讲法和技术设计见 docs/project/PROJECT_DEEP_DIVE_AND_INTERVIEW_FAQ.md。
