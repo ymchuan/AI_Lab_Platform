@@ -342,6 +342,8 @@ Model reloaded.
 
 2026-07-16 又用 Q4 `qwen3.6-35b-a3b@q4_k_m` 复测，实际生成仍为 0/5，第一次短请求即以相同退出码崩溃。旧版脚本在 fatal 错误后继续发送剩余 case，所以后面的 `Model reloaded.` / channel error 包含自动重载期间的连锁失败。当前脚本已改为最小 preflight 失败后停止，避免重复撞击正在重载的 runtime。单纯从 Q8 换成 Q4 没有让最小请求成功，但不要仅凭退出码把根因写成 OOM；还需要用 LM Studio 日志、保守加载参数和更小模型对照定位。
 
+同一修复版脚本在 5090 的 `qwen/qwen3-coder-30b` 上完成 5/5 文本生成，说明请求 schema 和 harness 可以正常工作。这个跨机器控制组只能排除“脚本对所有 LM Studio 实例都会触发 channel error”，不能区分 8060S 的 35B 模型配置与 AMD runtime；需要在 8060S 上换更小模型继续控制变量。
+
 **排查**：
 
 1. 在 LM Studio UI 确认 Developer / Local Server 当前真正加载的模型；如果已安装 LM Studio CLI，也可运行 `lms ps`。

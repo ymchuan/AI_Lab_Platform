@@ -64,6 +64,8 @@ coder-small-local -> 8060S 或新设备候选 / 中小代码模型，通过 smok
 
 2026-07-16 Q4 对照结果：`qwen3.6-35b-a3b@q4_k_m` 仍是实际生成 0/5，第一次短请求即以相同退出码崩溃；旧脚本随后继续发送请求，因此后续 2 次崩溃和 2 次 `Model reloaded.` 包含自动重载期间的连锁失败。量化从 Q8 降到 Q4 没有让最小生成成功，因此不再把“换成 Q4”作为接入方案。8060S 下一轮应使用 4096 context、关闭 speculative decoding 的保守设置跑 12B/27B 同机对照，并保留 LM Studio runtime 日志；若小模型也崩溃，优先定位 AMD 后端、驱动或 LM Studio runtime，而不是继续换 35B 量化。
 
+同日 5090 控制组使用修复后的同一脚本测试 `qwen/qwen3-coder-30b`，模型库存和 5 个文本生成 case 全部通过，延迟 0.228-10.025s，所有生成均为非空 `content`、`finish_reason=stop`，没有 fatal runtime error。这证明 harness/request schema 本身存在成功路径；但硬件和模型同时变化，不能据此直接把 8060S 故障归因到 AMD。下一项必须是在 8060S 上用 12B/27B 做同机控制变量。
+
 当前已有一键 smoke 脚本：
 
 ```powershell

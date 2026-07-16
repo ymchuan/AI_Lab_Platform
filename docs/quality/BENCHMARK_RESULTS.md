@@ -277,6 +277,20 @@ POST /v1/chat/completions   OK
 
 结论：当前 Q8 `qwen3.6-35b-a3b-uncensored` 与 Q4 `qwen3.6-35b-a3b@q4_k_m` 两种配置都不具备 `brain-local` 接入资格。smoke 脚本现已改为显式模型 ID、最小 preflight 和首次 fatal/runtime/channel 错误后停止。下一步用 4096 context、关闭 speculative decoding 的保守配置测试 12B 或 27B，再保存 LM Studio 崩溃前日志。复测通过最小 chat 前不建立 `:12342`，不新增 `brain-local` alias。
 
+### 5090 控制组
+
+2026-07-16 在 5090 当前已加载的 `qwen/qwen3-coder-30b` 上运行修复后的同一脚本（run `20260716_165639`，文本模式）：
+
+| Case | 延迟 | Finish | Content | 结果 |
+|------|------|--------|---------|------|
+| t01 minimal preflight | 0.228s | stop | 8 chars | 通过 |
+| t02 short | 1.887s | stop | 25 chars | 通过 |
+| t03 code review | 4.467s | stop | 292 chars | 通过 |
+| t04 architecture | 10.025s | stop | 849 chars | 通过 |
+| t05 long stability | 5.901s | stop | 253 chars | 通过 |
+
+统计为 6/6（模型库存 + 5/5 生成），Vision 跳过，`fatal_runtime_error=false`。这证明当前 harness 的 OpenAI chat 请求格式能够在 5090 + LM Studio + Qwen3-Coder 上正常完成，不会必然制造 channel error。由于控制组同时更换了硬件和模型，它不能单独证明 8060S 的根因是 AMD 后端；下一步仍需在 8060S 上用相同保守参数测试更小模型，才能区分 35B 配置问题和节点 runtime 问题。
+
 ## 数据集说明
 
 截至 2026-06-18，8060S 不可用，因此不再出现在新的 planning 任务里。Agent planning 数据集现在把 RTX 5080 + RTX 4060 Ti 新设备当作下一节点，主要承接 Embedding / Reranker / VL / 第二代码模型。

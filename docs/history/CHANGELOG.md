@@ -15,6 +15,9 @@
 - 修正 8060S smoke harness：不再从模型库存自动猜测运行模型；强制显式模型 ID，并在最小 preflight 或 fatal runtime/channel 错误后停止后续 case，避免连续请求正在自动重载的 LM Studio 进程。
 - 增加 case 冷却时间，让 `MaxTokens` 成为真实上限，并在报告中记录 fatal runtime 状态和 `lms ps` 诊断信息。
 
+### Verified
+- 使用修复后的同一 harness 在 5090 上测试 `qwen/qwen3-coder-30b`：模型库存和 5 个文本生成 case 全部通过，证明脚本请求格式存在稳定成功路径；8060S 仍需更小模型同机对照才能定位根因。
+
 ## [0.4.17] - 2026-07-15
 
 ### Changed
