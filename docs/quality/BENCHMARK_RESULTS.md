@@ -273,9 +273,9 @@ POST /v1/chat/completions   OK
 - t01 / t03 / t05 返回相同模型进程崩溃和退出码 `18446744072635812000`；t02 / t04 返回 `Model reloaded.`。
 - 五次请求耗时约 10.6-32.5s，均无 `content`、`reasoning_content` 或 token 统计。
 
-Q4 降低权重占用后故障模式没有变化，因此“仅仅是 Q8 权重太大”不能解释当前结果；但仍不能排除 context/KV cache/GPU offload 等运行期内存压力。排查优先级应提高到 LM Studio runtime、AMD 后端/驱动、加载参数和更小模型同机对照。
+旧脚本在首次崩溃后仍继续发送后续 case，因此后面的 `Model reloaded.` 和部分 channel 错误包含自动重载期间的连锁失败，不能当成五个完全独立的崩溃样本。最强证据是 Q8 与 Q4 两轮的第一次短请求都触发了模型进程退出，且整轮没有任何成功生成。Q4 降低权重占用后故障模式没有变化，因此“仅仅是 Q8 权重太大”不能解释当前结果；但仍不能排除 context/KV cache/GPU offload 等运行期内存压力。
 
-结论：当前 Q8 `qwen3.6-35b-a3b-uncensored` 与 Q4 `qwen3.6-35b-a3b@q4_k_m` 两种配置都不具备 `brain-local` 接入资格。下一步用 4096 context、关闭 speculative decoding 的保守配置测试 12B 或 27B，再保存 LM Studio 崩溃前日志。复测通过最小 chat 前不建立 `:12342`，不新增 `brain-local` alias。
+结论：当前 Q8 `qwen3.6-35b-a3b-uncensored` 与 Q4 `qwen3.6-35b-a3b@q4_k_m` 两种配置都不具备 `brain-local` 接入资格。smoke 脚本现已改为显式模型 ID、最小 preflight 和首次 fatal/runtime/channel 错误后停止。下一步用 4096 context、关闭 speculative decoding 的保守配置测试 12B 或 27B，再保存 LM Studio 崩溃前日志。复测通过最小 chat 前不建立 `:12342`，不新增 `brain-local` alias。
 
 ## 数据集说明
 

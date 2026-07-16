@@ -135,25 +135,25 @@ The script source is intentionally ASCII-only so it can be parsed by both Window
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\run_8060s_brain_smoke.ps1
+.\run_8060s_brain_smoke.ps1 -Model "<exact-model-id>" -SkipVision
 ```
 
-If LM Studio returns multiple models or the auto-selected model is wrong, pass the exact model id from `/v1/models`:
+The model ID is mandatory. Copy the exact ID from LM Studio Developer UI or `/v1/models`; the endpoint may list installed inventory, so also confirm the active instance with `lms ps` when the CLI is available:
 
 ```powershell
-.\run_8060s_brain_smoke.ps1 -Model "qwen/qwen3.6-35b-a3b-q8_0"
+.\run_8060s_brain_smoke.ps1 -Model "qwen3.6-35b-a3b@q4_k_m" -SkipVision
 ```
 
 For a very slow Q8 model, increase timeout:
 
 ```powershell
-.\run_8060s_brain_smoke.ps1 -TimeoutSec 600 -MaxTokens 512
+.\run_8060s_brain_smoke.ps1 -Model "<exact-model-id>" -TimeoutSec 600 -MaxTokens 512 -SkipVision
 ```
 
 If the model is text-only or the image request fails in LM Studio, skip the vision case:
 
 ```powershell
-.\run_8060s_brain_smoke.ps1 -SkipVision
+.\run_8060s_brain_smoke.ps1 -Model "<exact-model-id>" -SkipVision
 ```
 
 The script writes a timestamped folder under `8060s_smoke_results/` with:
@@ -165,6 +165,8 @@ The script writes a timestamped folder under `8060s_smoke_results/` with:
 Send the result folder back for review. Do not commit raw result files.
 
 Skipped cases are excluded from the pass denominator. HTTP failures include the response body when PowerShell exposes it, so a model-not-loaded or request-schema error is not misreported as an empty model answer.
+
+The first chat case is a minimal request containing only `model`, `messages`, and `max_tokens`. If it returns an HTTP error or LM Studio reports a crash/reload/channel failure, later chat cases are skipped by default so the script does not repeatedly hit a restarting runtime. `-ContinueAfterFatal` is only for deliberate crash reproduction.
 
 ## What This Baseline Checks
 

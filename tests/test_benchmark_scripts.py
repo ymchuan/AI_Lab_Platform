@@ -13,6 +13,10 @@ class BenchmarkScriptTest(unittest.TestCase):
         text = script.read_bytes().decode("ascii")
         self.assertIn("ErrorDetails.Message", text)
         self.assertIn('$evaluatedResults', text)
+        self.assertIn('[Parameter(Mandatory = $true)]', text)
+        self.assertIn('skipped_after_fatal', text)
+        self.assertIn('-MinimalRequest', text)
+        self.assertIn('Test-FatalRuntimeError', text)
         self.assertNotIn('$md.Add("- `', text)
 
 

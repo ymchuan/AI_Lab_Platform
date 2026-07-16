@@ -42,6 +42,8 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-16 8060S Q4 对照 smoke（run `20260716_155010`）：准确模型 ID 为 `qwen3.6-35b-a3b@q4_k_m`，统计 1/6 但唯一通过项是模型库存，实际生成仍为 0/5；t01/t03/t05 以相同退出码崩溃，t02/t04 自动重载。Q4 没有改善 Q8 的故障模式，下一轮不再优先更换 35B 量化，而是以 4096 context、关闭 speculative decoding 测试 12B/27B，并检查 LM Studio runtime、AMD 后端/驱动和崩溃日志。
 
+2026-07-16 8060S smoke harness 复核：旧脚本从 `/v1/models` 库存自动选模型，并在首次进程崩溃后继续发送后续 case，会放大成连续 `channel error` / `Model reloaded.`。当前脚本已强制显式 `-Model`，先发送不含 system/temperature/stream 的最小 preflight，首次 HTTP/runtime/channel fatal 后默认跳过剩余生成，并加入 case 冷却时间。该修复能避免重载风暴，但不能解释 Q8/Q4 各自第一次短请求就退出，因此仍需检查 LM Studio/AMD runtime。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |

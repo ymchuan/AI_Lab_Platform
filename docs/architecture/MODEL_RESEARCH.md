@@ -62,17 +62,21 @@ coder-small-local -> 8060S 或新设备候选 / 中小代码模型，通过 smok
 
 2026-07-15 第二轮结果：增强脚本确认 Q8 `qwen3.6-35b-a3b-uncensored` 的 5 个 chat case 中，3 次明确返回模型进程崩溃，2 次返回 `Model reloaded.`；无任何 `content`、`reasoning_content` 或 token 统计。退出码低 32 位为 `0xC00008A0`，但现有证据不足以断言具体是 OOM、Vulkan/AMD 后端还是 LM Studio 配置。
 
-2026-07-16 Q4 对照结果：`qwen3.6-35b-a3b@q4_k_m` 仍是实际生成 0/5，3 次相同退出码崩溃、2 次 `Model reloaded.`。量化从 Q8 降到 Q4 没有改变故障模式，因此不再把“换成 Q4”作为接入方案。8060S 下一轮应使用 4096 context、关闭 speculative decoding 的保守设置跑 12B/27B 同机对照，并保留 LM Studio runtime 日志；若小模型也崩溃，优先定位 AMD 后端、驱动或 LM Studio runtime，而不是继续换 35B 量化。
+2026-07-16 Q4 对照结果：`qwen3.6-35b-a3b@q4_k_m` 仍是实际生成 0/5，第一次短请求即以相同退出码崩溃；旧脚本随后继续发送请求，因此后续 2 次崩溃和 2 次 `Model reloaded.` 包含自动重载期间的连锁失败。量化从 Q8 降到 Q4 没有让最小生成成功，因此不再把“换成 Q4”作为接入方案。8060S 下一轮应使用 4096 context、关闭 speculative decoding 的保守设置跑 12B/27B 同机对照，并保留 LM Studio runtime 日志；若小模型也崩溃，优先定位 AMD 后端、驱动或 LM Studio runtime，而不是继续换 35B 量化。
 
 当前已有一键 smoke 脚本：
 
 ```powershell
 # 在 8060S 机器上运行，前提是 LM Studio 已 load 目标模型并开启 Local Server
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\run_8060s_brain_smoke.ps1 -TimeoutSec 600 -MaxTokens 512
+.\run_8060s_brain_smoke.ps1 `
+  -Model "<LM Studio current exact model id>" `
+  -TimeoutSec 600 `
+  -MaxTokens 512 `
+  -SkipVision
 ```
 
-脚本位置：`benchmarks/run_8060s_brain_smoke.ps1`。它会生成 `8060s_smoke_results/8060s_smoke_<timestamp>/`，包含 Markdown 汇总、JSON 报告和 raw responses。第一轮重点看 `content_length` 是否非空、`reasoning_length` 是否过长、`finish_reason` 是否为 `length`、中文 300-500 字稳定性和可选图片识别是否通过。
+脚本位置：`benchmarks/run_8060s_brain_smoke.ps1`。它要求显式模型 ID，并先执行最小 preflight；preflight 或 runtime/channel 崩溃后默认停止后续生成 case，避免把自动重载期间的连锁错误误读成多个独立失败。它会生成 `8060s_smoke_results/8060s_smoke_<timestamp>/`，包含 Markdown 汇总、JSON 报告和 raw responses。通过 preflight 后再看 `content_length`、`reasoning_length`、`finish_reason`、中文稳定性和可选图片识别。
 
 ## 推荐模型组合
 

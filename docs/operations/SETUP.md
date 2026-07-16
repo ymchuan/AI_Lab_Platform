@@ -229,10 +229,14 @@ curl http://127.0.0.1:12342/v1/models
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\run_8060s_brain_smoke.ps1 -TimeoutSec 600 -MaxTokens 512
+.\run_8060s_brain_smoke.ps1 `
+  -Model "<LM Studio current exact model id>" `
+  -TimeoutSec 600 `
+  -MaxTokens 512 `
+  -SkipVision
 ```
 
-若 LM Studio 自动选择了错误模型，先看脚本输出或 `raw\t00_models.json`，再用 `-Model "<模型 id>"` 指定。脚本会生成 `8060s_smoke_results` 目录，把整份结果发回即可判断是否适合当 `brain-local`。
+`-Model` 必须显式传入。`/v1/models` 可能返回已安装库存，不等于当前运行实例；优先在 LM Studio Developer UI 或 `lms ps` 确认当前加载模型。脚本先发送一个只有 `model/messages/max_tokens` 的最小 preflight；如果出现 HTTP、runtime 或 channel 错误，默认跳过后续生成任务，避免连续撞击正在自动重载的模型进程。脚本会生成 `8060s_smoke_results` 目录，把整份结果发回即可判断是否适合当 `brain-local`。
 
 ## 步骤 9：另一台机器验证全链路
 

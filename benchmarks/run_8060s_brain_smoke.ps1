@@ -1,11 +1,16 @@
 param(
   [string]$BaseUrl = "http://127.0.0.1:1234/v1",
-  [string]$Model = "",
+  [Parameter(Mandatory = $true)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Model,
   [string]$ApiKey = "",
   [int]$TimeoutSec = 300,
   [int]$MaxTokens = 512,
+  [ValidateRange(0, 300)]
+  [int]$CooldownSec = 5,
   [string]$OutputDir = ".\8060s_smoke_results",
-  [switch]$SkipVision
+  [switch]$SkipVision,
+  [switch]$ContinueAfterFatal
 )
 
 # Keep this source file ASCII-only so Windows PowerShell 5.1 can parse it
@@ -177,6 +182,16 @@ function Add-Result {
   $script:Results.Add([pscustomobject]$Result) | Out-Null
 }
 
+function Test-FatalRuntimeError {
+  param([string]$ErrorText)
+
+  if ([string]::IsNullOrWhiteSpace($ErrorText)) {
+    return $false
+  }
+
+  return $ErrorText -match "(?i)model has crashed|model reloaded|channel error|channel closed|process.*(exited|terminated|crashed)|model.*(not found|not loaded|failed to load)|unknown model"
+}
+
 function Save-RawResponse {
   param([string]$Id, $Response)
   $rawPath = Join-Path $script:RawDir "$Id.json"
@@ -191,15 +206,44 @@ function Invoke-ChatCase {
     [int]$CaseMaxTokens = 512,
     [double]$Temperature = 0.2,
     [string]$ExpectRegex = "",
-    [int]$CaseTimeoutSec = 300
+    [int]$CaseTimeoutSec = 300,
+    [switch]$MinimalRequest
   )
+
+  if ($script:FatalRuntimeError -and -not $ContinueAfterFatal) {
+    Add-Result @{
+      id = $Id
+      name = $Name
+      ok = $true
+      passed = $false
+      latency_seconds = $null
+      finish_reason = "skipped_after_fatal"
+      content_length = 0
+      reasoning_length = 0
+      prompt_tokens = $null
+      completion_tokens = $null
+      total_tokens = $null
+      expect_regex = $ExpectRegex
+      content_preview = "Skipped after fatal runtime or preflight error."
+      error = ""
+    }
+    return
+  }
+
+  if ($script:ChatCasesStarted -gt 0 -and $CooldownSec -gt 0) {
+    Write-Host "Cooling down for $CooldownSec seconds ..."
+    Start-Sleep -Seconds $CooldownSec
+  }
+  $script:ChatCasesStarted++
 
   $body = [ordered]@{
     model = $script:SelectedModel
     messages = $Messages
     max_tokens = $CaseMaxTokens
-    temperature = $Temperature
-    stream = $false
+  }
+  if (-not $MinimalRequest) {
+    $body["temperature"] = $Temperature
+    $body["stream"] = $false
   }
 
   Write-Host "Running $Id - $Name ..."
@@ -241,6 +285,14 @@ function Invoke-ChatCase {
     }
   } catch {
     $sw.Stop()
+    $errorText = Get-ErrorText -ErrorRecord $_
+    if ($Id -eq "t01_short_en" -or (Test-FatalRuntimeError -ErrorText $errorText)) {
+      $script:FatalRuntimeError = $true
+      $script:FatalRuntimeErrorText = $errorText
+      if (-not $ContinueAfterFatal) {
+        Write-Warning "Fatal runtime or preflight error detected. Remaining chat cases will be skipped."
+      }
+    }
     Add-Result @{
       id = $Id
       name = $Name
@@ -255,7 +307,7 @@ function Invoke-ChatCase {
       total_tokens = $null
       expect_regex = $ExpectRegex
       content_preview = ""
-      error = Get-ErrorText -ErrorRecord $_
+      error = $errorText
     }
   }
 }
@@ -271,6 +323,9 @@ $script:RawDir = Join-Path $runDir "raw"
 New-Item -ItemType Directory -Force -Path $script:RawDir | Out-Null
 
 $script:Results = [System.Collections.Generic.List[object]]::new()
+$script:ChatCasesStarted = 0
+$script:FatalRuntimeError = $false
+$script:FatalRuntimeErrorText = ""
 $modelsUrl = Join-Url $BaseUrl "models"
 
 Write-Host "8060S brain smoke test"
@@ -307,19 +362,27 @@ try {
     throw "No models returned from $modelsUrl"
   }
 
-  if ([string]::IsNullOrWhiteSpace($Model)) {
-    $preferred = @($modelIds | Where-Object { $_ -match "35|3\.6|a3b|qwen" } | Select-Object -First 1)
-    if ($preferred.Count -gt 0) {
-      $script:SelectedModel = $preferred[0]
-    } else {
-      $script:SelectedModel = $modelIds[0]
-    }
-  } else {
-    $script:SelectedModel = $Model
+  if ($modelIds -notcontains $Model) {
+    throw "Requested model id '$Model' was not returned by $modelsUrl. Pass an exact id from /v1/models."
   }
+  $script:SelectedModel = $Model
 
   $systemInfo["available_models"] = $modelIds
   $systemInfo["selected_model"] = $script:SelectedModel
+  Write-Host "Selected model: $script:SelectedModel"
+
+  $lmsCommand = Get-Command "lms" -ErrorAction SilentlyContinue
+  if ($null -ne $lmsCommand) {
+    try {
+      $lmsPs = ((& $lmsCommand.Source ps 2>&1) | Out-String).Trim()
+      $systemInfo["lms_ps"] = $lmsPs
+      if (-not [string]::IsNullOrWhiteSpace($lmsPs) -and $lmsPs -notmatch [regex]::Escape($script:SelectedModel)) {
+        Write-Warning "lms ps did not show the exact selected model id. Confirm the loaded instance in LM Studio before trusting this run."
+      }
+    } catch {
+      $systemInfo["lms_ps_error"] = $_.Exception.Message
+    }
+  }
 
   Add-Result @{
     id = "t00_models"
@@ -369,15 +432,14 @@ $systemPrompt = "You are being tested as a local LabAgent brain candidate. Put f
 
 Invoke-ChatCase `
   -Id "t01_short_en" `
-  -Name "short exact answer" `
+  -Name "minimal preflight" `
   -Messages @(
-    @{ role = "system"; content = $systemPrompt },
     @{ role = "user"; content = "Reply with exactly: brain-ok" }
   ) `
   -CaseMaxTokens 64 `
-  -Temperature 0.0 `
   -ExpectRegex "brain-ok" `
-  -CaseTimeoutSec 180
+  -CaseTimeoutSec $TimeoutSec `
+  -MinimalRequest
 
 Invoke-ChatCase `
   -Id "t02_short_zh" `
@@ -389,7 +451,7 @@ Invoke-ChatCase `
   -CaseMaxTokens 128 `
   -Temperature 0.2 `
   -ExpectRegex "8060S" `
-  -CaseTimeoutSec 180
+  -CaseTimeoutSec $TimeoutSec
 
 Invoke-ChatCase `
   -Id "t03_code_review" `
@@ -429,10 +491,10 @@ Invoke-ChatCase `
     @{ role = "system"; content = $systemPrompt },
     @{ role = "user"; content = "Write 300 to 500 Simplified Chinese characters explaining why a reasoning model must pass latency, non-empty content, patch, repo map, Codex smoke, and stability tests before becoming the default coding worker. Keep those English metric names visible. Put the final answer in content and do not output reasoning only." }
   ) `
-  -CaseMaxTokens ([Math]::Max($MaxTokens, 768)) `
+  -CaseMaxTokens $MaxTokens `
   -Temperature 0.3 `
   -ExpectRegex "latency|content|patch|repo|Codex|benchmark" `
-  -CaseTimeoutSec ([Math]::Max($TimeoutSec, 420))
+  -CaseTimeoutSec $TimeoutSec
 
 if ($SkipVision) {
   Add-Result @{
@@ -469,7 +531,7 @@ if ($SkipVision) {
       -CaseMaxTokens 256 `
       -Temperature 0.2 `
       -ExpectRegex "8060S|VISION|73|blue|red|green|rectangle|circle" `
-      -CaseTimeoutSec ([Math]::Max($TimeoutSec, 420))
+      -CaseTimeoutSec $TimeoutSec
   } catch {
     Add-Result @{
       id = "t06_vision"
@@ -490,7 +552,7 @@ if ($SkipVision) {
   }
 }
 
-$evaluatedResults = @($script:Results | Where-Object { $_.finish_reason -ne "skipped" })
+$evaluatedResults = @($script:Results | Where-Object { $_.finish_reason -notlike "skipped*" })
 $passedCount = @($evaluatedResults | Where-Object { $_.passed }).Count
 $totalCount = $evaluatedResults.Count
 $skippedCount = $script:Results.Count - $totalCount
@@ -500,6 +562,8 @@ $systemInfo["passed"] = $passedCount
 $systemInfo["failed"] = $failedCount
 $systemInfo["total"] = $totalCount
 $systemInfo["skipped"] = $skippedCount
+$systemInfo["fatal_runtime_error"] = $script:FatalRuntimeError
+$systemInfo["fatal_runtime_error_text"] = $script:FatalRuntimeErrorText
 
 $report = [ordered]@{
   system = $systemInfo
@@ -520,6 +584,8 @@ $md.Add("- Passed: $passedCount / $totalCount") | Out-Null
 $md.Add("- Skipped: $skippedCount") | Out-Null
 $md.Add("- TimeoutSec: $TimeoutSec") | Out-Null
 $md.Add("- MaxTokens: $MaxTokens") | Out-Null
+$md.Add("- CooldownSec: $CooldownSec") | Out-Null
+$md.Add("- Fatal runtime error: $script:FatalRuntimeError") | Out-Null
 $md.Add("") | Out-Null
 $md.Add("## Results") | Out-Null
 $md.Add("") | Out-Null
@@ -542,6 +608,8 @@ $md.Add("## How To Read") | Out-Null
 $md.Add("") | Out-Null
 $md.Add('- `content_length=0` means the model may be stuck in reasoning-only output for OpenAI-compatible clients.') | Out-Null
 $md.Add('- `finish=length` means the output budget was exhausted; lower context or max tokens before using it as a route.') | Out-Null
+$md.Add('- The first chat case is a minimal preflight. By default, a request error or runtime/channel crash stops later chat cases to avoid repeated reload loops.') | Out-Null
+$md.Add('- Use `-ContinueAfterFatal` only when intentionally collecting repeated crash evidence.') | Out-Null
 $md.Add('- Vision failure is acceptable if this model is only meant to be `brain-local`, but it should not replace `vision-local`.') | Out-Null
 $md.Add('- Send this whole result folder back for review, especially `8060s_smoke_report.json` and `8060s_smoke_report.md`.') | Out-Null
 
