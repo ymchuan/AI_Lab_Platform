@@ -4,6 +4,13 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.18] - 2026-07-16
+
+### Changed
+- 重组 5090 重启操作文档，按 `qwen-agent`、`labagent-agent` 普通文本、RAG、图片和独立公网 RAG 场景列出最小启动集、节点依赖、停止方式和巡检入口。
+- 记录 8060S Q4 `qwen3.6-35b-a3b@q4_k_m` 对照 smoke：模型库存可达，但实际生成 0/5，故障模式与 Q8 相同。
+- 8060S 下一轮从继续更换 35B 量化改为保守参数下的 12B/27B 同机对照，并优先检查 LM Studio runtime、AMD 后端/驱动和崩溃日志。
+
 ## [0.4.17] - 2026-07-15
 
 ### Changed

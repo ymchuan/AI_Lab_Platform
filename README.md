@@ -6,7 +6,7 @@
 
 本项目将内网 GPU 主机上的本地大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何支持 OpenAI 协议的客户端（Cline、OpenWebUI、Cursor 等）都能像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-07-15 校准）：5090 主机已部署并运行 LM Studio，5090 上的默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 保留为 `qwen-think` reasoning baseline，不直接替换主执行模型。新设备已确认为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，并已通过 `:12341` SSH 反向隧道把 `text-embedding-nomic-embed-text-v1.5-embedding` 和 `qwen/qwen3-vl-30b` 接入云端 LiteLLM，公网别名分别为 `embed-local` 和 `vision-local`；`labagent-agent` 图片链路已验证可用。8060S 实测 63.65GB 系统内存，首个 `qwen3.6-35b-a3b-uncensored` 候选在 5/5 chat 中进程崩溃或自动重载；因此暂不建立 `:12342` 或 `brain-local`，先做低资源配置与更小模型对照。云服务器固定为 2 核 2GB Ubuntu 24.04，后续继续作为轻量控制面而不是计算节点。
+当前事实基线（2026-07-16 校准）：5090 主机已部署并运行 LM Studio，5090 上的默认 Agent/Cline 执行模型定为 `qwen/qwen3-coder-30b`；`qwen/qwen3.6-27b` 保留为 `qwen-think` reasoning baseline，不直接替换主执行模型。新设备已确认为 RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM，并已通过 `:12341` SSH 反向隧道把 `text-embedding-nomic-embed-text-v1.5-embedding` 和 `qwen/qwen3-vl-30b` 接入云端 LiteLLM，公网别名分别为 `embed-local` 和 `vision-local`；`labagent-agent` 图片链路已验证可用。8060S 实测 63.65GB 系统内存，Qwen3.6-35B-A3B 的 Q8 与 Q4 两种配置均在 5/5 chat 中进程崩溃或自动重载；因此暂不建立 `:12342` 或 `brain-local`，下一轮改用保守参数测试 12B/27B 并检查 LM Studio/AMD runtime。云服务器固定为 2 核 2GB Ubuntu 24.04，后续继续作为轻量控制面而不是计算节点。
 
 新设备的专用显存可以按资源规划理解为 `16GB + 16GB = 32GB`，但它不是一块连续 32GB 显存。Windows 任务管理器里 RTX 5080 显示的 `46.7GB GPU 内存`包含约 `30.7GB` 共享系统内存，不能按 46.7GB VRAM 规划大模型。单个模型能否跨 RTX 5080 和 RTX 4060 Ti 运行，取决于推理引擎是否支持 tensor parallel、pipeline parallel、layer offload 或手动把不同模型分配到不同 GPU。短期更稳妥的规划是：5080 跑第二推理/视觉/中等代码模型，4060 Ti 跑 Embedding、Reranker 或轻量实验模型。
 
@@ -40,7 +40,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 |------|-----|------|---------|------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M | 93.7GB 可用系统内存 | 主力推理节点 | ✅ 已接入 LM Studio，默认 Qwen3-Coder-30B |
 | 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 | 61.4GB | Embedding / Vision 节点；后续 Rerank/第二推理 | ✅ `embed-local` / `vision-local` 已接入 |
-| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 63.65GB（本机 smoke 实测） | 候选 brain / 文档处理 / rerank / 轻量服务节点 | ❌ 35B-A3B Uncensored 生成进程反复崩溃并自动重载，不接入 brain-local |
+| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU | 63.65GB（本机 smoke 实测） | 候选 brain / 文档处理 / rerank / 轻量服务节点 | ❌ 35B-A3B Q8/Q4 均 0/5 生成并反复崩溃/重载，不接入 brain-local |
 | 云服务器 | 2核 Ubuntu 24.04 | 2GB | 轻量 API 网关/隧道中转 | ✅ LiteLLM 运行中，不计划升级 |
 
 ## 当前阶段：Qwen3-Coder 主模型 + RAG Service v1
@@ -80,7 +80,7 @@ http://82.156.69.153:8000/v1              ← LiteLLM API Gateway
 | RAG Service v1 | ✅ 公网 health 已由 David 验证 | `services/rag` 支持 CLI index/search/ask 和 HTTP search/ask；`82.156.69.153:18010` 通过 SSH 反向隧道临时暴露；本地 `data/rag/` 不进 Git |
 | Agent Router v0 | ✅ 文本和图片 smoke 已通过，tools 透传待复测 | `127.0.0.1:8020` 提供 `labagent-agent`；公网 `18020` 已可访问；已补 `/v1/responses stream=true` 的 `response.completed` 兼容事件；恢复新设备 `:12341` 后图片链路已验证；无图片的 Codex Responses `tools` 请求现在透传 `qwen-agent`，需重启后复测 |
 | Codex CLI | ✅ C1-C6 小型开发 workflow 通过 | David 机器通过 `qwen-agent` 完成读项目、创建文件、单/多文件编辑、测试执行和失败修复；长上下文/异常错误体验待测 |
-| 8060S | ❌ 35B-A3B 当前配置崩溃 | 不接 `:12342`；先降低资源配置并用 27B/12B 做同机对照 |
+| 8060S | ❌ 35B-A3B Q8/Q4 均崩溃 | 不接 `:12342`；用保守参数测试 12B/27B，并检查 LM Studio/AMD runtime |
 
 ## 快速开始
 
@@ -173,46 +173,43 @@ python -m services.rag.cli search "LabAgent 当前有哪些公网模型路由？
 python -m services.rag.cli ask "LabAgent 当前多节点路由是什么状态？"
 ```
 
-RAG Service v1 本地启动：
+## 5090 重启后怎么恢复服务
+
+完整操作手册见 [docs/operations/SETUP.md：步骤 10](docs/operations/SETUP.md#步骤-105090-日常启动停止与巡检)。统一脚本 `scripts/start_5090_services.ps1` 是 action 启动器；每个常驻 action 必须在独立 PowerShell 窗口运行并保持窗口不关闭。
+
+最常用的两种启动方式：
+
+| 目标 | 启动内容 |
+|------|----------|
+| 团队通过 Codex / Cline 使用 `qwen-agent` | 5090 LM Studio + `qwen-tunnel` |
+| 使用公网 `labagent-agent` 普通文本 | 上一行 + `agent` + `agent-tunnel` |
+| 使用 `labagent-agent` 项目问答 / RAG | 上一行 + `rag` + 新设备 `:12341` |
+| 使用 `labagent-agent` 图片识别 | 普通文本启动集 + 新设备 `:12341` |
+
+5090 主模型隧道：
 
 ```powershell
-.\scripts\start_5090_services.ps1 -Action rag
+cd E:\qwen_setup
+.\scripts\start_5090_services.ps1 -Action qwen-tunnel
 ```
 
-Agent router 本地启动：
+`labagent-agent` 普通文本需要再分别打开两个 PowerShell 窗口：
 
 ```powershell
 .\scripts\start_5090_services.ps1 -Action agent
-```
-
-Agent router 公网临时入口：
-
-```powershell
 .\scripts\start_5090_services.ps1 -Action agent-tunnel
 ```
 
-远程客户端配置为 `http://82.156.69.153:18020/v1`、模型 `labagent-agent`、鉴权 `<LABAGENT_AGENT_API_KEY>`。云端已支持 `GatewayPorts clientspecified`，腾讯云安全组已放行 TCP 18020。
+需要项目问答 / RAG 时，再单独启动 `-Action rag`，并保证新设备 `embed-local` 和 `:12341` 可用。图片识别同样依赖新设备 LM Studio、`vision-local` 和 `:12341`。`rag-tunnel` 只在外部客户端需要直接访问公网 RAG `:18010` 时启动，不是 `labagent-agent` 的必需项。
 
-David 远程调试时，可在 5090 额外开启公网 RAG 隧道。云端 sshd 已设置 `GatewayPorts clientspecified`，腾讯云安全组需放行 TCP 18010：
-
-```powershell
-.\scripts\start_5090_services.ps1 -Action rag-tunnel
-```
-
-5090 主模型隧道也可以用统一脚本启动：
+启动后巡检：
 
 ```powershell
-.\scripts\start_5090_services.ps1 -Action qwen-tunnel
 .\scripts\start_5090_services.ps1 -Action status
-```
-
-每日全链路巡检：
-
-```powershell
 .\scripts\check_labagent_status.ps1
 ```
 
-该脚本会检查 5090 本机服务、云端隧道、LiteLLM、`qwen-agent`、`embed-local`、`vision-local`、RAG 和 `labagent-agent`，并把脱敏结果写入本地 `logs/`。
+巡检脚本会检查 5090 本机服务、云端隧道、LiteLLM、`qwen-agent`、`embed-local`、`vision-local`、RAG 和 `labagent-agent`，并把脱敏结果写入本地 `logs/`。
 
 ## License
 

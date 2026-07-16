@@ -266,7 +266,16 @@ POST /v1/chat/completions   OK
 
 本轮统计为 1/6，其中唯一通过项是模型库存接口；实际生成任务是 0/5。退出码低 32 位为 `0xC00008A0`。该结果证明模型进程反复崩溃并由 LM Studio 自动重载，但不能仅凭退出码确认根因是 OOM、AMD/Vulkan 后端或参数配置。
 
-结论：当前 `qwen3.6-35b-a3b-uncensored` + 8060S + LM Studio 配置不具备 `brain-local` 接入资格。下一步先降低 context/KV cache/GPU offload 等资源配置，再用 27B IQ3_XS 或 12B 模型做同机对照。复测通过最小 chat 前不建立 `:12342`，不新增 `brain-local` alias。
+第三轮 Q4 对照（run `20260716_155010`）：
+
+- 准确模型 ID：`qwen3.6-35b-a3b@q4_k_m`。
+- 统计仍为 1/6，唯一通过项仍是 `/v1/models`；实际生成任务 0/5。
+- t01 / t03 / t05 返回相同模型进程崩溃和退出码 `18446744072635812000`；t02 / t04 返回 `Model reloaded.`。
+- 五次请求耗时约 10.6-32.5s，均无 `content`、`reasoning_content` 或 token 统计。
+
+Q4 降低权重占用后故障模式没有变化，因此“仅仅是 Q8 权重太大”不能解释当前结果；但仍不能排除 context/KV cache/GPU offload 等运行期内存压力。排查优先级应提高到 LM Studio runtime、AMD 后端/驱动、加载参数和更小模型同机对照。
+
+结论：当前 Q8 `qwen3.6-35b-a3b-uncensored` 与 Q4 `qwen3.6-35b-a3b@q4_k_m` 两种配置都不具备 `brain-local` 接入资格。下一步用 4096 context、关闭 speculative decoding 的保守配置测试 12B 或 27B，再保存 LM Studio 崩溃前日志。复测通过最小 chat 前不建立 `:12342`，不新增 `brain-local` alias。
 
 ## 数据集说明
 

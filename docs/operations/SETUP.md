@@ -277,38 +277,118 @@ curl.exe http://82.156.69.153:8000/v1/chat/completions `
   --data-raw '{ "model": "vision-local", "messages": [{"role":"user","content":[{"type":"text","text":"请描述图片内容并读出可见文字。"},{"type":"image_url","image_url":{"url":"data:image/png;base64,<BASE64_IMAGE>"}}]}], "max_tokens": 500 }'
 ```
 
-## 步骤 10：启动并验证 RAG Service v1 公网入口
+## 步骤 10：5090 日常启动、停止与巡检
 
-RAG Service v1 运行在 5090，不在新设备上运行。它读取 5090 本地 `data/rag/index.json`，embedding 可通过云端 LiteLLM 路由到新设备 `embed-local`，chat 可直连 5090 本机 LM Studio。
+这是机器重启后的标准恢复流程。5090 上的常用服务统一通过
+`scripts/start_5090_services.ps1` 启动。该脚本是 **action 启动器**，不会在一个命令里把所有服务放到后台；每个常驻 action 都要在独立 PowerShell 窗口中运行，并保持窗口不关闭。
 
-5090 上的常用服务已经收敛到统一脚本：
+### 10.1 启动前确认
+
+1. 在 5090 的 LM Studio 中加载 Qwen3-Coder-30B。
+2. 确认 LM Studio Local Server 已启动，并监听 `127.0.0.1:1234`。
+3. 确认 `E:\qwen_setup\.env.local` 存在。不要把其中的 key 粘贴进文档、聊天或 Git。
+4. 根据实际使用场景选择下面的最小启动集，不要无目的地启动所有公网入口。
+
+### 10.2 按场景选择启动集
+
+| 使用场景 | 5090 必须启动 | 其他节点要求 |
+|----------|---------------|--------------|
+| 团队通过 Codex / Cline 使用 `qwen-agent` | LM Studio + `qwen-tunnel` | 无 |
+| 使用公网 `labagent-agent` 普通文本 | 上一行 + `agent` + `agent-tunnel` | 无 |
+| 使用 `labagent-agent` 项目问答 / RAG | 上一行 + `rag` | 新设备 LM Studio + 新设备 `:12341` 隧道，为 `embed-local` 提供服务 |
+| 使用 `labagent-agent` 图片识别 | `qwen-agent` 与普通文本所需服务 | 新设备 LM Studio + 新设备 `:12341` 隧道，为 `vision-local` 提供服务 |
+| 公网直接调用 RAG `:18010` | `rag` + `rag-tunnel`；生成回答时还要保证本机 LM Studio 可用 | 新设备 LM Studio + `:12341`，为 `embed-local` 提供服务 |
+
+说明：
+
+- `rag-tunnel` 只用于外部客户端直接访问 `http://82.156.69.153:18010`。`labagent-agent` 在 5090 本机调用 `127.0.0.1:8010`，因此不依赖 `rag-tunnel`。
+- `agent-tunnel` 只负责把云端 `:18020` 转发到 5090 的 Agent Router `:8020`。
+- 图片和 embedding 由新设备承载；5090 脚本不会代替新设备启动 `:12341`。
+
+### 10.3 启动团队默认 `qwen-agent`
+
+先在一个新的 5090 PowerShell 窗口运行：
 
 ```powershell
 cd E:\qwen_setup
-
-# 5090 LM Studio -> 云端 :12340
 .\scripts\start_5090_services.ps1 -Action qwen-tunnel
+```
 
-# RAG Service -> 本机 :8010
-.\scripts\start_5090_services.ps1 -Action rag
+窗口停在那里且没有报错就是正常状态。团队通过
+`http://82.156.69.153:8000/v1`、模型 `qwen-agent` 使用 Codex / Cline 时，只需要这一项和已经启动的 LM Studio。
 
-# RAG 公网入口 -> 云端 :18010
-.\scripts\start_5090_services.ps1 -Action rag-tunnel
+### 10.4 启动 `labagent-agent`
 
-# Agent Router -> 本机 :8020
+普通文本路由只需要保留 `qwen-tunnel` 窗口，再分别新开两个 5090 PowerShell 窗口：
+
+```powershell
+cd E:\qwen_setup
 .\scripts\start_5090_services.ps1 -Action agent
+```
 
-# Agent Router 公网入口 -> 云端 :18020
+```powershell
+cd E:\qwen_setup
 .\scripts\start_5090_services.ps1 -Action agent-tunnel
+```
 
-# 检查本机和云端监听端口
+需要项目问答 / RAG 时，再开第三个 5090 PowerShell 窗口：
+
+```powershell
+cd E:\qwen_setup
+.\scripts\start_5090_services.ps1 -Action rag
+```
+
+远程客户端使用：
+
+```text
+Base URL: http://82.156.69.153:18020/v1
+Model:    labagent-agent
+Key:      <LABAGENT_AGENT_API_KEY>
+```
+
+项目问答需要 `embed-local`，图片识别需要 `vision-local`；这两种能力都必须在新设备启动相应 LM Studio 模型，并保持以下隧道运行：
+
+```powershell
+ssh -N -R 12341:127.0.0.1:1234 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 ubuntu@82.156.69.153
+```
+
+### 10.5 可选：开放独立 RAG 公网入口
+
+只有外部客户端需要直接访问 RAG `:18010` 时，才在新的 5090 PowerShell 窗口运行：
+
+```powershell
+cd E:\qwen_setup
+.\scripts\start_5090_services.ps1 -Action rag-tunnel
+```
+
+### 10.6 启动后巡检
+
+普通端口检查：
+
+```powershell
+cd E:\qwen_setup
 .\scripts\start_5090_services.ps1 -Action status
+```
 
-# 每日全链路巡检，包含真实 API smoke test
+每日全链路巡检（包含真实 API smoke test，并将脱敏结果写入本地 `logs/`）：
+
+```powershell
+cd E:\qwen_setup
 .\scripts\check_labagent_status.ps1
 ```
 
-每个长驻 action 建议单独开一个 PowerShell 窗口执行，并保持窗口不关闭。`agent` action 会显式传入 `--base-url $env:LABAGENT_BASE_URL`，避免 Agent Router 回落到本机不存在的 `127.0.0.1:8000/v1`。
+如果 `ssh` 报 `remote port forwarding failed for listen port ...`，通常是旧隧道仍占用云端端口。先运行 `-Action status`，不要重复启动同一条隧道。
+
+### 10.7 停止服务
+
+- 在对应常驻窗口按 `Ctrl+C`，或关闭该 PowerShell 窗口。
+- 关闭 `qwen-tunnel` 后，公网 `qwen-agent` 会不可用。
+- 关闭 `agent-tunnel` 后，公网 `:18020` 会不可用，但本机 `:8020` 仍可能运行。
+- 关闭 `rag` 后，Agent Router 的 RAG 分支和独立 RAG API 都会不可用。
+
+### 10.8 RAG 手动启动备用方式
+
+正常情况优先使用脚本。只有排查脚本或环境变量问题时，才在 5090 PowerShell 手动启动 RAG Service。RAG Service 运行在 5090，不在新设备上运行；它读取 5090 本地 `data/rag/index.json`，embedding 可通过云端 LiteLLM 路由到新设备 `embed-local`，chat 可直连 5090 本机 LM Studio。
 
 在 5090 PowerShell 启动服务：
 

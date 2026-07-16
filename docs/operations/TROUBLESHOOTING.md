@@ -340,14 +340,14 @@ Exit code: 18446744072635812000
 Model reloaded.
 ```
 
-这证明模型运行进程崩溃并被 LM Studio 自动重载。退出码低 32 位为 `0xC00008A0`，但不要仅凭该码把根因写成 OOM；还需要用 LM Studio 日志、较低资源配置和更小模型对照定位。
+2026-07-16 又用 Q4 `qwen3.6-35b-a3b@q4_k_m` 复测，实际生成仍为 0/5：3 次相同退出码崩溃，2 次 `Model reloaded.`。这证明模型运行进程崩溃并被 LM Studio 自动重载，而且单纯从 Q8 换成 Q4 没有解决问题。退出码低 32 位为 `0xC00008A0`，但不要仅凭该码把根因写成 OOM；还需要用 LM Studio 日志、保守加载参数和更小模型对照定位。
 
 **排查**：
 
 1. 在 LM Studio UI 确认 Developer / Local Server 当前真正加载的模型；如果已安装 LM Studio CLI，也可运行 `lms ps`。
 2. 查看 LM Studio server/runtime 日志，保存崩溃前最后 50-100 行。
-3. 将 context length 先降到 4096 或 8192，关闭 speculative decoding，降低 KV cache / GPU offload 等资源压力后重载。
-4. 先跑一个更小的同机对照模型，例如已安装的 27B IQ3_XS 或 12B；若小模型可用而 35B 崩溃，优先定位 35B 资源/量化配置。若小模型也崩溃，优先定位运行时、驱动或 AMD 后端。
+3. 将 context length 先固定为 4096，关闭 speculative decoding，降低 KV cache / GPU offload 等资源压力后重载。
+4. 不再继续尝试其他 35B 量化作为第一优先级。先跑一个更小的同机对照模型，例如已安装的 27B IQ3_XS 或 12B；若小模型可用而 35B 崩溃，优先定位 35B 资源/量化配置。若小模型也崩溃，优先定位运行时、驱动或 AMD 后端。
 5. 用当前版 `run_8060s_brain_smoke.ps1` 复测；它会优先保存 PowerShell 的 `ErrorDetails.Message`。
 6. 如果仍失败，先单独发一个最小请求并查看错误正文：
 

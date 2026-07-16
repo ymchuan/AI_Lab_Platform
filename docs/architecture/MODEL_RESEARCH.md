@@ -60,7 +60,9 @@ coder-small-local -> 8060S 或新设备候选 / 中小代码模型，通过 smok
 5. `patch_task_eval.py` 和 `repo_map_eval.py`：证明它不是只会聊天。
 6. 30-60 分钟稳定性：连续请求不掉线、不空内容、不明显 OOM。
 
-2026-07-15 第二轮结果：增强脚本确认 `qwen3.6-35b-a3b-uncensored` 的 5 个 chat case 中，3 次明确返回模型进程崩溃，2 次返回 `Model reloaded.`；无任何 `content`、`reasoning_content` 或 token 统计。退出码低 32 位为 `0xC00008A0`，但现有证据不足以断言具体是 OOM、Vulkan/AMD 后端还是 LM Studio 配置。当前模型/配置不进入 `brain-local`；下一轮先降低 context/KV/GPU offload，再用 27B IQ3_XS 或 12B 模型做同机对照。
+2026-07-15 第二轮结果：增强脚本确认 Q8 `qwen3.6-35b-a3b-uncensored` 的 5 个 chat case 中，3 次明确返回模型进程崩溃，2 次返回 `Model reloaded.`；无任何 `content`、`reasoning_content` 或 token 统计。退出码低 32 位为 `0xC00008A0`，但现有证据不足以断言具体是 OOM、Vulkan/AMD 后端还是 LM Studio 配置。
+
+2026-07-16 Q4 对照结果：`qwen3.6-35b-a3b@q4_k_m` 仍是实际生成 0/5，3 次相同退出码崩溃、2 次 `Model reloaded.`。量化从 Q8 降到 Q4 没有改变故障模式，因此不再把“换成 Q4”作为接入方案。8060S 下一轮应使用 4096 context、关闭 speculative decoding 的保守设置跑 12B/27B 同机对照，并保留 LM Studio runtime 日志；若小模型也崩溃，优先定位 AMD 后端、驱动或 LM Studio runtime，而不是继续换 35B 量化。
 
 当前已有一键 smoke 脚本：
 

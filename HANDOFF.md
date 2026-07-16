@@ -6,7 +6,7 @@
 
 把内网 GPU 主机的大模型通过云服务器暴露为公网 OpenAI-compatible API，让任何客户端像调用 OpenAI 一样调用本地模型。
 
-当前事实基线（2026-07-15 校准）：5090 主机默认 Agent/Cline 执行模型为 `qwen/qwen3-coder-30b`；新设备通过 `:12341` 正式承载 `embed-local` 和 `vision-local`。8060S 内网 IP 记录为 `172.16.14.142`，实测 63.65GB 系统内存，但 `qwen3.6-35b-a3b-uncensored` 在 5/5 chat 中进程崩溃或自动重载，尚不具备 `:12342` / `brain-local` 接入资格。云服务器继续只承担 2 核 2GB Ubuntu 24.04 轻量网关和隧道中转。
+当前事实基线（2026-07-16 校准）：5090 主机默认 Agent/Cline 执行模型为 `qwen/qwen3-coder-30b`；新设备通过 `:12341` 正式承载 `embed-local` 和 `vision-local`。8060S 内网 IP 记录为 `172.16.14.142`，实测 63.65GB 系统内存，但 Qwen3.6-35B-A3B 的 Q8 与 Q4 两种配置均在 5/5 chat 中进程崩溃或自动重载，尚不具备 `:12342` / `brain-local` 接入资格。云服务器继续只承担 2 核 2GB Ubuntu 24.04 轻量网关和隧道中转。
 
 RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.md`、`docs/**/*.md` 切块，调用 `embed-local` 生成 768 维向量，保存本地 `data/rag/index.json`，再用 cosine similarity 检索并调用 `qwen-agent` 生成带 `[Sx]` 引用的回答。2026-06-26 重建运行索引：364 chunks / 22 files，CLI `search/ask` 和 HTTP `/health`、`/v1/rag/search`、`/v1/rag/ask`、`/v1/chat/completions` 已通过；RAG Service v1 已通过 `0.0.0.0:18010 -> 127.0.0.1:8010` SSH 反向隧道暴露，并由 David 外部机器访问公网 `/health` 返回 `ok=true`。当前它更像 workspace 级项目记忆层，而不是全局混合知识库。注意：当前仍是 baseline，还没有真实向量数据库、reranker、文档上传和 answer faithfulness 自动评测，且 RAG 服务/隧道仍需手动维持。
 
@@ -40,13 +40,15 @@ RAG v0 已完成最小闭环：`services/rag` 可以把 `README.md`、`HANDOFF.m
 
 2026-07-15 8060S 第二轮本机 smoke 已捕获真实错误：`qwen3.6-35b-a3b-uncensored` 在 t01/t03/t04 生成请求中进程崩溃（exit code `18446744072635812000`，低 32 位 `0xC00008A0`），t02/t05 返回 `Model reloaded.`。模型库存接口成功，但 5/5 chat 均未进入有效推理，因此该模型/配置不具备 `brain-local` 接入资格。先降低上下文/卸载配置并用更小模型做同机对照；原因尚未确定为 OOM 或 AMD 后端问题。
 
+2026-07-16 8060S Q4 对照 smoke（run `20260716_155010`）：准确模型 ID 为 `qwen3.6-35b-a3b@q4_k_m`，统计 1/6 但唯一通过项是模型库存，实际生成仍为 0/5；t01/t03/t05 以相同退出码崩溃，t02/t04 自动重载。Q4 没有改善 Q8 的故障模式，下一轮不再优先更换 35B 量化，而是以 4096 context、关闭 speculative decoding 测试 12B/27B，并检查 LM Studio runtime、AMD 后端/驱动和崩溃日志。
+
 ## 设备清单
 
 | 设备 | 硬件 | 内网 IP | 当前状态 | 计划用途 |
 |------|------|---------|---------|---------|
 | 5090 | RTX 5090 32GB + AMD Radeon 610M + 93.7GB RAM | 172.16.14.240 | ✅ LM Studio 已接入，默认 load Qwen3-Coder-30B | 主力推理 / `qwen-agent` |
 | 新设备 | RTX 5080 16GB + RTX 4060 Ti 16GB + AMD 集显 + 61.4GB RAM | 172.16.14.17 | ✅ `embed-local` / `vision-local` 已接入，VL smoke 已通过 | Embedding 和 Vision 已上线；后续第二推理/Reranker |
-| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 63.65GB RAM（本机实测） | 172.16.14.142 | ❌ 35B-A3B Uncensored 5/5 chat 崩溃/重载，未接入路由 | 先调低资源配置并做小模型对照；不替换主路由 |
+| 8060S | AMD Ryzen AI MAX+ 395 / Radeon 8060S / NPU / 63.65GB RAM（本机实测） | 172.16.14.142 | ❌ 35B-A3B Q8/Q4 均 5/5 chat 崩溃/重载，未接入路由 | 用保守参数做 12B/27B 对照并检查 runtime；不替换主路由 |
 | 云服务器 | 2核 2GB Ubuntu 24.04 | 82.156.69.153 (公网) | ✅ LiteLLM 运行中；RAG :18010 已验证 | 轻量 API 网关 / RAG 临时公网入口 |
 
 ## 当前架构
@@ -104,10 +106,21 @@ ssh -N -R 12341:127.0.0.1:1234 -o ExitOnForwardFailure=yes -o ServerAliveInterva
 
 ## 怎么启动 5090 上的本地服务
 
+详细且按场景分组的操作流程见 [docs/operations/SETUP.md：步骤 10](docs/operations/SETUP.md#步骤-105090-日常启动停止与巡检)。最小启动集：
+
+- 团队通过 Codex / Cline 使用 `qwen-agent`：5090 LM Studio + `qwen-tunnel`。
+- 使用公网 `labagent-agent` 普通文本：上一项 + `agent` + `agent-tunnel`。
+- 使用项目问答 / RAG：上一项 + `rag`，并保证新设备 `embed-local` + `:12341` 可用。
+- 使用图片识别：普通文本启动集 + 新设备 `vision-local` + `:12341` 隧道。
+- `rag-tunnel` 只用于公网直接访问 RAG `:18010`，不是 `labagent-agent` 的必需项。
+
 每个长驻 action 单独开一个 PowerShell 窗口执行，并保持窗口不关闭：
 
 ```powershell
 cd E:\qwen_setup
+
+# 5090 LM Studio 公网模型路由，云端 :12340 -> 5090 :1234
+.\scripts\start_5090_services.ps1 -Action qwen-tunnel
 
 # RAG Service，本机 :8010
 .\scripts\start_5090_services.ps1 -Action rag
@@ -188,7 +201,7 @@ TCP 3000 — OpenWebUI（需要时开放）
 
 3. **5090 不能通过公网 IP 访问自己** — NAT 回环问题。5090 本机直接连 `127.0.0.1:1234`。
 
-4. **新设备已完成 embedding / vision 路由 v1，8060S 仍停留在本机候选阶段** — 新设备当前正式承载 `embed-local` 和 `vision-local`；8060S 的 35B-A3B Uncensored 生成进程会崩溃/自动重载，先完成本机资源调参与小模型对照，不建立 `:12342`，不替换 5090 主代码模型。
+4. **新设备已完成 embedding / vision 路由 v1，8060S 仍停留在本机候选阶段** — 新设备当前正式承载 `embed-local` 和 `vision-local`；8060S 的 35B-A3B Q8/Q4 生成进程都会崩溃/自动重载，先用保守参数完成 12B/27B 同机对照并定位 runtime，不建立 `:12342`，不替换 5090 主代码模型。
 
 5. **当前项目代码深度还不够** — 目前主要是部署、网关、隧道和文档。为了支撑 Agent 开发岗简历，下一阶段必须补 RAG Service、Agent Runtime、MCP Server、Skills、Eval Harness、模型 benchmark、量化和小规模 LoRA/QLoRA 实验。
 
